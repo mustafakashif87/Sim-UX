@@ -1,0 +1,166 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Design tokens ported from site-doctor/frontend/src/index.css, with
+   DESIGN.md's adaptations applied as explicit, named overrides (see
+   inline notes below) rather than silent edits. */
+
+@layer base {
+  :root {
+    /* --- Paper family: exact RGB(255,255,237) requested directly ----
+       Original site-doctor values were a cool, desaturated grey-green
+       (paper 100 10% 94%). M1 first warmed this to a deliberately
+       LESS-saturated cream than Wispr's own #FFFFEB, reasoning that
+       full saturation might hurt severity-color contrast. That
+       reasoning didn't actually hold up (severity colors are used as
+       fills with light text on top, or as dark -ink text variants —
+       both have a large enough lightness gap from a 96%-lightness
+       background regardless of its saturation) and was overridden:
+       this is now the exact conversion of the requested RGB value,
+       essentially identical to Wispr's own cream. --- */
+    --paper: 60 100% 96%;
+    --paper-raised: 60 100% 98%;
+    --paper-sunk: 55 40% 93%;
+
+    /* --- Stock tints: unchanged from site-doctor ------------------- */
+    --stock-1: 90 20% 98%;
+    --stock-2: 120 16% 96.8%;
+    --stock-3: 155 14% 96%;
+    --stock-4: 72 18% 97.2%;
+    --stock-5: 175 12% 96.4%;
+
+    /* --- Ink family: unchanged (already "near-black, not pure
+       black" per DESIGN.md's own guidance) ----------------------- */
+    --ink: 160 16% 7.5%;
+    --ink-2: 150 8% 30%;
+    --ink-3: 155 6% 41%;
+
+    --rule: 129 9% 85%;
+
+    /* --- Severity colors: UNCHANGED, and must stay that way. These
+       are functional (high/medium/low), not brand accents — the new
+       persona tints below are chosen specifically to sit outside
+       these hues so a persona-colored card is never mistakable for a
+       severity signal. Do not "harmonize" these with the warmer
+       palette above. --- */
+    --critical: 3 62% 48%;
+    --caution: 38 97% 37%;
+    --minor: 153 47% 33%;
+
+    --critical-ink: 3 76% 40%;
+    --caution-ink: 38 98% 28%;
+    --minor-ink: 155 50% 24%;
+
+    --radius: 0.5rem;
+
+    /* --- Persona accent tints: NEW for SimUX. Not present in
+       site-doctor at all (it only ever had severity + neutral stock
+       tints). Chosen to sit clearly outside critical (~3deg), caution
+       (~38deg), and minor (~153deg) hues. Reserved for persona-grouped
+       views ONLY (persona-selection cards, results-by-persona
+       grouping) — never mixed with severity/stock tinting on the same
+       card (see components/app persona-view rule, applied from M2/M9
+       onward). Treat these exact values as a starting point, not
+       final — adjust freely once seen against real screen content. */
+    --persona-accessibility: 258 42% 93%;
+    --persona-accessibility-ink: 258 35% 32%;
+
+    --persona-motor: 335 50% 94%;
+    --persona-motor-ink: 335 40% 30%;
+
+    /* Mobile-first's "Phase 2 / not yet real" badge tint. Deliberately
+       neutral/grey, not a persona hue — it marks "inert placeholder,"
+       not a third persona identity. */
+    --persona-phase2: 210 6% 91%;
+    --persona-phase2-ink: 210 6% 40%;
+  }
+
+  * { @apply border-rule; }
+
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+
+  body {
+    @apply bg-paper font-body text-ink-2 antialiased;
+    font-size: 1rem;
+    line-height: 1.65;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Site Doctor's faint graph-paper grid background (body::before) was
+     ported here through M1, then deliberately removed — it's the
+     clearest single piece of Site Doctor's "audit instrument / chart
+     paper" visual identity, and has no equivalent in Wispr's flat,
+     ungridded page. Plain paper background now, no texture. */
+
+  /* Headings default to the sans display face (Bricolage Grotesque) —
+     this stays the DEFAULT deliberately, so smaller in-card headings
+     keep clear hierarchy against body copy. Hero-scale (`text-d1`/
+     `text-d2`) headings get their own dedicated face instead: apply
+     `font-hero` (Instrument Serif) directly on those elements — e.g.
+     Landing's H1, the Results dashboard's UI Score numeral — a
+     utility-layer class beats this @layer base rule by Tailwind's own
+     layer ordering, so no !important or extra override class is
+     needed. Instrument Serif's own italic is genuinely elegant/
+     calligraphic (not just slanted) — pair `font-hero` with a plain
+     `italic` span on part of a headline for the roman+italic emphasis
+     device wisprflow.ai's own hero uses ("Don't type, / just speak.").
+     Source Serif 4 stays the body-copy face and is never reused for
+     hero text. */
+  h1, h2, h3, h4 { @apply font-display text-ink; font-weight: 700; }
+
+  ::selection { background: hsl(var(--ink)); color: hsl(var(--paper-raised)); }
+
+  :focus-visible {
+    outline: 2px solid hsl(var(--ink));
+    outline-offset: 2px;
+    border-radius: 2px;
+  }
+}
+
+@layer components {
+  /* Uppercase mono is reserved for genuinely code-like content only —
+     page URLs, CSS/DOM selectors, confidence percentages, WCAG
+     citation IDs. For editorial section labels/eyebrows, use
+     DESIGN.md's sentence-case tracked-sans pattern instead
+     (font-display/font-sans, weight 500, tracking-[0.08em], ~70%
+     ink opacity) — do NOT reach for .label-mono by default just
+     because it's the existing habit from site-doctor. */
+  .label-mono {
+    @apply font-mono text-label font-medium uppercase text-ink-3;
+  }
+
+  /* The sentence-case counterpart referenced above. Named `-sans` (not
+     `-eyebrow`) to avoid colliding with SectionHeading's `eyebrow`
+     prop name — this class is the styling, that prop is content. */
+  .eyebrow-sans {
+    @apply font-display text-sm font-medium tracking-[0.08em] text-ink-3;
+  }
+
+  .card-chart {
+    @apply rounded-lg border border-rule bg-paper-raised shadow-chart;
+  }
+
+  /* Larger sibling of .card-chart for section-level containers (persona
+     cards, hero panels) — uses the new xl/2xl radius tier instead of
+     the tight `lg` (0.5rem) UI-element radius. Two-tier radius system
+     per DESIGN.md: small UI elements stay tight, big containers go
+     soft. */
+  .card-chart-lg {
+    @apply rounded-2xl border border-rule bg-paper-raised shadow-chart;
+  }
+
+  .rule-perf {
+    background-image: repeating-linear-gradient(to right, hsl(var(--rule)) 0 6px, transparent 6px 12px);
+    height: 1px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}

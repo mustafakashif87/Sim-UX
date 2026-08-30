@@ -1,0 +1,36 @@
+# Dependencies
+node_modules
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# TypeScript incremental build cache
+*.tsbuildinfo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Editor/OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Vercel (created locally by `vercel link` / `vercel dev`)
+.vercel
+
+# Env files — this project has none in use yet (no backend, no API keys,
+# see CLAUDE.md rule 1), but ignored preemptively so one is never
+# accidentally committed if that changes later.
+.env
+.env.*
+!.env.example

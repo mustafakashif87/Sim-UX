@@ -32,8 +32,12 @@ const SHAPE = {
     borderRadius: 999,
     y: 12,
     height: 56,
+    // Was 20/12 — the asymmetry read as "See it in action" sitting too
+    // close to the pill's right edge relative to the logo's left
+    // clearance. Matched to the logo's own 20px so both ends breathe
+    // the same amount.
     paddingLeft: 20,
-    paddingRight: 12,
+    paddingRight: 20,
     backgroundColor: "hsl(var(--ink) / 1)",
     borderColor: "hsl(var(--paper) / 0.16)",
     boxShadow: "0 20px 44px -24px hsl(var(--ink) / 0.85)",

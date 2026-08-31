@@ -87,10 +87,10 @@ simux-poc/
         pages/
             Landing.tsx              <- Fully built (M0-M6c, see §10)
             NewRun.tsx               <- M7, DONE — real multi-select persona-selection screen, see §10
-            Running.tsx              <- M4 placeholder, M8 not started
-            Results.tsx              <- M4 placeholder, M9 not started
-            FindingDetail.tsx        <- M4 placeholder, M10 not started
-            Correction.tsx           <- M4 placeholder, M11 not started
+            Running.tsx              <- M8, DONE — scripted 7-stage walkthrough, see §10
+            Results.tsx              <- M9, DONE — severity/persona-filtered dashboard, see §10
+            FindingDetail.tsx        <- M10, DONE — fix->sandbox->verify wizard (×2 showcases), see §10
+            Correction.tsx           <- M11, DONE — deliberately plain, see §10
             dev/
                 Tokens.tsx, Fixture.tsx, Metaphors.tsx
                                      <- Dev-only routes (import.meta.env.DEV
@@ -335,12 +335,17 @@ list of steps. Structure:
 ## 10. Milestone status (see the milestone plan for full per-item detail)
 
 **Done:** M0 (scaffold) · M1 (tokens) · M2 (primitives) · M3 (fixtures/
-citations) · M4 (routing shell — all 6 routes exist, everything past
-Landing/NewRun is a placeholder by design) · M5 (persona-restriction +
+citations) · M4 (routing shell — all 6 routes exist; every route now
+has real content as of M11, see below) · M5 (persona-restriction +
 verify-stamp visual spike) · M6/M6b (landing v1/v2) · M6c (landing
 animation overhaul — `CapabilityGrid` and `PipelineStages` both fully
 rebuilt and verified this session; see §§8-9) · **M7 (New-run /
-persona-selection screen — built and verified this session, see below).**
+persona-selection screen) · M8 (Running / execution-state walkthrough) ·
+M9 (Results / Aggregation dashboard) · M10 (Finding detail
+fix→sandbox→verify showcase) · M11 (Correction/Learning panel) · M12
+(End-to-end rehearsal + risk-guardrail audit)** — all six built and
+verified this session, see below. **The full six-screen POC (M0–M12) is
+now complete — no milestone remains.**
 
 **M7 — New-run / persona-selection screen — DONE.** `NewRun.tsx` is now
 the real screen (no longer the M4 placeholder). `src/components/ui/
@@ -396,29 +401,163 @@ as `switch.tsx`/`checkbox.tsx`.
   focusable button (not a decorative click target), Enter toggles
   `data-state` to `on` — confirms genuine keyboard operability, not
   just mouse-click support.
-- Selection state stays local `useState` in `NewRun.tsx` — not wired
-  into router state or any shared store, since nothing downstream (M8+)
-  exists yet to consume it. `Running.tsx` was not touched.
+- Selection state was local `useState` in `NewRun.tsx` only, at the
+  time M7 shipped — **M8 (below) added the hand-off to `Running.tsx`**,
+  so this is no longer the full picture; see M8's entry.
 
-**Not started — M7 is done, and the plan's own M6c confirmation gate was
-already lifted by this session's explicit "start M7" instruction, so
-nothing further is blocking M8 from starting whenever you're ready:**
+**M8 — Running / execution-state walkthrough — DONE.** `Running.tsx` is
+now the real screen (no longer the M4 placeholder).
 
-- **M8** — Running/execution-state animated walkthrough. Note: the
-  milestone plan's own text still says "reuse `Trace.tsx` as the
-  pipeline spine" — that file no longer exists (deleted with the rest
-  of the clinical-instrument metaphor, §4). M8 needs a fresh non-
-  clinical stage-spine visual (a simple connecting line/dot-progression)
-  when it starts.
-- **M9** — Results/Aggregation dashboard
-- **M10** — Finding-detail fix→sandbox→verify showcase (×2: accessibility
-  and motor personas only, per `POC_SPEC.md` §6 item 5)
-- **M11** — Correction/Learning panel (deliberately the least-polished
-  screen — see §1 rule 4)
-- **M12** — End-to-end rehearsal + risk-guardrail audit (grep for stray
-  "Site Doctor" references, confirm zero network requests anywhere,
-  re-verify every citation character-for-character, confirm dev-only
-  routes are excluded from prod)
+- **Reused `PipelineStages.tsx`'s stage visuals instead of rebuilding
+  seven cards a second time.** Exported its `StageVisual` component and
+  generalized the three sub-components that were hardcoded to the
+  accessibility persona/finding (`PersonaVisual`, `FixVisual`'s
+  code-snippet chip via a new `FIX_SNIPPETS` lookup, `VerifyVisual`'s
+  summary line — now just `finding.recommendation`) so they branch on
+  `persona.id`/`finding.id`. `PipelineStages`' own two call sites
+  (desktop scroll version + `MobileStages` fallback) still pass the
+  accessibility persona/finding, unchanged — this was a pure
+  generalization of already-shared code, not a landing-page behavior
+  change.
+- **Persona hand-off**: `NewRun.tsx`'s Continue `Link` now passes
+  `state={{ personaIds: selected }}` via React Router. `Running.tsx`
+  reads `useLocation().state` and picks accessibility if selected,
+  else motor if selected, else falls back to accessibility (covers
+  direct navigation with no state, and mobile-first-only selections,
+  since mobile-first has no real showcase finding yet). Deliberately
+  router `state`, not a global store or query param — nothing else in
+  the app needs this value, and its lifetime should be exactly "until
+  this run finishes."
+- **`Trace.tsx` stale reference resolved** (flagged in the milestone
+  plan as needing a fresh replacement) — built `RunningIndicator`, a
+  light-mode stage spine (numbered stages + a continuously-filling
+  progress line on a `MotionValue`, not React state) matching
+  `PipelineStages`' own `PipelineIndicator` but in the page's light
+  palette.
+- **Scripted, not simulated-live**: a fixed `STAGE_DURATIONS_MS` array
+  (~21.5s total) drives stage advancement via chained `setTimeout`s;
+  auto-navigates to `/results` on completion. A real, ticking
+  elapsed-time display (`Date.now()` delta, not a fake percentage) plus
+  a "Skip to results" link for practical use.
+- **Verified via Playwright**: stage labels advance in correct order
+  with correct timing; selecting only the motor persona on `NewRun.tsx`
+  and continuing shows the motor persona's name and
+  `MotorImprecisePointer`'s animation during "Persona attempts," not
+  accessibility's content; direct navigation to `/running` with no
+  router state falls back to accessibility; the elapsed timer genuinely
+  increments in real time; both the skip link and the full-duration
+  auto-advance correctly land on `/results`.
+
+**M9 — Results / Aggregation dashboard — DONE.** `Results.tsx` is now
+the real dashboard (no longer the bare-list M4 placeholder).
+
+- Findings stay grouped by severity always; a persona filter narrows
+  within that structure rather than replacing it (built with the same
+  `ui/toggle-group.tsx` primitive from M7, `type="single"` this time).
+  **Verified via Playwright**: filtering to Motor shows exactly its 3
+  findings, correctly distributed across whichever severity groups they
+  actually fall in — severity grouping never collapses when a persona
+  filter is applied.
+- **Deliberate scope decision**: shows the full fixture run regardless
+  of which personas were picked in M7/M8 — see the reasoning already
+  recorded above (before M9 started) for why no new router-state
+  hand-off was added for this.
+- Persona filter options are derived from which personas actually have
+  findings, so mobile-first is never offered as a filter (it would
+  always empty the list).
+- Hero UI Score via `CountUp`; Visual Design/Accessibility-Visual
+  breakdown bars animate in via `motion`, not a fake computed value.
+- Run history: a bar chart across `run.history` plus the current run,
+  current run visually emphasized — confirmed ascending (44→52→61→71),
+  an honest improving-over-time story matching the fixture data.
+- **Verified via Playwright**: zero non-font network requests (only
+  Google Fonts, already in use since M0 — not a backend/computation
+  call); clicking a finding correctly routes to `/results/:findingId`.
+
+**M10 — Finding detail: fix → sandbox → verify showcase (×2) — DONE.**
+`FindingDetail.tsx` is now the real screen (no longer the M4
+placeholder).
+
+- The two showcase findings (accessibility, motor — `POC_SPEC.md` §6
+  item 5) get an interactive 3-step wizard: Propose fix → Sandbox →
+  Verify, ending in M5's `VerifyStamp`. **Reused `FixVisual`/
+  `SandboxVisual`/`VerifyVisual` directly from `PipelineStages.tsx`**
+  (exported alongside `StageVisual` for exactly this) rather than
+  rebuilding the same three panels a third time — now three different
+  places (landing preview, Running narration, this walkthrough) share
+  one visual language for the same three steps.
+- Every other finding renders as a plain recap (observation,
+  recommendation, real citation if present) with an explicit, honest
+  note that there's no walkthrough — not a silently thinner showcase UI.
+- Advances only on user action (Next/Back); "Next" becomes "Back to
+  results" on the final step rather than looping or dead-ending.
+- **Verified via Playwright**: full Propose-fix → Sandbox → Verify
+  progression plus backward navigation both work correctly; non-
+  showcase findings show no walkthrough controls at all; an unknown
+  finding id shows an honest "Not found" state.
+
+**M11 — Correction/Learning panel — DONE.** `Correction.tsx` is now a
+single plain panel (no longer the M4 placeholder) — deliberately the
+least-polished screen, per §1 rule 4, not an oversight.
+
+- One-sentence paraphrase of the proposal's §2.2.5 (Correction/Learning
+  Layer) description, plus a small static ASCII diagram (`Fix-verify
+  outcome`/`Operator correction` → `Case store` → `New judgment`) in a
+  `<pre>` block, both labeled "Planned for FYP-II." **No** `motion`
+  import, **no** `useDemoRun()` fixture data, **no** interactivity —
+  correct for this module, not something to "finish" later.
+- Deliberately skips the big `font-hero`/`text-d1` heading and
+  `.eyebrow-sans` label every other screen uses, in favor of a plain
+  `font-display text-3xl` heading and `.label-mono` — small, intentional
+  signals of "less design attention here," not inconsistency.
+- **Real bug caught via screenshot, not assumed away**: the first
+  version's ASCII diagram overflowed its container and got visibly
+  clipped ("judgments" cut mid-word). Fixed by shortening the diagram's
+  labels and widening the panel slightly; re-verified with a second
+  screenshot showing it fits with room to spare. "Deliberately minimal"
+  and "actually broken" are different things — this session caught the
+  difference rather than assuming a plain page can't have bugs.
+
+**M12 — End-to-end rehearsal + risk-guardrail audit — DONE.** Executed
+against a **fresh production build** (`npm run build` + `vite preview`,
+port 4173), not the dev server — the milestone's own requirement, since
+dev-only route exclusion and real bundle behavior can't be confirmed
+against `npm run dev`.
+
+- Full 7-item pass/fail checklist (branding grep, zero-network-request
+  check across all six screens, citation re-verification via live
+  WebFetch against the real W3C/NN-g sources, Correction/Learning still-
+  least-polished comparative grep, risky-language grep, mobile-first
+  badging consistency, dev-route production exclusion) — all 7 passed.
+  Full table is in `MILESTONES.md`'s M12 section; not duplicated here.
+- **One genuine gap was found and fixed, not just confirmed-clean**:
+  grepping for risky live-execution language (detecting/analyzing/
+  scanning/"in progress"/etc.) returned zero hits, but `POC_SPEC.md` §7
+  names the fix→sandbox→verify wizard specifically as this risk's
+  highest-danger screen, and checking that screen directly (not just
+  trusting the grep) showed `FindingDetail.tsx`'s `Walkthrough` component
+  had no honesty disclaimer, unlike `Running.tsx`/`Results.tsx`/
+  `PipelineStages.tsx`, which all do. Fixed by adding one line directly
+  above the wizard's dark panel: *"A scripted walkthrough, advanced by
+  you — not a live fix applied and re-verified in real time."* Rebuilt
+  and re-verified via Playwright that it renders correctly and the page
+  still fires zero network requests.
+- Dev-route exclusion confirmed at two levels, not just one: (a) zero
+  occurrences of `dev/tokens`/`dev/fixture`/`dev/metaphors` anywhere in
+  the built JS bundle (Vite's `import.meta.env.DEV` is statically
+  `false` in production, so Rollup dead-code-eliminates the routes AND
+  their component code, not just hides them at runtime); (b) hitting
+  `/dev/tokens` etc. against the actual served production build
+  correctly falls through to the app's own catch-all (renders Landing),
+  confirmed live, not just inferred from the bundle grep.
+- **Lesson worth keeping**: "grep for bad words returns zero hits" and
+  "the specific named risk in the spec is actually covered" are
+  different questions — this audit's only real finding came from
+  checking the second one directly rather than trusting the first as
+  sufficient.
+
+**No milestone remains — M0 through M12 are all built, verified, and
+documented.**
 
 ---
 

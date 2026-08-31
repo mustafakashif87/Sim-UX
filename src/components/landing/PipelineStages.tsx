@@ -16,6 +16,7 @@ import { VerifyStamp } from "@/components/VerifyStamp";
 import { CountUp } from "@/components/CountUp";
 import { PageMockup } from "@/components/personas/PageMockup";
 import { AccessibilityRestrictedView, READING_ORDER } from "@/components/personas/AccessibilityRestrictedView";
+import { MotorImprecisePointer } from "@/components/personas/MotorImprecisePointer";
 import { useDemoRun } from "@/hooks/useDemoRun";
 import { EASE } from "@/lib/motion";
 import type { DemoRun, Finding, Persona, StageInfo } from "@/lib/types";
@@ -202,7 +203,15 @@ export function PipelineStages() {
   );
 }
 
-function StageVisual({
+// Exported — Running.tsx (M8) reuses this directly so the live
+// walkthrough and this landing-page preview never show two different
+// visual languages for the same pipeline. Its sub-components
+// (PersonaVisual, FixVisual, VerifyVisual) branch on `persona.id`/
+// `finding.id` rather than assuming accessibility — Running.tsx passes
+// whichever persona was actually selected on the New Run screen; this
+// file's own two call sites (below) keep passing the accessibility
+// persona/finding, unchanged.
+export function StageVisual({
   index,
   run,
   persona,
@@ -294,12 +303,17 @@ function BrowserChrome({ children }: { children: ReactNode }) {
    Stage 2 — Persona attempts
 ------------------------------------------------------------------------- */
 
+const PERSONA_DOT: Record<string, string> = {
+  accessibility: "bg-persona-accessibility",
+  motor: "bg-persona-motor",
+};
+
 function PersonaVisual({ persona, task }: { persona: Persona; task: string }) {
   return (
     <div className="flex w-full max-w-[300px] flex-col items-center gap-4">
       <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5">
         <span className="inline-flex items-center gap-1.5 font-mono text-[0.625rem] uppercase tracking-wide text-paper/60">
-          <span className="h-1.5 w-1.5 rounded-full bg-persona-accessibility" aria-hidden="true" />
+          <span className={cn("h-1.5 w-1.5 rounded-full", PERSONA_DOT[persona.id])} aria-hidden="true" />
           {persona.name}
         </span>
         <span className="text-paper/25" aria-hidden="true">
@@ -307,31 +321,41 @@ function PersonaVisual({ persona, task }: { persona: Persona; task: string }) {
         </span>
         <span className="font-mono text-[0.625rem] uppercase tracking-wide text-paper/45">Task: {task}</span>
       </div>
-      {/* Thumbnail only, not AccessibilityRestrictedView's "full" 2-column
-          grid — that variant needs ~500px+ (280px mockup + a readable
-          list column) and this stage's column is ~460px at most. The
-          list below is built directly from the same exported
-          READING_ORDER instead, stacked under the thumbnail rather than
-          beside it. */}
-      <AccessibilityRestrictedView size="thumbnail" active />
-      <div className="w-full rounded-md border border-rule bg-paper-sunk p-3.5">
-        <p className="mb-2 font-mono text-[0.5625rem] uppercase tracking-wide text-ink-3">
-          What it actually perceives
-        </p>
-        <ol className="space-y-1 font-mono text-xs text-ink-2">
-          {READING_ORDER.map((line, i) => (
-            <li
-              key={i}
-              className={cn(
-                "border-b border-rule/60 py-1 last:border-0",
-                i === READING_ORDER.length - 1 && "text-critical",
-              )}
-            >
-              {i + 1}. {line}
-            </li>
-          ))}
-        </ol>
-      </div>
+      {persona.id === "motor" ? (
+        // Motor's actual restriction (imprecise clicks) needs to be SEEN
+        // happening, not read as a list — "full" size here, unlike
+        // accessibility's thumbnail-plus-list below, since there's no
+        // separate text readout for this persona to show instead.
+        <MotorImprecisePointer size="full" active />
+      ) : (
+        <>
+          {/* Thumbnail only, not AccessibilityRestrictedView's "full"
+              2-column grid — that variant needs ~500px+ (280px mockup +
+              a readable list column) and this stage's column is ~460px
+              at most. The list below is built directly from the same
+              exported READING_ORDER instead, stacked under the
+              thumbnail rather than beside it. */}
+          <AccessibilityRestrictedView size="thumbnail" active />
+          <div className="w-full rounded-md border border-rule bg-paper-sunk p-3.5">
+            <p className="mb-2 font-mono text-[0.5625rem] uppercase tracking-wide text-ink-3">
+              What it actually perceives
+            </p>
+            <ol className="space-y-1 font-mono text-xs text-ink-2">
+              {READING_ORDER.map((line, i) => (
+                <li
+                  key={i}
+                  className={cn(
+                    "border-b border-rule/60 py-1 last:border-0",
+                    i === READING_ORDER.length - 1 && "text-critical",
+                  )}
+                >
+                  {i + 1}. {line}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -384,7 +408,23 @@ function Arrow() {
    Stage 4 — Propose fix
 ------------------------------------------------------------------------- */
 
-function FixVisual({ finding }: { finding: Finding }) {
+// Small, abstract code-flavor tag per showcase finding — deliberately
+// NOT trying to be a real diff or a general-purpose renderer for
+// arbitrary findings; there are exactly two showcase findings in this
+// POC (POC_SPEC.md §6 item 5), so a direct lookup is more honest than a
+// generalized "generate a snippet from a finding" abstraction would be.
+const FIX_SNIPPETS: Record<string, string> = {
+  "a11y-checkout-continue-button": 'aria-label="Continue to payment"',
+  "motor-checkout-apply-button-size": "min-width: 24px; min-height: 24px",
+};
+
+// Exported alongside StageVisual — FindingDetail.tsx (M10) reuses these
+// three directly for its own fix -> sandbox -> verify walkthrough (the
+// two showcase findings only), so that walkthrough and this landing
+// page's/Running.tsx's previews of the same pipeline never drift into
+// different visual languages for the same three steps.
+export function FixVisual({ finding }: { finding: Finding }) {
+  const snippet = FIX_SNIPPETS[finding.id];
   return (
     <div className="w-full max-w-[340px] space-y-2.5">
       <GroundCard eyebrow="Issue">
@@ -394,9 +434,9 @@ function FixVisual({ finding }: { finding: Finding }) {
       <div className="rounded-md border border-[hsl(var(--minor))]/35 bg-[hsl(var(--minor))]/10 p-3.5">
         <p className="font-mono text-[0.5625rem] uppercase tracking-wide text-[hsl(var(--minor))]">Proposed fix</p>
         <p className="mt-1.5 text-sm leading-relaxed text-paper">{finding.showcase!.proposedFix}</p>
-        <p className="mt-3 w-fit rounded-sm bg-ink px-2 py-1 font-mono text-[0.625rem] text-paper/55">
-          aria-label=&quot;Continue to payment&quot;
-        </p>
+        {snippet && (
+          <p className="mt-3 w-fit rounded-sm bg-ink px-2 py-1 font-mono text-[0.625rem] text-paper/55">{snippet}</p>
+        )}
       </div>
     </div>
   );
@@ -406,7 +446,7 @@ function FixVisual({ finding }: { finding: Finding }) {
    Stage 5 — Sandbox
 ------------------------------------------------------------------------- */
 
-function SandboxVisual() {
+export function SandboxVisual() {
   return (
     <div className="w-full max-w-[440px]">
       <div className="grid grid-cols-2 gap-5">
@@ -438,7 +478,7 @@ function SandboxVisual() {
    Stage 6 — Verify
 ------------------------------------------------------------------------- */
 
-function VerifyVisual({ persona, finding }: { persona: Persona; finding: Finding }) {
+export function VerifyVisual({ persona, finding }: { persona: Persona; finding: Finding }) {
   return (
     <div className="w-full max-w-[320px] space-y-4">
       <p className="font-mono text-[0.625rem] uppercase tracking-wide text-paper/45">{persona.name}</p>
@@ -456,10 +496,7 @@ function VerifyVisual({ persona, finding }: { persona: Persona; finding: Finding
         </span>
       </div>
       <div className="rounded-md border border-paper/15 bg-paper/[0.04] p-3.5">
-        <p className="font-mono text-xs leading-relaxed text-paper/70">
-          …Continue to payment, <span className="text-[hsl(var(--minor))]">button</span> — accessible name now
-          announced.
-        </p>
+        <p className="font-mono text-xs leading-relaxed text-paper/70">{finding.recommendation}</p>
       </div>
       <VerifyStamp result={finding.showcase!.verifyResult} />
     </div>

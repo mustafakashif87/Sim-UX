@@ -39,3 +39,4 @@ required.
   scroll-pinned section patterns)
 - `CLAUDE.md` — full technical handoff for continuing this project in a
   new session
+- `MILESTONES.md` — the detailed M0-M12 build plan with current status

@@ -86,7 +86,14 @@ export default function NewRun() {
         <div className="mt-10 flex flex-wrap items-center gap-4">
           {selected.length > 0 ? (
             <Button asChild size="lg" className="group">
-              <Link to="/running">
+              {/* Router `state` (not a query param or global store) is
+                  deliberate: it's the smallest mechanism that actually
+                  works here — Running.tsx (M8) needs to know which
+                  personas to narrate, nothing else in the app needs
+                  this value, and it's gone the moment you navigate away
+                  from `/running`, which is the correct lifetime for a
+                  one-shot "what was picked for this run" handoff. */}
+              <Link to="/running" state={{ personaIds: selected }}>
                 Continue with {selected.length} {selected.length === 1 ? "persona" : "personas"}
                 <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
               </Link>

@@ -37,12 +37,6 @@ export const itemVariants: Variants = {
   visible: { opacity: 1, y: 0, transition: transition(0.65) },
 };
 
-/** Child: arrives without travel, for text that sits inside a moving parent. */
-export const fadeVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: transition(0.7) },
-};
-
 /** A hairline that draws itself left-to-right. Used for section rules. */
 export const ruleVariants: Variants = {
   hidden: { scaleX: 0 },
@@ -51,60 +45,6 @@ export const ruleVariants: Variants = {
 
 /** Standard scroll trigger: fire once, a little before the block is centred. */
 export const inView = { once: true, amount: 0.25 } as const;
-
-/** Looser trigger for tall blocks that would otherwise never reach 25%. */
-export const inViewTall = { once: true, amount: 0.15 } as const;
-
-/* -------------------------------------------------------------------------
-   Scroll reveals
-
-   The plain fade-and-rise above is the floor. Everything below the hero uses
-   these instead: the card comes up, settles out of a shallow tilt, and
-   resolves from a slight blur — the way a strip coming off a machine snaps
-   into focus as it lands. The blur is what stops it reading as a generic
-   slide-up, and it's cheap enough at this size to leave on.
-------------------------------------------------------------------------- */
-
-/** Card-sized reveal. Pair with a `perspective` on the parent for the tilt. */
-export const revealVariants: Variants = {
-  hidden: { opacity: 0, y: 44, scale: 0.97, rotateX: 6, filter: "blur(6px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    rotateX: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.85, ease: EASE },
-  },
-};
-
-/** Same idea, no tilt — for blocks that sit flat, like list rows. */
-export const revealFlatVariants: Variants = {
-  hidden: { opacity: 0, y: 28, filter: "blur(4px)" },
-  visible: {
-    opacity: 1,
-    y: 0,
-    filter: "blur(0px)",
-    transition: { duration: 0.7, ease: EASE },
-  },
-};
-
-/** One word of a headline. Words are released in sequence so the line reads
- *  itself into place rather than appearing all at once. */
-export const wordVariants: Variants = {
-  hidden: { opacity: 0, y: "0.5em", filter: "blur(5px)" },
-  visible: {
-    opacity: 1,
-    y: "0em",
-    filter: "blur(0px)",
-    transition: { duration: 0.6, ease: EASE },
-  },
-};
-
-export const wordContainerVariants: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.045, delayChildren: 0.05 } },
-};
 
 /**
  * Drifts an element against the scroll while it crosses the viewport.

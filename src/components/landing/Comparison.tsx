@@ -1,6 +1,4 @@
-import { motion } from "motion/react";
 import { SectionHeading } from "@/components/SectionHeading";
-import { containerVariantsSlow, itemVariants, inViewTall } from "@/lib/motion";
 
 /**
  * M6b — replaces Wispr's "4x faster than typing / 220 WPM" stat-card
@@ -10,11 +8,8 @@ import { containerVariantsSlow, itemVariants, inViewTall } from "@/lib/motion";
  * critique" row) rather than an invented statistic dressed up to look
  * measured.
  *
- * M6c: the plain fade-in list rows are replaced with check/X marks that
- * draw themselves in (SVG `pathLength: 0 -> 1`, own `motion.path`/
- * `motion.line` rather than the lucide-react icon components, which
- * don't expose their internal path for this) — reads as each row being
- * actively marked, not just appearing.
+ * Scroll-triggered reveal (staggered row fade-in, self-drawing check/X
+ * marks) removed by request — rows and marks now render fully in place.
  */
 
 const CRITIQUE_POINTS = [
@@ -62,27 +57,21 @@ function ComparisonColumn({
   return (
     <div className={good ? "card-chart-lg bg-persona-accessibility p-6" : "card-chart-lg bg-paper-sunk p-6"}>
       <h3 className="font-display text-lg font-bold tracking-tight text-ink">{title}</h3>
-      <motion.ul
-        variants={containerVariantsSlow}
-        initial="hidden"
-        whileInView="visible"
-        viewport={inViewTall}
-        className="mt-4 space-y-3"
-      >
+      <ul className="mt-4 space-y-3">
         {points.map((point) => (
-          <motion.li key={point} variants={itemVariants} className="flex items-start gap-2.5">
-            {good ? <DrawnCheck /> : <DrawnX />}
+          <li key={point} className="flex items-start gap-2.5">
+            {good ? <Check /> : <X />}
             <span className="text-sm leading-relaxed text-ink-2">{point}</span>
-          </motion.li>
+          </li>
         ))}
-      </motion.ul>
+      </ul>
     </div>
   );
 }
 
-function DrawnCheck() {
+function Check() {
   return (
-    <motion.svg
+    <svg
       viewBox="0 0 24 24"
       className="mt-0.5 h-4 w-4 shrink-0"
       fill="none"
@@ -91,20 +80,14 @@ function DrawnCheck() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <motion.path
-        d="M20 6 9 17l-5-5"
-        initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        viewport={inViewTall}
-        transition={{ duration: 0.45, ease: "easeOut" }}
-      />
-    </motion.svg>
+      <path d="M20 6 9 17l-5-5" />
+    </svg>
   );
 }
 
-function DrawnX() {
+function X() {
   return (
-    <motion.svg
+    <svg
       viewBox="0 0 24 24"
       className="mt-0.5 h-4 w-4 shrink-0"
       fill="none"
@@ -112,20 +95,8 @@ function DrawnX() {
       strokeWidth={2.5}
       strokeLinecap="round"
     >
-      <motion.line
-        x1="18" y1="6" x2="6" y2="18"
-        initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        viewport={inViewTall}
-        transition={{ duration: 0.3, ease: "easeOut" }}
-      />
-      <motion.line
-        x1="6" y1="6" x2="18" y2="18"
-        initial={{ pathLength: 0 }}
-        whileInView={{ pathLength: 1 }}
-        viewport={inViewTall}
-        transition={{ duration: 0.3, ease: "easeOut", delay: 0.2 }}
-      />
-    </motion.svg>
+      <line x1="18" y1="6" x2="6" y2="18" />
+      <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
   );
 }

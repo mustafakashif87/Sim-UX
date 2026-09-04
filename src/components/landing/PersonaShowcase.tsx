@@ -5,7 +5,7 @@ import { AccessibilityRestrictedView } from "@/components/personas/Accessibility
 import { MotorImprecisePointer } from "@/components/personas/MotorImprecisePointer";
 import { useDemoRun } from "@/hooks/useDemoRun";
 import { cn } from "@/lib/utils";
-import { containerVariantsSlow, revealVariants, inViewTall, useParallax } from "@/lib/motion";
+import { useParallax } from "@/lib/motion";
 
 /**
  * Full rewrite of site-doctor's WhoItsFor.tsx: three audience cards
@@ -15,6 +15,14 @@ import { containerVariantsSlow, revealVariants, inViewTall, useParallax } from "
  * new. Cards use persona tint backgrounds, not the neutral stock
  * rotation — this section groups by persona, so per the M1/M2 rule the
  * two tinting systems never mix here.
+ *
+ * Scroll-triggered fade-in reveal (grid + per-card rise/scale/blur-in)
+ * removed by request. Two scroll-linked effects are kept, since neither
+ * is a fade-in: the per-card parallax drift (`useParallax`, a continuous
+ * effect throughout scroll, not a one-time entrance), and each card's
+ * restriction-simulation animation (blur/linearize, cursor miss-then-
+ * correct) triggering once the card is actually on screen — that's the
+ * persona-restriction demo itself, not decorative chrome.
  */
 
 const TINT: Record<string, string> = {
@@ -38,19 +46,11 @@ export function PersonaShowcase() {
           lede="Each persona is a genuine perceptual or action limit, checkable in code — not an instruction telling a model to pretend. That difference is the whole point."
         />
 
-        <motion.div
-          ref={gridRef}
-          variants={containerVariantsSlow}
-          initial="hidden"
-          whileInView="visible"
-          viewport={inViewTall}
-          className="mt-14 grid gap-5 md:grid-cols-3"
-          style={{ perspective: 1400 }}
-        >
+        <div ref={gridRef} className="mt-14 grid gap-5 md:grid-cols-3" style={{ perspective: 1400 }}>
           {run.personas.map((persona, index) => (
             <PersonaCard key={persona.id} persona={persona} drift={DRIFT[index]} gridRef={gridRef} />
           ))}
-        </motion.div>
+        </div>
       </div>
     </section>
   );
@@ -74,7 +74,7 @@ function PersonaCard({
   const cardInView = useInView(cardRef, { once: true, amount: 0.5 });
 
   return (
-    <motion.div variants={revealVariants} style={{ y }} className="group h-full">
+    <motion.div style={{ y }} className="group h-full">
       <div
         ref={cardRef}
         className={cn(

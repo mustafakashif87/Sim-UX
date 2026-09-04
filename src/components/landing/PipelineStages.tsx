@@ -66,8 +66,8 @@ import type { DemoRun, Finding, Persona, StageInfo } from "@/lib/types";
  *
  * Below `lg`, and whenever `prefers-reduced-motion` is set (at ANY
  * width), the pinned/scrubbed experience is replaced entirely by
- * `MobileStages` — a plain stacked sequence, one block per stage, each
- * revealed via ordinary `whileInView` rather than scroll-jacking.
+ * `MobileStages` — a plain stacked sequence, one block per stage,
+ * rendered in place with no scroll-triggered reveal and no scroll-jacking.
  * Scroll-jacked pinned sections are exactly the kind of motion a
  * reduced-motion user is asking to opt out of, and a pinned section on
  * a small viewport (address-bar collapse, awkward touch-scroll
@@ -622,10 +622,10 @@ function PipelineIndicator({
 
 /* -------------------------------------------------------------------------
    Mobile / reduced-motion fallback — plain stacked sequence, no pinning,
-   no scroll-scrub. Reuses the same per-stage visual components above so
-   the two experiences never drift apart in content, only in how that
-   content is revealed (whileInView-on-mount here, vs. scroll-scrubbed
-   above).
+   no scroll-scrub, no scroll-triggered reveal. Reuses the same per-stage
+   visual components above so the two experiences never drift apart in
+   content — this one just renders every stage in place immediately, vs.
+   scroll-scrubbed above.
 ------------------------------------------------------------------------- */
 
 function MobileStages({
@@ -659,13 +659,7 @@ function MobileStages({
 
         <ol className="mt-12 space-y-14">
           {run.stages.map((stage, i) => (
-            <motion.li
-              key={stage.id}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.3 }}
-              transition={{ duration: 0.6, ease: EASE }}
-            >
+            <li key={stage.id}>
               <span className="font-mono text-[0.6875rem] uppercase tracking-wide text-paper/40">
                 Stage {String(i + 1).padStart(2, "0")} / 07
               </span>
@@ -674,7 +668,7 @@ function MobileStages({
               <div className="mt-6 flex justify-center">
                 <StageVisual index={i} run={run} persona={persona} finding={finding} local={staticProgress} />
               </div>
-            </motion.li>
+            </li>
           ))}
         </ol>
       </div>

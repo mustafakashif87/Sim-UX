@@ -18,7 +18,13 @@ import { containerVariantsSlow, inView, transition } from "@/lib/motion";
 // M6b: expanded from one link list to two columns, and added a large
 // closing wordmark echoing Wispr's giant "Flow" mark at the bottom of
 // their footer — built from the same three-dot motif as BrandMark, at
-// large scale, popping in sequence rather than all at once.
+// large scale.
+//
+// Scroll-in fade+rise on the header block removed by request — that
+// part just renders in its final state now, no whileInView. The
+// closing dots/wordmark keep their own animation (spring-pop dots,
+// clip-path wordmark wipe) — restored by request, since that's a
+// pop/wipe beat, not a generic fade-in.
 const EXPLORE_LINKS = [
   { to: "/#personas", label: "Personas" },
   { to: "/#how", label: "How it works" },
@@ -34,13 +40,7 @@ export function Footer() {
   return (
     <footer className="relative overflow-hidden bg-ink text-paper">
       <div className="container relative py-14 md:py-16">
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-col justify-between gap-10 sm:flex-row sm:items-start"
-        >
+        <div className="flex flex-col justify-between gap-10 sm:flex-row sm:items-start">
           <div className="max-w-[42ch]">
             <BrandMark inverse />
             <p className="mt-4 text-[0.9375rem] leading-relaxed text-paper/60">
@@ -54,7 +54,7 @@ export function Footer() {
             <FooterColumn heading="Explore" links={EXPLORE_LINKS} />
             <FooterColumn heading="About" links={ABOUT_LINKS} />
           </div>
-        </motion.div>
+        </div>
 
         <div className="mt-12 flex flex-wrap items-center justify-between gap-3 border-t border-paper/15 pt-6">
           <p className="font-mono text-micro uppercase text-paper/55">
@@ -91,11 +91,10 @@ export function Footer() {
               />
             ))}
           </div>
-          {/* M6c: clip-path reveal instead of the generic fade+rise every
-              other closing element used — the letters "resolve" into
-              view after the dots finish, a small symbolic beat (the
-              personas/dots resolve into the product name) rather than
-              just fading in like everything else did. */}
+          {/* Clip-path reveal instead of a generic fade+rise — the
+              letters "resolve" into view after the dots finish, a small
+              symbolic beat (the personas/dots resolve into the product
+              name). */}
           <motion.span
             variants={{
               hidden: { clipPath: "inset(0 100% 0 0)" },

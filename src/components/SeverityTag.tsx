@@ -16,13 +16,6 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
   low: "Low",
 };
 
-/** What the severity actually means to the person reading it. */
-export const SEVERITY_MEANING: Record<Severity, string> = {
-  high: "Fix first — this is costing you now",
-  medium: "Worth fixing this cycle",
-  low: "Tidy up when you have time",
-};
-
 const FILL: Record<Severity, string> = {
   high: "bg-critical text-paper-raised",
   medium: "bg-caution text-paper-raised",
@@ -33,12 +26,6 @@ const OUTLINE: Record<Severity, string> = {
   high: "border-critical/45 text-[hsl(var(--critical-ink))]",
   medium: "border-caution/45 text-[hsl(var(--caution-ink))]",
   low: "border-minor/45 text-[hsl(var(--minor-ink))]",
-};
-
-export const SEVERITY_BAR: Record<Severity, string> = {
-  high: "bg-critical",
-  medium: "bg-caution",
-  low: "bg-minor",
 };
 
 interface SeverityTagProps {

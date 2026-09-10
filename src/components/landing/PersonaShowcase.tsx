@@ -10,7 +10,8 @@ import { useParallax } from "@/lib/motion";
 /**
  * Full rewrite of site-doctor's WhoItsFor.tsx: three audience cards
  * ("business owners" / "dev teams" / "solo developers") replaced with
- * the three actual personas. Section rhythm (card-per-column, per-card
+ * the two actual personas (mobile-first removed — was a Phase 2/FYP-II
+ * placeholder only, never a working persona). Section rhythm (card-per-column, per-card
  * scroll drift) is reused from the sibling; every word of content is
  * new. Cards use persona tint backgrounds, not the neutral stock
  * rotation — this section groups by persona, so per the M1/M2 rule the
@@ -28,10 +29,9 @@ import { useParallax } from "@/lib/motion";
 const TINT: Record<string, string> = {
   accessibility: "bg-persona-accessibility",
   motor: "bg-persona-motor",
-  "mobile-first": "bg-persona-phase2",
 };
 
-const DRIFT = [18, 30, 20];
+const DRIFT = [18, 30];
 
 export function PersonaShowcase() {
   const run = useDemoRun();
@@ -46,7 +46,7 @@ export function PersonaShowcase() {
           lede="Each persona is a genuine perceptual or action limit, checkable in code — not an instruction telling a model to pretend. That difference is the whole point."
         />
 
-        <div ref={gridRef} className="mt-14 grid gap-5 md:grid-cols-3" style={{ perspective: 1400 }}>
+        <div ref={gridRef} className="mt-14 grid gap-5 md:grid-cols-2" style={{ perspective: 1400 }}>
           {run.personas.map((persona, index) => (
             <PersonaCard key={persona.id} persona={persona} drift={DRIFT[index]} gridRef={gridRef} />
           ))}
@@ -66,7 +66,6 @@ function PersonaCard({
   gridRef: React.RefObject<HTMLDivElement>;
 }) {
   const y = useParallax(gridRef, drift);
-  const isPlaceholder = persona.depth === "placeholder";
   // M6c: the restriction visuals used to render pre-blurred/static —
   // now they trigger for real once the card is actually on screen,
   // so the restriction demonstrates itself rather than being decoration.
@@ -87,16 +86,6 @@ function PersonaCard({
             <AccessibilityRestrictedView size="thumbnail" active={cardInView} />
           )}
           {persona.id === "motor" && <MotorImprecisePointer size="icon" active={cardInView} />}
-          {persona.id === "mobile-first" && (
-            <div className="grid h-16 w-20 place-items-center rounded-md border border-rule border-dashed">
-              <span className="font-mono text-[0.625rem] uppercase text-ink-3">preview</span>
-            </div>
-          )}
-          {isPlaceholder && (
-            <span className="rounded-full border border-persona-phase2-ink/30 bg-paper-raised px-2.5 py-1 font-mono text-[0.625rem] uppercase tracking-wide text-persona-phase2-ink">
-              Phase 2 · FYP-II
-            </span>
-          )}
         </div>
 
         <h3 className="mt-5 font-display text-xl font-bold tracking-tight text-ink">

@@ -7,7 +7,7 @@
 
 export type Severity = "high" | "medium" | "low";
 
-export type PersonaId = "accessibility" | "motor" | "mobile-first";
+export type PersonaId = "accessibility" | "motor";
 
 export interface Persona {
   id: PersonaId;
@@ -16,10 +16,6 @@ export interface Persona {
    *  instruction — see POC_SPEC.md rule 4 / the Agent Layer's real design
    *  intent (perceptual/action restriction, not "act as a persona"). */
   restriction: string;
-  /** "full" = shown with a showcase finding and real depiction (blur/
-   *  jitter). "placeholder" = mobile-first only, badged Phase 2, no
-   *  findings, no showcase — matches POC_SPEC.md §4. */
-  depth: "full" | "placeholder";
 }
 
 export type TaskId = "signup" | "checkout";

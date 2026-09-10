@@ -48,10 +48,6 @@ export default {
             DEFAULT: "hsl(var(--persona-motor))",
             ink: "hsl(var(--persona-motor-ink))",
           },
-          phase2: {
-            DEFAULT: "hsl(var(--persona-phase2))",
-            ink: "hsl(var(--persona-phase2-ink))",
-          },
         },
         // shadcn/ui compatibility aliases
         border: "hsl(var(--rule))",

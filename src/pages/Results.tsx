@@ -46,9 +46,8 @@ export default function Results() {
   const [personaFilter, setPersonaFilter] = useState("all");
 
   // Only personas that actually have findings get a filter option —
-  // mobile-first never will (POC_SPEC.md §4: placeholder only), so
-  // offering it here would just be a filter that always empties the
-  // list, which reads as broken rather than honest.
+  // derived rather than hardcoded so this stays correct if the fixture
+  // ever adds a persona with no findings yet.
   const personaOptions = useMemo(
     () => run.personas.filter((p) => run.findings.some((f) => f.personaId === p.id)),
     [run.personas, run.findings],

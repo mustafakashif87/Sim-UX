@@ -25,9 +25,7 @@ import { EASE } from "@/lib/motion";
  * directly (no state — e.g. a bookmarked/typed URL), falls back to the
  * accessibility persona, matching the richer of the two showcases.
  * Only accessibility and motor have real showcase findings
- * (`finding.showcase`) per POC_SPEC.md §6 item 5 — if only mobile-first
- * was selected, this falls back the same way, since there is nothing
- * real to narrate for it yet.
+ * (`finding.showcase`) per POC_SPEC.md §6 item 5.
  *
  * Honesty rule (POC_SPEC.md §7 — "never imply live execution"): the
  * only thing timed here is a REAL, ticking elapsed-time display, driven
@@ -43,7 +41,9 @@ export default function Running() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const personaIds = (location.state as { personaIds?: string[] } | null)?.personaIds ?? ["accessibility"];
+  const routerState = location.state as { personaIds?: string[]; siteUrl?: string } | null;
+  const personaIds = routerState?.personaIds ?? ["accessibility"];
+  const siteUrl = routerState?.siteUrl;
   const activePersonaId = personaIds.includes("accessibility")
     ? "accessibility"
     : personaIds.includes("motor")
@@ -101,6 +101,10 @@ export default function Running() {
         <p className="mt-4 max-w-[58ch] text-ink-2">
           A scripted walkthrough — nothing here executes against a real target. Elapsed:{" "}
           <span className="font-mono tabular-nums text-ink">{elapsedLabel}</span>
+        </p>
+        <p className="mt-2 font-mono text-[0.8125rem] text-ink-3">
+          Target: {siteUrl || run.productName} — the walkthrough below is always {run.productName}'s
+          fixture run, regardless of what was entered.
         </p>
 
         <div className="mt-12 grid gap-10 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center lg:gap-16">

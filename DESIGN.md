@@ -65,13 +65,10 @@ near-black). Use the base token instead: `text-critical`, `text-caution`,
 |---|---|---|
 | `--persona-accessibility` | `258 42% 93%` (pastel lavender-blue) | `258 35% 32%` |
 | `--persona-motor` | `335 50% 94%` (pastel rose) | `335 40% 30%` |
-| `--persona-phase2` | `210 6% 91%` (neutral grey — NOT a third persona hue) | `210 6% 40%` |
 
 Chosen specifically to sit outside the severity hues (critical ≈3°,
 caution ≈38°, minor ≈153°) so a persona-colored card can never be
-mistaken for a severity signal. `persona-phase2` is deliberately
-desaturated grey — it marks "inert placeholder" (mobile-first), not a
-third persona identity, and must never get its own saturated hue.
+mistaken for a severity signal.
 
 **Tinting rule, absolute:** severity tinting and persona tinting never
 apply to the same card. Persona-grouped views (persona-selection cards,
@@ -275,13 +272,12 @@ stated in a caption.
   cursor that overshoots/misses a small target, pauses, then corrects —
   never aimless jitter, always a legible miss-then-correct sequence.
   Two sizes: `"icon"` and `"full"`.
-- **Mobile-first**: Phase 2 / FYP-II placeholder, badged with the
-  neutral `persona-phase2` tint — but as of M7, NOT visually or
-  interactively diminished otherwise (no dimmed opacity, no disabled
-  state, same hover/press treatment as the other two). The badge alone
-  carries "not real yet"; reduced polish must not also carry that
-  meaning; a card with a `dashed` border + "preview" label stands in for
-  its metaphor thumbnail since no restriction-simulation exists for it.
+
+The proposal's third persona (mobile-first) — previously shown as a
+Phase 2/FYP-II placeholder card with a neutral `persona-phase2` tint —
+has been removed from this POC entirely, along with that tint token.
+If it returns for FYP-II, it should ship with a real restriction
+metaphor and showcase finding, not as a placeholder card.
 
 ### The dark-chrome / light-content browser convention
 

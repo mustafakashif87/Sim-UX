@@ -68,12 +68,6 @@
 
     --persona-motor: 335 50% 94%;
     --persona-motor-ink: 335 40% 30%;
-
-    /* Mobile-first's "Phase 2 / not yet real" badge tint. Deliberately
-       neutral/grey, not a persona hue — it marks "inert placeholder,"
-       not a third persona identity. */
-    --persona-phase2: 210 6% 91%;
-    --persona-phase2-ink: 210 6% 40%;
   }
 
   * { @apply border-rule; }

@@ -70,7 +70,7 @@ export default function Tokens() {
 
       <section>
         <h2 className="text-d3">Persona accents (new)</h2>
-        <div className="mt-4 grid grid-cols-3 gap-4">
+        <div className="mt-4 grid grid-cols-2 gap-4">
           <div className="flex flex-col gap-2">
             <div className="flex h-16 w-full items-center justify-center rounded-md border border-rule bg-persona-accessibility">
               <span className="font-mono text-xs text-persona-accessibility-ink">Aa</span>
@@ -82,12 +82,6 @@ export default function Tokens() {
               <span className="font-mono text-xs text-persona-motor-ink">Aa</span>
             </div>
             <span className="font-mono text-micro uppercase text-ink-3">motor / age</span>
-          </div>
-          <div className="flex flex-col gap-2">
-            <div className="flex h-16 w-full items-center justify-center rounded-md border border-rule bg-persona-phase2">
-              <span className="font-mono text-xs text-persona-phase2-ink">Aa</span>
-            </div>
-            <span className="font-mono text-micro uppercase text-ink-3">phase 2 (mobile-first)</span>
           </div>
         </div>
       </section>

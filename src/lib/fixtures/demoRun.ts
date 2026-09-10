@@ -13,21 +13,12 @@ const PERSONAS: Persona[] = [
     name: "Accessibility-focused",
     restriction:
       "Perceives the page only through its accessibility tree — never the screenshot, layout, or CSS. Navigates by keyboard only.",
-    depth: "full",
   },
   {
     id: "motor",
     name: "Motor / age-related",
     restriction:
       "Sees the full page, but clicks imprecisely — small or tightly-packed targets are frequently missed before landing correctly.",
-    depth: "full",
-  },
-  {
-    id: "mobile-first",
-    name: "Mobile-first",
-    restriction:
-      "Fixed small viewport, touch-only input, no mouse/hover. Planned for FYP-II — shown here as a preview of what's coming next, not a working persona yet.",
-    depth: "placeholder",
   },
 ];
 

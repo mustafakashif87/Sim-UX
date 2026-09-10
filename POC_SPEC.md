@@ -57,13 +57,19 @@ sequence, but the graph itself does not run.
 
 ## 4. Personas shown
 
-All three from the proposal, at these depths:
+Two of the three from the proposal, both at full depth:
 
 | Persona | Depiction | Depth |
 |---|---|---|
 | Accessibility-focused | Blurred/desaturated screenshot beside a plain linearized text list (stands in for "sees only the accessibility tree, never the screenshot/DOM/CSS") | Full — one showcase finding |
 | Motor/age-related | Sharp screenshot with an animated cursor that misses a small target, then corrects | Full — one showcase finding |
-| Mobile-first | Shown as a real card in the persona-selection screen, but visibly badged "Phase 2 / FYP-II" | Placeholder only — matches the proposal's own "cut first if behind schedule" framing, so the demo doesn't contradict its own source document |
+
+The proposal's third persona (mobile-first) has been removed from this
+POC entirely — it was shown only as a "Phase 2 / FYP-II" badged
+placeholder card with no findings or showcase, and has been cut rather
+than kept as unfinished-looking scope. If it returns for FYP-II, it
+should ship at full depth (a real restriction metaphor + showcase
+finding), not as a placeholder card again.
 
 ## 5. Demo scenario
 
@@ -112,10 +118,8 @@ reads as an architecture story even with nothing behind it):
    the full fix → sandbox → verify walkthrough: a proposed fix, a
    labeled "sandboxed copy" panel, and a pass/fail verification stamp
    (the hard "sticker shadow" treatment from `DESIGN.md` specifically
-   for the *pass* state — a literal stamp metaphor). Only accessibility
-   and motor/age get a showcase — mobile-first is placeholder-only
-   (§4), so a showcase for it would contradict its own "Phase 2"
-   framing. Every other finding in the results list is a plain,
+   for the *pass* state — a literal stamp metaphor). Both personas
+   shown (§4) get a showcase. Every other finding in the results list is a plain,
    already-triaged card with no animated walkthrough — the showcase
    stays concentrated and rehearsable rather than diluted across
    repeats.
@@ -164,8 +168,6 @@ reads as an architecture story even with nothing behind it):
 - *"Is any of this actually running?"* → No — this is a click-through
   prototype of the end state; the real pipeline is FYP-II's scope per
   our own Table 2.3.
-- *"Why does mobile-first look unfinished compared to the other two?"*
-  → Matches our own proposal's stated cut-first priority.
 - *"Where did this citation come from?"* → Hand-picked from the real
   WCAG/Nielsen source, not retrieved — the real Grounding Layer's
   retrieval mechanism is FYP-II scope.

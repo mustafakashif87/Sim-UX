@@ -10,10 +10,10 @@ LLM persona agents that attempt real tasks on web pages and report usability and
 
 ## Commands
 
-Python 3.12 (CI uses the same).
+Python 3.12 (CI uses the same). Members develop on macOS and Windows; CI runs the unit tests and the lefthook hooks on both Ubuntu and Windows, and `.gitattributes` keeps every text file LF.
 
 ```bash
-python3.12 -m venv .venv && source .venv/bin/activate
+python3.12 -m venv .venv && source .venv/bin/activate   # Windows: py -3.12 -m venv .venv; .venv\Scripts\activate
 pip install -e ".[dev]"                 # add ,browser for Playwright
 lefthook install                        # once per clone; installs commit and push hooks
 ruff check . && ruff format --check .   # lint and format check, as CI runs them

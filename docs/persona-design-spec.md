@@ -20,6 +20,8 @@ SimUX personas are configurations of hard constraints enforced by the harness, n
 
 A persona is one YAML file that sets four constraint axes. The agent loop, model and prompt template are shared by every persona. Each axis is enforced in exactly one harness module, so every behaviour difference can be traced to a line of code.
 
+The action axis applies to every persona: the validator accepts only whitelisted actions on harness refs. No current persona narrows it further, because action limits were the role of the proposal's keyboard and motor personas, and those failures (a focus trap, an unreachable control) are deterministic, so the keyboard sweep tests them without an LLM. A keyboard-only persona remains a one-line config change (`allowed: [press]`).
+
 | Axis | Controls | Enforced in | Settings available |
 | --- | --- | --- | --- |
 | Perception | What the model receives each step | `perception.py` filters on the observation | `full_tree`, `viewport_only`, `vocab_filter`, `standard_roles_only` |
@@ -123,7 +125,9 @@ Each persona has a constraint config, a realism basis, failure signals with a na
 
 ### P3 Low-literacy or non-native reader
 
-**Constraint:** before the model sees the tree, every word outside a fixed common-word list becomes `[unknown]`. The list is about the top 3,000 English words (candidate: the New General Service List, about 2,800 words). Numbers and the site name are kept. Full tree otherwise, 15 steps.
+**Constraint:** before the model sees the tree, every word outside a fixed common-word list becomes `[unknown]`. The list is about the top 3,000 English words (candidate: the New General Service List, about 2,800 words). Numbers, the site name and a short UI allowlist are kept. Full tree otherwise, 15 steps.
+
+**UI allowlist:** a version-controlled list of about 30 to 50 words people see on almost every website (for example email, password, login, username, checkout, submit), justified by Jakob's Law. It stops the filter from failing clean pages on standard interface words. A unit test checks that every word on the clean pages survives the filter and that the seeded jargon (such as "effectuate" and "remittance") does not.
 
 **Realism basis:** word-frequency research and CEFR reading levels; non-native speakers and low-literacy readers.
 
@@ -156,7 +160,7 @@ The three personas cover 6 of Nielsen's 10 heuristics with at least one observed
 | #9 Recognise, diagnose, recover from errors | P1 | `data_loss_on_error`, `error_not_identified`, `error_not_actionable` | Strong |
 | #10 Help and documentation | none | none | Not covered |
 
-#4, #7, #8 and #10 are out of scope and reported as a limitation. #4 is the cheapest to add later: consistent naming and navigation across pages (WCAG 3.2.3, 3.2.4) can be checked deterministically, without a persona.
+#4, #7, #8 and #10 are out of scope and reported as a limitation. This follows from the design rule: #7, #8 and #10 concern expert efficiency, visual aesthetics and help quality, which are judgements no hard constraint can model without roleplay. The set trades breadth for depth on error handling, memory and language. #4 is the cheapest to add later, after mid-eval: consistent naming and navigation across pages (WCAG 3.2.3, 3.2.4) can be checked deterministically, without a persona.
 
 ### WCAG 2.2 by principle
 
@@ -210,6 +214,7 @@ Each seeded page exists in two versions: **buggy** and **clean** (the same page 
 
 - 5 runs per page per condition, temperature 0, fixed perturbation seed per run (seeds 1 to 5).
 - Report the detection rate as k/5 and treat a finding as **stable** at 4/5 or higher.
+- Before writing a persona's detectors, pilot it with 5 runs on clean pages. If it fails often (the main risk for P2, which may loop without memory), shorten its tasks or raise its step cap, never add memory hints. Report the false-positive rate per persona.
 - Log model ID, prompt template hash, Playwright version and persona config hash with every run, so any run can be replayed.
 
 ### Metrics
@@ -361,3 +366,4 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 - The baseline is itself an LLM agent, so it can fail for unrelated reasons. A baseline failure makes that page inconclusive for attribution, and it is reported as such.
 - Nielsen #4, #7, #8 and #10 are not covered by any persona, and #1 only partially (see Coverage).
 - Temperature 0 reduces but does not remove run-to-run variation; this is why every result is reported as k out of 5.
+- P3's filter models vocabulary only. Long sentences and complex grammar pass through unchanged; a readability score (for example Flesch-Kincaid) is a possible later signal.

@@ -11,4 +11,4 @@ with sync_playwright() as p:
     page.goto((Path(__file__).parent / "index.html").resolve().as_uri())
     print("title:", page.title())
     browser.close()
-sys.exit(0)
+sys.exit(1)

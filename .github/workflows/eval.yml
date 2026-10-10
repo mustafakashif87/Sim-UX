@@ -1,0 +1,60 @@
+name: Evaluation
+
+# Runs the evaluation protocol with the real model (spec: Evaluation protocol).
+# Manual only, to control cost. Needs the LLM_API_KEY secret and the entry
+# point `python -m agent.evaluate`, which must accept the arguments below and
+# write step logs and runs.csv under --out.
+
+on:
+  workflow_dispatch:
+    inputs:
+      persona:
+        description: Persona config ID
+        default: error_prone
+        type: choice
+        options: [error_prone, memoryless, low_literacy]
+      seeds:
+        description: Runs per page per condition
+        default: "5"
+        type: string
+
+concurrency:
+  group: eval
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  evaluate:
+    name: Evaluate ${{ inputs.persona }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check prerequisites
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+        run: |
+          [ -n "$LLM_API_KEY" ] || { echo "::error::Add the LLM_API_KEY repository secret"; exit 1; }
+          [ -f agent/evaluate.py ] || { echo "::error::agent/evaluate.py does not exist yet"; exit 1; }
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -e ".[browser]"
+      - run: playwright install --with-deps chromium
+      - name: Run 3 conditions x ${{ inputs.seeds }} seeds
+        env:
+          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          PERSONA: ${{ inputs.persona }}
+          SEEDS: ${{ inputs.seeds }}
+        run: |
+          [[ "$SEEDS" =~ ^[1-9][0-9]?$ ]] || { echo "::error::seeds must be 1-99"; exit 1; }
+          python -m agent.evaluate --persona "$PERSONA" --seeds "$SEEDS" --out eval-out
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: eval-${{ inputs.persona }}-${{ github.sha }}
+          path: eval-out/
+          retention-days: 90

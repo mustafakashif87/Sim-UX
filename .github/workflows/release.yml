@@ -1,0 +1,21 @@
+name: Release
+
+# Pushing a tag like v0.1-mid-eval creates a GitHub release with notes
+# generated from the merged pull requests since the previous tag.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag

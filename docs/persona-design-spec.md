@@ -242,10 +242,10 @@ The FYP committee requires the core module to run live behind the interface show
 
 ### Single repository
 
-Everything lives in one repository, `YAYAKHAN10/simux`. The POC interface, currently in a separate repository, moves in as `web/` with its history kept. One repository makes every member's commits, reviews and ownership visible in one place.
+Everything lives in one repository, `mustafakashif87/Sim-UX`. The POC interface, currently in a separate repository (`mustafakashif87/simUX`), moves in as `web/` with its history kept. One repository makes every member's commits, reviews and ownership visible in one place.
 
 ```
-simux/
+Sim-UX/
   web/          POC interface (Vite + React + TypeScript), deployed to Vercel
   api/          FastAPI service: starts runs, streams steps, returns findings
   agent/        perception.py, actions.py, perturb.py, loop.py, detectors/
@@ -254,7 +254,8 @@ simux/
   test-app/     seeded pages, buggy and clean versions, check_seeds.py
   tests/        pytest suite using the scripted fake model
   logs/         run logs and runs.csv
-  .github/      workflows/, CODEOWNERS, pull request template
+  scripts/      development helpers (cross-platform git hooks)
+  .github/      workflows/, scripts/ (axe scan), dependabot.yml, pull request template, CODEOWNERS
 ```
 
 ### Live interface
@@ -279,7 +280,7 @@ The team uses GitHub flow: one long-lived branch and short-lived branches for ea
 - `main` is protected. Changes arrive only through a pull request with passing CI and one approving review from another member. No direct pushes.
 - Branch names state the work: `feat/p1-perturbation`, `feat/b4-double-submit-page`, `test/detector-fixtures`, `ci/deploy-api`, `fix/<issue>`, `docs/<topic>`.
 - Each pull request links its issue and stays small enough to review in one sitting. Large single drops are avoided, because every member must be able to explain their own code line by line.
-- `CODEOWNERS` assigns review: `test-app/` and `logs/` to Person A; `agent/`, `api/` and `tests/` to Person B; `grounding/` and `web/` to Person C.
+- `CODEOWNERS`, added once every member has repository access, assigns review: `test-app/` and `logs/` to Person A; `agent/`, `api/` and `tests/` to Person B; `grounding/` and `web/` to Person C.
 - Milestones are tagged, starting with `v0.1-mid-eval`. Each tag gets a GitHub release with a short changelog.
 
 ### Continuous integration
@@ -312,7 +313,7 @@ A separate workflow runs the Evaluation protocol with the real model: 3 conditio
 
 ### Secrets
 
-API keys live only in GitHub secrets and the API host's environment settings. `.env` files are git-ignored and never committed. This and the fact that test pages are sent to a third-party model API are recorded in the risk register.
+API keys live only in GitHub secrets and the API host's environment settings. `.env` files are git-ignored and never committed. GitHub secret scanning with push protection is on, so a push containing a recognised key is rejected before it reaches the repository. This and the fact that test pages are sent to a third-party model API are recorded in the risk register.
 
 ## Mid-eval build scope and ownership
 
@@ -356,7 +357,7 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 - [ ] Detecting duplicate submissions: count network requests, or expose a submission counter on the test page?
 - [ ] Word list for P3: the New General Service List or another published list.
 - [ ] Whether model-judged signals use the same model as the agent, or a second model to avoid self-agreement.
-- [ ] Merging the POC repository (`mustafakashif87/simUX`) into `YAYAKHAN10/simux`. Needs agreement from both owners.
+- [ ] When to move the POC repository (`mustafakashif87/simUX`) into `web/`, keeping its history. Both repositories are under the same account.
 - [ ] Host for the API container (for example Render, Railway or Fly). Check current free-tier limits on run time, memory for Chromium, and sleep on idle before choosing.
 
 ### Known limitations

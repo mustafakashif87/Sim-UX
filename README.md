@@ -8,7 +8,7 @@ FYP 2026–27, Department of AI & Data Science, FAST-NUCES. Supervisor: Ms. Sair
 
 ## Status
 
-Repository skeleton. The mid-evaluation target is the persona framework with the Error-prone user (P1) built end to end, running live behind the web interface and delivered through GitHub CI/CD. See [`docs/persona-design-spec.md`](docs/persona-design-spec.md).
+Interface contracts (`agent/contracts.py`) with tests, and the full CI/CD pipeline, are in place; the other modules are still folders with a README. The mid-evaluation target is the persona framework with the Error-prone user (P1) built end to end, running live behind the web interface and delivered through GitHub CI/CD. See [`docs/persona-design-spec.md`](docs/persona-design-spec.md).
 
 ## Repository layout
 
@@ -23,6 +23,7 @@ Repository skeleton. The mid-evaluation target is the persona framework with the
 | `tests/` | pytest suite driven by a scripted fake model | Person B |
 | `logs/` | Evaluation run logs | Person A |
 | `docs/` | Design spec and project documentation | All |
+| `scripts/` | Development helpers (cross-platform git hooks) | All |
 
 ## Contributing
 

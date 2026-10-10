@@ -25,7 +25,7 @@ jobs:
   detect:
     name: Detect deployables
     if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       sha: ${{ steps.d.outputs.sha }}
       pages: ${{ steps.d.outputs.pages }}
@@ -47,7 +47,7 @@ jobs:
     name: Deploy test app to GitHub Pages
     needs: detect
     if: needs.detect.outputs.pages == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       pages: write
       id-token: write
@@ -78,7 +78,7 @@ jobs:
     name: Publish API image to ghcr.io
     needs: detect
     if: needs.detect.outputs.api == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       packages: write
     steps:

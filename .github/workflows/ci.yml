@@ -28,7 +28,7 @@ env:
 jobs:
   detect:
     name: Detect modules
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       seeds: ${{ steps.d.outputs.seeds }}
       e2e: ${{ steps.d.outputs.e2e }}
@@ -47,8 +47,13 @@ jobs:
           } | tee -a "$GITHUB_OUTPUT"
 
   python:
-    name: Lint and unit tests
-    runs-on: ubuntu-latest
+    name: Lint and unit tests (${{ matrix.os }})
+    # Windows too, because team members develop on Windows.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -59,12 +64,18 @@ jobs:
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -q
+      # Proves the lefthook hooks members install locally also work on Windows.
+      - name: Local hooks run on Windows
+        if: runner.os == 'Windows'
+        run: |
+          lefthook run pre-commit --all-files
+          lefthook run pre-push
 
   seeds:
     name: Seeded bugs present
     needs: detect
     if: needs.detect.outputs.seeds == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -80,7 +91,7 @@ jobs:
     name: End-to-end smoke (fake model)
     needs: detect
     if: needs.detect.outputs.e2e == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -95,7 +106,7 @@ jobs:
     name: Web type-check and build
     needs: detect
     if: needs.detect.outputs.web == 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: web
@@ -113,7 +124,7 @@ jobs:
   axe:
     name: axe-core scan
     needs: detect
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

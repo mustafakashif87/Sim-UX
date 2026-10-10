@@ -284,15 +284,15 @@ The team uses GitHub flow: one long-lived branch and short-lived branches for ea
 
 ### Continuous integration
 
-CI runs on every pull request and every push to `main`. It needs no API key and costs nothing, because the agent is driven by the scripted fake model.
+CI runs on every pull request and every push to `main`. It needs no API key and costs nothing, because the agent is driven by the scripted fake model. Each job is skipped until its module exists, then switches on by itself. Locally, lefthook runs ruff at commit and the tests at push, so most problems are fixed before CI sees them.
 
 | Job | Checks | Fails when |
 | --- | --- | --- |
 | `python` | ruff, then pytest: the unit tests in the Evaluation protocol | Any lint error or failing test |
 | `seeds` | `check_seeds.py` in headless Chromium, on buggy and clean pages | A seeded bug is missing from its buggy page or present on its clean page |
-| `e2e-smoke` | Full harness with the fake model against the test app | A buggy page produces no finding or a clean page produces one |
+| `e2e` | Full harness with the fake model against the test app | A buggy page produces no finding or a clean page produces one |
 | `web` | `tsc --noEmit` and `vite build` | Type error or failed build |
-| `axe` | axe-core on every test-app page; JSON saved as a CI artifact | Never fails the build; results feed the comparison table |
+| `axe` | Self-test on a known-bad fixture page, then axe-core on every test-app page; JSON saved as a CI artifact | Only the self-test can fail (axe stopped reporting the planted violations); test-app results feed the comparison table |
 
 ### Continuous deployment
 
@@ -301,7 +301,7 @@ Deployment runs automatically after a merge to `main`. Pull requests get preview
 | Part | Target | Trigger |
 | --- | --- | --- |
 | `web/` | Vercel | Production on merge to `main`; preview URL on every pull request |
-| `api/` | Docker container (Playwright base image) on a host that allows long-running processes | Merge to `main`, after CI passes |
+| `api/` | Container image (Playwright base image) published to GitHub Container Registry, pulled by a host that allows long-running processes | Merge to `main`, after CI passes |
 | `test-app/` | GitHub Pages | Merge to `main` when `test-app/` changes |
 
 The API cannot run on Vercel serverless functions: a run drives a real Chromium for up to 20 LLM steps, which needs a persistent process.
@@ -337,7 +337,7 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 - [ ] Baseline mode: same loop with all constraints off
 - [ ] Unit tests with a scripted fake model, as listed in the Evaluation protocol
 - [ ] `api/`: `POST /runs`, `GET /runs/{id}`, `GET /runs/{id}/stream`
-- [ ] CI jobs `python`, `seeds`, `e2e-smoke`; Dockerfile and deployment for `api/`
+- [ ] Tests that switch on the CI `seeds` and `e2e` jobs; Dockerfile for `api/`
 - [ ] Implementation Documentation section of the report
 
 ### Person C: grounding, report and paperwork

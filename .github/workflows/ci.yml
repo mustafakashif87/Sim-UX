@@ -1,0 +1,135 @@
+name: CI
+
+# Runs on every pull request and every push to main. Needs no secrets: the
+# agent is driven by the scripted fake model in tests.
+#
+# Jobs for modules that do not exist yet are skipped, and switch on by
+# themselves when the module lands. GitHub treats a skipped required check as
+# passing. The files that switch each job on are listed in the `detect` job.
+# The axe job always runs a self-test on a known-bad fixture page.
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.12"
+  NODE_VERSION: "22"
+
+jobs:
+  detect:
+    name: Detect modules
+    runs-on: ubuntu-latest
+    outputs:
+      seeds: ${{ steps.d.outputs.seeds }}
+      e2e: ${{ steps.d.outputs.e2e }}
+      web: ${{ steps.d.outputs.web }}
+      axe: ${{ steps.d.outputs.axe }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: d
+        run: |
+          has() { if ls $1 >/dev/null 2>&1; then echo true; else echo false; fi; }
+          {
+            echo "seeds=$(has test-app/check_seeds.py)"
+            echo "e2e=$(has 'tests/e2e/test_*.py')"
+            echo "web=$(has web/package-lock.json)"
+            echo "axe=$(has 'test-app/*.html')"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  python:
+    name: Lint and unit tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -e ".[dev]"
+      - run: ruff check .
+      - run: ruff format --check .
+      - run: pytest -q
+
+  seeds:
+    name: Seeded bugs present
+    needs: detect
+    if: needs.detect.outputs.seeds == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -e ".[browser]"
+      - run: playwright install --with-deps chromium
+      # Must exit non-zero when any page does not match the ground truth.
+      - run: python test-app/check_seeds.py
+
+  e2e:
+    name: End-to-end smoke (fake model)
+    needs: detect
+    if: needs.detect.outputs.e2e == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+      - run: pip install -e ".[dev,browser]"
+      - run: playwright install --with-deps chromium
+      - run: pytest -q tests/e2e --override-ini addopts=
+
+  web:
+    name: Web type-check and build
+    needs: detect
+    if: needs.detect.outputs.web == 'true'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm run build
+
+  axe:
+    name: axe-core scan
+    needs: detect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm install --no-save --prefix .github/scripts playwright@1.48.2 axe-core@4.10.2
+      - run: npx --prefix .github/scripts playwright install --with-deps chromium
+      # Fails if axe stops reporting the violations planted in the fixture.
+      - name: Scanner self-test
+        run: node .github/scripts/axe-scan.mjs .github/scripts/axe-fixture axe-selftest --expect=image-alt,button-name
+      # Reports violations as data for the comparison table; never fails the build.
+      - name: Scan test app
+        if: needs.detect.outputs.axe == 'true'
+        run: node .github/scripts/axe-scan.mjs test-app axe-results
+      - uses: actions/upload-artifact@v4
+        if: needs.detect.outputs.axe == 'true'
+        with:
+          name: axe-results
+          path: axe-results/

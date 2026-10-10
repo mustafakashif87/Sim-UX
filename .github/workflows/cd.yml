@@ -1,0 +1,104 @@
+name: CD
+
+# Deploys only after CI has passed on main, from the exact commit CI tested.
+# Like CI, each deploy is skipped until its module exists.
+#
+#   test-app/  -> GitHub Pages, then a smoke check against the live URL
+#   api/       -> container image on GitHub Container Registry (ghcr.io)
+#   web/       -> Vercel's Git integration (not this workflow; see README)
+
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: cd
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  detect:
+    name: Detect deployables
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.d.outputs.sha }}
+      pages: ${{ steps.d.outputs.pages }}
+      api: ${{ steps.d.outputs.api }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+      - id: d
+        run: |
+          has() { if ls $1 >/dev/null 2>&1; then echo true; else echo false; fi; }
+          {
+            echo "sha=$(git rev-parse HEAD)"
+            echo "pages=$(has test-app/index.html)"
+            echo "api=$(has api/Dockerfile)"
+          } | tee -a "$GITHUB_OUTPUT"
+
+  pages:
+    name: Deploy test app to GitHub Pages
+    needs: detect
+    if: needs.detect.outputs.pages == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: test-app
+      - id: deploy
+        uses: actions/deploy-pages@v4
+      - name: Smoke check live site
+        run: |
+          for i in 1 2 3 4 5; do
+            if curl -fsS "${{ steps.deploy.outputs.page_url }}" | grep -qi "<title>"; then
+              echo "Live site is serving pages"; exit 0
+            fi
+            sleep 10
+          done
+          echo "Live site did not respond with a page" >&2; exit 1
+
+  api-image:
+    name: Publish API image to ghcr.io
+    needs: detect
+    if: needs.detect.outputs.api == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.detect.outputs.sha }}
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: name
+        run: echo "image=ghcr.io/${GITHUB_REPOSITORY,,}-api" >> "$GITHUB_OUTPUT"
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: api/Dockerfile
+          push: true
+          tags: |
+            ${{ steps.name.outputs.image }}:${{ needs.detect.outputs.sha }}
+            ${{ steps.name.outputs.image }}:latest
+      # A container host (Render, Railway or Fly; see spec Open decisions) pulls
+      # :latest. Once chosen, add its deploy hook here as a secret-backed step.

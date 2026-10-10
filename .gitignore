@@ -1,0 +1,35 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.egg-info/
+
+# Node
+node_modules/
+dist/
+.vite/
+
+# Playwright
+test-results/
+playwright-report/
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Hosting
+.vercel/
+
+# Editors and OS
+.DS_Store
+.idea/
+.vscode/
+
+# Personal Claude Code settings
+CLAUDE.local.md
+.claude/settings.local.json

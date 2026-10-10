@@ -38,7 +38,7 @@ jobs:
         run: |
           [ -n "$LLM_API_KEY" ] || { echo "::error::Add the LLM_API_KEY repository secret"; exit 1; }
           [ -f agent/evaluate.py ] || { echo "::error::agent/evaluate.py does not exist yet"; exit 1; }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: pip

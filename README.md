@@ -42,10 +42,21 @@ Dependabot opens weekly pull requests for GitHub Actions and Python dependency u
 **Local hooks (lefthook):** lefthook comes with the dev dependencies. Run once per clone:
 
 ```bash
+# macOS / Linux
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
 lefthook install
 ```
+
+```powershell
+# Windows (PowerShell); needs Python 3.12 and Git for Windows
+py -3.12 -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -e ".[dev]"
+lefthook install
+```
+
+If PowerShell refuses to run `Activate.ps1`, run `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` once.
 
 Commits then auto-fix lint and formatting on staged Python files, and pushes run the tests first. CI still checks everything, so a skipped hook never lets a problem into `main`.
 

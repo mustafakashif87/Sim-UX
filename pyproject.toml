@@ -13,7 +13,7 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "lefthook>=1.7",
+    "lefthook>=1.10",
     "pytest>=8",
     "ruff>=0.6",
 ]

@@ -1,0 +1,9 @@
+# Store text with LF line endings whatever the member's OS, so shell steps,
+# YAML and formatting checks behave the same on Windows, macOS and CI.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.ico binary
+*.pdf binary
+*.zip binary

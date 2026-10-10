@@ -52,7 +52,7 @@ jobs:
         run: |
           [[ "$SEEDS" =~ ^[1-9][0-9]?$ ]] || { echo "::error::seeds must be 1-99"; exit 1; }
           python -m agent.evaluate --persona "$PERSONA" --seeds "$SEEDS" --out eval-out
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: eval-${{ inputs.persona }}-${{ github.sha }}

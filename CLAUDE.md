@@ -8,9 +8,37 @@ LLM persona agents that attempt real tasks on web pages and report usability and
 
 `docs/persona-design-spec.md` is the design authority: persona framework, interface contracts, seeded bugs, grounding pipeline, evaluation protocol, delivery and ownership. Read the relevant section before changing any module.
 
-## Current state
+## Commands
 
-Skeleton only: each top-level folder has a README naming its purpose and owner, and no code exists yet. Add build, test and run commands to this file as each module lands.
+Python 3.12 (CI uses the same).
+
+```bash
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"                 # add ,browser for Playwright
+ruff check . && ruff format --check .   # lint and format check, as CI runs them
+pytest -q                               # unit tests (tests/e2e excluded by default)
+pytest -q tests/test_contracts.py::TestFinding::test_valid   # one test
+```
+
+Only `agent/contracts.py` exists so far; other module folders hold a README naming purpose and owner. Add commands here as each module lands.
+
+## CI/CD
+
+`.github/workflows/`: `ci.yml` on every pull request and push to `main`; `cd.yml` after CI passes on `main`; `eval.yml` and `release.yml` on demand and on `v*` tags.
+
+Each job switches on when its file appears, so these paths and behaviours are contracts:
+
+| File | Switches on | Must |
+| --- | --- | --- |
+| `test-app/check_seeds.py` | CI `seeds` | exit non-zero when any page disagrees with the ground truth |
+| `tests/e2e/test_*.py` | CI `e2e` | pass with the fake model and Playwright; no API key |
+| `test-app/*.html` | CI `axe` | nothing; violations are reported, never gating |
+| `web/package-lock.json` | CI `web` | `npm run build` succeeds |
+| `test-app/index.html` | CD GitHub Pages deploy | contain a `<title>` (the post-deploy smoke check greps for it) |
+| `api/Dockerfile` | CD image push to ghcr.io | build from the repo root as context |
+| `agent/evaluate.py` | `eval.yml` | accept `--persona`, `--seeds`, `--out` and read `LLM_API_KEY` |
+
+When a new CI job starts running, add it to `main`'s required status checks.
 
 ## Invariants
 

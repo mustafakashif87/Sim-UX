@@ -39,6 +39,16 @@ Repository skeleton. The mid-evaluation target is the persona framework with the
 
 Dependabot opens weekly pull requests for GitHub Actions and Python dependency updates.
 
+**Local hooks (lefthook):** lefthook comes with the dev dependencies. Run once per clone:
+
+```bash
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -e ".[dev]"
+lefthook install
+```
+
+Commits then auto-fix lint and formatting on staged Python files, and pushes run the tests first. CI still checks everything, so a skipped hook never lets a problem into `main`.
+
 **One-time setup outside the repo**
 
 - **Web (Vercel):** import this repository in Vercel with root directory `web/`. Vercel then deploys `main` to production and posts a preview URL on every pull request.

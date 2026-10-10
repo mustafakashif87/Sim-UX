@@ -15,6 +15,7 @@ Python 3.12 (CI uses the same).
 ```bash
 python3.12 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"                 # add ,browser for Playwright
+lefthook install                        # once per clone; installs commit and push hooks
 ruff check . && ruff format --check .   # lint and format check, as CI runs them
 pytest -q                               # unit tests (tests/e2e excluded by default)
 pytest -q tests/test_contracts.py::TestFinding::test_valid   # one test
@@ -32,13 +33,15 @@ Each job switches on when its file appears, so these paths and behaviours are co
 | --- | --- | --- |
 | `test-app/check_seeds.py` | CI `seeds` | exit non-zero when any page disagrees with the ground truth |
 | `tests/e2e/test_*.py` | CI `e2e` | pass with the fake model and Playwright; no API key |
-| `test-app/*.html` | CI `axe` | nothing; violations are reported, never gating |
+| `test-app/*.html` | CI `axe` scan of the test app | nothing; violations are reported, never gating. The axe job's self-test on `.github/scripts/axe-fixture/` always runs and does gate |
 | `web/package-lock.json` | CI `web` | `npm run build` succeeds |
 | `test-app/index.html` | CD GitHub Pages deploy | contain a `<title>` (the post-deploy smoke check greps for it) |
 | `api/Dockerfile` | CD image push to ghcr.io | build from the repo root as context |
 | `agent/evaluate.py` | `eval.yml` | accept `--persona`, `--seeds`, `--out` and read `LLM_API_KEY` |
 
 When a new CI job starts running, add it to `main`'s required status checks.
+
+Local hooks: `lefthook.yml` runs ruff on staged Python files at commit and `pytest` at push. Each tool is skipped with a warning when not on `PATH`; CI stays the hard gate.
 
 ## Invariants
 

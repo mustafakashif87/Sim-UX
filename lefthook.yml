@@ -1,0 +1,23 @@
+# Local quality gate. Install once per clone: `lefthook install` (see README).
+# CI is the hard gate: a hook whose tool is missing skips with a warning, and
+# `git commit --no-verify` bypasses hooks in an emergency.
+
+pre-commit:
+  parallel: true
+  commands:
+    ruff:
+      glob: "*.py"
+      run: >
+        if command -v ruff >/dev/null 2>&1; then
+        ruff check --fix {staged_files} && ruff format {staged_files};
+        else echo "⚠ ruff not found: activate .venv; skipping (CI will check)";
+        fi
+      stage_fixed: true
+
+pre-push:
+  commands:
+    tests:
+      run: >
+        if command -v pytest >/dev/null 2>&1; then pytest -q;
+        else echo "⚠ pytest not found: activate .venv; skipping (CI will run tests)";
+        fi

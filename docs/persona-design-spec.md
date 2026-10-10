@@ -4,15 +4,17 @@ As of 2026-10-10
 
 ## Purpose and design principle
 
-SimUX personas are configurations of hard constraints enforced by the harness, never characters described in a prompt. This spec defines the persona framework, five personas chosen to cover Nielsen's 10 heuristics, how each finding is grounded, and how we prove the constraint caused the finding.
+SimUX personas are configurations of hard constraints enforced by the harness, never characters described in a prompt. This spec defines the persona framework, three personas chosen to cover both grounding corpora, how each finding is grounded, and how we prove the constraint caused the finding.
+
+**Status:** the three-persona set and the choice of the Error-prone user for mid-eval are tentative until the supervisor signs off (see Open decisions).
 
 **The rule every persona must pass:** delete the system prompt, and the persona's limits still hold. If a limit only exists because the prompt asked the model to behave a certain way, it is roleplay and is out of scope.
 
 **What the constraint changes:** the model's intelligence stays the same across personas. What changes is what it can perceive, what it can do, what it remembers, and what goes wrong between its intent and the browser. A failure is therefore evidence about the interface, not about the model's acting.
 
-**Scope for mid-evaluation:** the framework plus one persona (Error-prone user) built and evaluated in full, running live behind the proposal's POC interface and delivered through a GitHub CI/CD pipeline (see Delivery). The other four are specified here as configs, with seeded bugs and coverage justification, and are built in later iterations.
+**Scope for mid-evaluation:** the framework plus one persona (Error-prone user) built and evaluated in full, running live behind the proposal's POC interface and delivered through a GitHub CI/CD pipeline (see Delivery). The other two are specified here as configs, with seeded bugs and coverage justification, and are built in later iterations.
 
-**Change from the proposal:** the proposal named keyboard-only and motor-control personas. We replaced them with a coverage-driven set that spans both grounding corpora (Nielsen and WCAG 2.2), not mostly WCAG. This change must be recorded in the Panel Action Register and justified in the report as design evolution.
+**Change from the proposal:** the proposal named keyboard-only and motor-control personas. We replaced them with three personas (Error-prone user, Memoryless first-time user, Low-literacy or non-native reader) that span both grounding corpora (Nielsen and WCAG 2.2), not mostly WCAG. Each one changes a different constraint axis: perturbation, memory and perception. This change must be recorded in the Panel Action Register and justified in the report as design evolution.
 
 ## Persona framework
 
@@ -78,9 +80,15 @@ These four JSON shapes are the boundaries between modules. They are validated wi
 3. **Step record** (harness → log): `{run_id, persona, page, step, observation_hash, intended_action, executed_action, perturbation: str | null, result: "ok"|"invalid"|"error", goal_reached: bool}`. Logging intended and executed actions separately is what makes perturbation effects auditable.
 4. **Finding** (detector → report): `{finding_id, persona, page, signal, evidence_steps: [int], candidate_criteria: [str], citations: [{source, criterion_id, quote}], severity: 1-4, confidence: float, baseline_reproduced: bool}`.
 
-## The five personas
+## The three personas
 
 Each persona has a constraint config, a realism basis, failure signals with a named detector, and seeded bugs for the test app. A signal is either **deterministic** (computed by the harness from the DOM, network or logs) or **model-judged** (an LLM rates evidence against a rubric). Deterministic signals carry higher confidence and are preferred.
+
+| Persona | Config ID | Axis it changes | Mid-eval |
+| --- | --- | --- | --- |
+| P1 Error-prone user | `error_prone` | Perturbation | Built and evaluated |
+| P2 Memoryless first-time user | `memoryless` | Memory | Config and seeded bugs only |
+| P3 Low-literacy or non-native reader | `low_literacy` | Perception | Config and seeded bugs only |
 
 ### P1 Error-prone user (built for mid-eval)
 
@@ -99,91 +107,65 @@ Each persona has a constraint config, a realism basis, failure signals with a na
 
 **Seeded bugs:** (B1) form clears every field on a validation error; (B2) invalid email rejected silently; (B3) error says only "Invalid input"; (B4) submit not disabled after first press, creating two orders; (B5) "Delete account" with no confirmation; (B6) checkout step 3 asks again for the address entered on step 1.
 
-### P2 Memoryless first-timer
+### P2 Memoryless first-time user
 
-**Constraint:** zero history turns. The model sees only the current observation and the task. 25 steps.
+**Constraint:** zero history turns. The model sees only the current observation and the task, with no memory of earlier pages. Full tree, 25 steps. This is the shared loop with `history_turns: 0`.
 
 **Realism basis:** limits of working memory (Cowan) and Nielsen's recognition-over-recall principle. First-time users have no learned model of the site to fall back on.
 
 | Signal | Detector | Type | Nielsen | WCAG 2.2 |
 | --- | --- | --- | --- | --- |
-| `recall_required` | A value the task needs appears in an earlier observation but not the current one, and the agent fails at that step | Deterministic | #6 | 3.3.7 Redundant Entry |
-| `lost_location` | The agent revisits the same page 3 or more times without progress | Deterministic | #1 | 2.4.2 Page Titled |
-| `help_inconsistent` | The help link is missing or in a different tree position across pages | Deterministic | #10 | 3.2.6 Consistent Help |
+| `recall_required` | A value the task needs appears in an earlier observation but not the current one, and the agent fails at that step | Deterministic | #6 | 3.3.2 Labels or Instructions |
+| `lost_location` | The agent revisits the same page 3 or more times without progress, and the pages it confuses share a title | Deterministic | #1 | 2.4.2 Page Titled |
+| `no_progress_indicator` | Steps of a multi-step flow have identical headings and no "step N of M" text or equivalent in the tree | Deterministic | #1 | 2.4.6 Headings and Labels |
 
-**Seeded bugs:** (B7) a reference code shown on step 1 must be typed on step 3; (B8) a 3-step wizard with identical page titles and no step indicator; (B9) help link in the header on page 1, the footer on page 2, absent on page 3.
+**Seeded bugs:** (B7) a reference code shown on step 1 must be typed on step 3, with no reminder of where to find it; (B8) a 3-step wizard whose pages all share the same `<title>`; (B9) the same wizard's steps share one heading and show no step indicator.
 
-### P3 Skimmer
+### P3 Low-literacy or non-native reader
 
-**Constraint:** perception keeps only elements inside a 1280×720 viewport; scrolling costs a step. Body text is cut to its first 8 words; headings, links and buttons stay whole. 6 steps.
-
-**Realism basis:** NN/g eye-tracking studies showing that users scan rather than read.
-
-| Signal | Detector | Type | Nielsen | WCAG 2.2 |
-| --- | --- | --- | --- | --- |
-| `goal_buried` | The goal control never enters the viewport within budget; the full-tree baseline succeeds | Deterministic | #8 | none (Nielsen only) |
-| `ambiguous_link` | 2 or more links share a name but go to different places, and the agent picks the wrong one | Deterministic | #4 | 2.4.4 Link Purpose |
-| `path_too_long` | Successful path is more than twice the shortest known path | Deterministic | #7 | none (Nielsen only) |
-
-**Seeded bugs:** (B10) the main "Buy" button sits below three screens of marketing copy; (B11) three "Learn more" links leading to different plans; (B12) pricing reachable only through four menu levels.
-
-### P4 Plain-language reader
-
-**Constraint:** every word outside a fixed common-word list (candidate: the New General Service List, about 2,800 words) becomes `[unknown]`. Numbers and the site name are kept. Full tree otherwise, 15 steps.
+**Constraint:** before the model sees the tree, every word outside a fixed common-word list becomes `[unknown]`. The list is about the top 3,000 English words (candidate: the New General Service List, about 2,800 words). Numbers and the site name are kept. Full tree otherwise, 15 steps.
 
 **Realism basis:** word-frequency research and CEFR reading levels; non-native speakers and low-literacy readers.
 
 | Signal | Detector | Type | Nielsen | WCAG 2.2 |
 | --- | --- | --- | --- | --- |
-| `label_unintelligible` | A control on the goal path has half or more of its name `[unknown]`, and the agent fails or picks wrong; baseline succeeds | Deterministic | #2 | 2.4.6 Headings and Labels, 3.3.2 Labels or Instructions |
+| `label_unintelligible` | A control on the goal path has half or more of its name `[unknown]`, and the agent fails or picks wrong; baseline succeeds | Deterministic | #2 | 3.3.2 Labels or Instructions |
 | `instruction_unintelligible` | Required instruction text is mostly `[unknown]` | Deterministic | #2 | 3.1.5 Reading Level (AAA, advisory) |
-| `system_language` | An error or label contains an internal code or jargon | Model-judged | #2 | 3.3.3 Error Suggestion |
+| `system_language` | An error or label contains an internal code or jargon instead of the user's words | Model-judged | #2 | none (Nielsen only) |
 
-**Seeded bugs:** (B13) submit button labelled "Effectuate remittance"; (B14) instructions written in legal jargon; (B15) error message showing "ERR_VALIDATION_422".
-
-### P5 Conventions-only user
-
-**Constraint:** perception keeps only elements with standard roles (link, button, textbox, checkbox, radio, combobox, heading, landmark). Clickable elements with no role are invisible and cannot be targeted. 15 steps.
-
-**Realism basis:** Nielsen's observation that users spend most of their time on other sites and expect yours to work the same way (Jakob's Law).
-
-| Signal | Detector | Type | Nielsen | WCAG 2.2 |
-| --- | --- | --- | --- | --- |
-| `unreachable_custom_control` | The goal path needs an element the filter removed, but which the baseline could click | Deterministic | #4 | 4.1.2 Name, Role, Value |
-| `inconsistent_identification` | Controls with the same function have different names across pages | Deterministic | #4 | 3.2.4 Consistent Identification |
-| `inconsistent_navigation` | Navigation order differs across pages | Deterministic | #4 | 3.2.3 Consistent Navigation |
-
-**Seeded bugs:** (B16) "Add to cart" is a `div` with a click handler; (B17) the search button is called "Search", then "Find", then "Go" on three pages; (B18) navigation order changes between pages.
+**Seeded bugs:** (B10) submit button labelled "Effectuate remittance"; (B11) instructions written in legal jargon; (B12) error message showing "ERR_VALIDATION_422".
 
 All references above must be opened and verified by the author of the R&D section before citing.
 
 ## Coverage
 
-The five personas cover all 10 Nielsen heuristics with at least one observed-failure signal. WCAG coverage is strong for Understandable, partial for Operable and Robust, and absent for Perceivable, which is handled by deterministic checks instead.
+The three personas cover 6 of Nielsen's 10 heuristics with at least one observed-failure signal, one persona per constraint axis. WCAG coverage is strong for Understandable, partial for Operable, and absent for Perceivable and Robust, which are handled by deterministic checks instead.
 
 ### Nielsen heuristics
 
 | Heuristic | Covered by | Signal | Strength |
 | --- | --- | --- | --- |
-| #1 Visibility of system status | P2 | `lost_location` | Indirect: detects disorientation, not missing feedback |
-| #2 Match between system and real world | P4 | `label_unintelligible`, `system_language` | Strong |
+| #1 Visibility of system status | P2 | `lost_location`, `no_progress_indicator` | Partial: covers location and progress, not feedback after each action |
+| #2 Match between system and real world | P3 | `label_unintelligible`, `instruction_unintelligible`, `system_language` | Strong |
 | #3 User control and freedom | P1 | `no_way_back`, `destructive_without_confirm` | Strong |
-| #4 Consistency and standards | P5, P3 | `inconsistent_identification`, `inconsistent_navigation`, `ambiguous_link` | Strong |
+| #4 Consistency and standards | none | none | Not covered |
 | #5 Error prevention | P1 | `duplicate_submission`, `destructive_without_confirm` | Strong |
 | #6 Recognition rather than recall | P2 | `recall_required` | Strong |
-| #7 Flexibility and efficiency of use | P3 | `path_too_long` | Partial: measures path length, not shortcuts for experts |
-| #8 Aesthetic and minimalist design | P3 | `goal_buried` | Partial: detects buried content, not visual clutter |
+| #7 Flexibility and efficiency of use | none | none | Not covered |
+| #8 Aesthetic and minimalist design | none | none | Not covered |
 | #9 Recognise, diagnose, recover from errors | P1 | `data_loss_on_error`, `error_not_identified`, `error_not_actionable` | Strong |
-| #10 Help and documentation | P2 | `help_inconsistent` | Partial: checks findability, not help quality |
+| #10 Help and documentation | none | none | Not covered |
+
+#4, #7, #8 and #10 are out of scope and reported as a limitation. #4 is the cheapest to add later: consistent naming and navigation across pages (WCAG 3.2.3, 3.2.4) can be checked deterministically, without a persona.
 
 ### WCAG 2.2 by principle
 
 | Principle | Criteria covered by personas | Gap and how it is closed |
 | --- | --- | --- |
 | 1 Perceivable | None | axe-core layer: 1.1.1 Non-text Content, 1.3.1 Info and Relationships, 1.4.3 Contrast |
-| 2 Operable | 2.4.2, 2.4.4, 2.4.6 | Keyboard criteria 2.1.1 and 2.1.2 are not covered by any persona or reliably by axe-core. Keep the Tab-cycle detector as a deterministic keyboard sweep (no LLM). |
-| 3 Understandable | 3.1.5, 3.2.3, 3.2.4, 3.2.6, 3.3.1, 3.3.2, 3.3.3, 3.3.4, 3.3.7 | Strongest area |
-| 4 Robust | 4.1.2 | axe-core also checks 4.1.2 statically; compare the two |
+| 2 Operable | 2.4.2, 2.4.6 | Keyboard criteria 2.1.1 and 2.1.2 are not covered by any persona or reliably by axe-core. Keep the Tab-cycle detector as a deterministic keyboard sweep (no LLM). |
+| 3 Understandable | 3.1.5, 3.3.1, 3.3.2, 3.3.3, 3.3.4, 3.3.7 | Strongest area |
+| 4 Robust | None | axe-core checks 4.1.2 Name, Role, Value statically |
 
 **Position to defend:** personas find behavioural failures that need a task to be attempted; deterministic checks find static ones. Neither alone is complete, and the evaluation reports both.
 
@@ -281,7 +263,7 @@ The POC already reads all run data through one hook, `web/src/hooks/useDemoRun.t
 | Results | Lists the run's findings with severity, confidence and the k/5 reproduction rate when available |
 | Finding Detail | Shows the evidence steps and the verified citation; ungrounded findings are labelled, not hidden |
 
-The POC types are updated to match this spec: `PersonaId` lists the five personas instead of `accessibility` and `motor`, and `Finding` follows the Finding contract above. The Correction screen and fix-and-verify loop stay as fixture data until a later iteration and are labelled as planned in the demo.
+The POC types are updated to match this spec: `PersonaId` lists the three personas instead of `accessibility` and `motor`, and `Finding` follows the Finding contract above. The Correction screen and fix-and-verify loop stay as fixture data until a later iteration and are labelled as planned in the demo.
 
 **API.** `POST /runs` takes `{persona, page, condition, seed}` and returns a run ID. `GET /runs/{id}` returns status, step records and findings. `GET /runs/{id}/stream` sends step records as they are written. The API holds the LLM key; the browser never sees it.
 
@@ -329,7 +311,7 @@ API keys live only in GitHub secrets and the API host's environment settings. `.
 
 ## Mid-eval build scope and ownership
 
-For mid-eval we build the framework, P1 Error-prone user end to end, the deterministic layer (keyboard sweep plus axe-core), the live interface connected to the API, and the CI/CD pipeline. P2 to P5 are delivered as configs and seeded-bug specs only.
+For mid-eval we build the framework, P1 Error-prone user end to end, the deterministic layer (keyboard sweep plus axe-core), the live interface connected to the API, and the CI/CD pipeline. P2 and P3 are delivered as configs and seeded-bug specs only.
 
 ### Person A: test app and evaluation runs
 
@@ -357,7 +339,7 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 
 - [ ] `grounding/signal_map.yaml` and corpus entries for every P1 criterion, with verified source text
 - [ ] Citation verification and rule-based severity (with Person B)
-- [ ] R&D section: verify and cite the realism basis for all five personas
+- [ ] R&D section: verify and cite the realism basis for all three personas
 - [ ] FRs and NFRs with acceptance checks tied to the unit tests and run conditions
 - [ ] Move the POC into `web/`; connect `useDemoRun.ts` to the API and update the types to this spec; CI job `web` and Vercel deployment
 - [ ] Branch protection on `main`, `CODEOWNERS`, pull request template, `v0.1-mid-eval` tag and release
@@ -365,9 +347,9 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 
 ### Open decisions
 
-- [ ] Supervisor sign-off on replacing the proposal's keyboard and motor personas. Get this before committing the team to the new scope.
+- [ ] Supervisor sign-off on the three-persona set (replacing the proposal's keyboard and motor personas) and on the Error-prone user as the mid-eval persona. Both are tentative; get this before committing the team to the new scope.
 - [ ] Detecting duplicate submissions: count network requests, or expose a submission counter on the test page?
-- [ ] Word list for P4: the New General Service List or another published list.
+- [ ] Word list for P3: the New General Service List or another published list.
 - [ ] Whether model-judged signals use the same model as the agent, or a second model to avoid self-agreement.
 - [ ] Merging the POC repository (`mustafakashif87/simUX`) into `YAYAKHAN10/simux`. Needs agreement from both owners.
 - [ ] Host for the API container (for example Render, Railway or Fly). Check current free-tier limits on run time, memory for Chromium, and sleep on idle before choosing.
@@ -377,5 +359,5 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 - Perturbation rates are chosen by us, not calibrated against real user error data.
 - The test app is controlled and seeded; results will not transfer directly to real sites without further study.
 - The baseline is itself an LLM agent, so it can fail for unrelated reasons. A baseline failure makes that page inconclusive for attribution, and it is reported as such.
-- Coverage of Nielsen #1, #7, #8 and #10 is partial (see Coverage).
+- Nielsen #4, #7, #8 and #10 are not covered by any persona, and #1 only partially (see Coverage).
 - Temperature 0 reduces but does not remove run-to-run variation; this is why every result is reported as k out of 5.

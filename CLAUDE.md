@@ -21,7 +21,9 @@ pytest -q                               # unit tests (tests/e2e excluded by defa
 pytest -q tests/test_contracts.py::TestFinding::test_valid   # one test
 ```
 
-Only `agent/contracts.py` exists so far; other module folders hold a README naming purpose and owner. Add commands here as each module lands.
+Browser tests need `pip install -e ".[dev,browser]"` and `playwright install --only-shell chromium`, then `pytest -q tests/e2e --override-ini addopts=` (plain `pytest` skips them).
+
+Built so far: `agent/contracts.py`, `agent/perception.py` (snapshot to tree with refs, pure) and `agent/browser.py` (Playwright side: `observe`, `locate`). Other module folders hold a README naming purpose and owner. Add commands here as each module lands.
 
 ## CI/CD
 
@@ -32,7 +34,7 @@ Each job switches on when its file appears, so these paths and behaviours are co
 | File | Switches on | Must |
 | --- | --- | --- |
 | `test-app/check_seeds.py` | CI `seeds` | exit non-zero when any page disagrees with the ground truth |
-| `tests/e2e/test_*.py` | CI `e2e` | pass with the fake model and Playwright; no API key |
+| `tests/e2e/test_*.py` | CI `e2e` (browser and end-to-end tests) | pass with real Chromium and the fake model; no API key. Fixture pages live in `tests/fixtures/pages/` |
 | `test-app/*.html` | CI `axe` scan of the test app | nothing; violations are reported, never gating. The axe job's self-test on `.github/scripts/axe-fixture/` always runs and does gate |
 | `web/package-lock.json` | CI `web` | `npm run build` succeeds |
 | `test-app/index.html` | CD GitHub Pages deploy | contain a `<title>` (the post-deploy smoke check greps for it) |

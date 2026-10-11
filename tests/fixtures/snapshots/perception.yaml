@@ -1,0 +1,19 @@
+- navigation "Site":
+  - link "All pages":
+    - /url: other.html
+- main:
+  - heading "Sign up" [level=1]
+  - paragraph: Fill in every field.
+  - text: Full name
+  - textbox "Full name": Ali
+  - text: Email address
+  - textbox "Email address"
+  - text: Plan
+  - combobox "Plan":
+    - option "Free" [selected]
+    - option "Plus"
+  - checkbox "I accept the terms"
+  - text: I accept the terms
+  - button "Save"
+  - button "Save"
+  - button

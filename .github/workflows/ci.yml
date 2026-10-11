@@ -83,12 +83,12 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
       - run: pip install -e ".[browser]"
-      - run: playwright install --with-deps chromium
+      - run: playwright install --with-deps --only-shell chromium
       # Must exit non-zero when any page does not match the ground truth.
       - run: python test-app/check_seeds.py
 
   e2e:
-    name: End-to-end smoke (fake model)
+    name: Browser and end-to-end tests
     needs: detect
     if: needs.detect.outputs.e2e == 'true'
     runs-on: ubuntu-24.04
@@ -99,7 +99,7 @@ jobs:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
       - run: pip install -e ".[dev,browser]"
-      - run: playwright install --with-deps chromium
+      - run: playwright install --with-deps --only-shell chromium
       - run: pytest -q tests/e2e --override-ini addopts=
 
   web:

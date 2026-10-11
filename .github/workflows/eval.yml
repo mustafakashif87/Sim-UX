@@ -43,7 +43,7 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -e ".[browser]"
-      - run: playwright install --with-deps chromium
+      - run: playwright install --with-deps --only-shell chromium
       - name: Run 3 conditions x ${{ inputs.seeds }} seeds
         env:
           LLM_API_KEY: ${{ secrets.LLM_API_KEY }}

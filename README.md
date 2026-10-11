@@ -33,7 +33,7 @@ Interface contracts (`agent/contracts.py`) with tests, and the full CI/CD pipeli
 
 | Workflow | Runs on | Does |
 | --- | --- | --- |
-| [`ci.yml`](.github/workflows/ci.yml) | Every pull request and push to `main` | Lint and unit tests; seeded-bug check, end-to-end smoke, web build and axe-core scan once those modules exist |
+| [`ci.yml`](.github/workflows/ci.yml) | Every pull request and push to `main` | Lint and unit tests; seeded-bug check, browser and end-to-end tests, web build and axe-core scan once those modules exist |
 | [`cd.yml`](.github/workflows/cd.yml) | After CI passes on `main` | Deploys `test-app/` to GitHub Pages and smoke-checks the live URL; publishes the API image to ghcr.io |
 | [`eval.yml`](.github/workflows/eval.yml) | Manual (Actions tab → Evaluation → Run workflow) | Runs the evaluation protocol with the real model; uploads logs as artifacts |
 | [`release.yml`](.github/workflows/release.yml) | Pushing a `v*` tag | Creates a GitHub release with notes from merged pull requests |

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Create account</title>
+</head>
+<body>
+  <main>
+    <h1>Create account</h1>
+    <form id="form" novalidate>
+      <label for="name">Full name</label>
+      <input id="name" type="text">
+      <label for="email">Email</label>
+      <input id="email" type="text">
+      <p id="error" role="alert"></p>
+      <button type="submit">Create account</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const email = document.getElementById('email');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!email.value.includes('@')) {
+
+        email.setAttribute('aria-invalid', 'true');
+        document.getElementById('error').textContent = 'Email must contain @.';
+        return;
+      }
+      await fetch('https://fixture.test/api/signup', { method: 'POST', body: email.value });
+      document.getElementById('result').innerHTML = '<h2>Account created</h2>';
+    });
+  </script>
+</body>
+</html>

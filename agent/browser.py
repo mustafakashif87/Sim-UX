@@ -155,6 +155,12 @@ def settle(page: Page, timeout_ms: int = SETTLE_TIMEOUT_MS) -> None:
         pass
 
 
+def goal_reached(page: Page, role: str, name: str) -> bool:
+    """The harness's success check: a visible element with this role and name."""
+    matches = page.get_by_role(role, name=name, exact=True)
+    return any(matches.nth(i).is_visible() for i in range(matches.count()))
+
+
 def _focused(page: Page, refs: RefMap) -> FocusedElement | None:
     if page.evaluate("() => !document.activeElement || document.activeElement === document.body"):
         return None

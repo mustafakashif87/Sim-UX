@@ -94,6 +94,16 @@ class Perturbation(Config):
     double_submit_rate: float = Rate
     back_press_rate: float = Rate
 
+    @model_validator(mode="after")
+    def _one_mistake_per_step(self) -> Self:
+        # At most one mistake per step (agent/perturb.py), so the rates that
+        # can hit the same action must fit in one draw.
+        typing = self.back_press_rate + self.skip_field_rate + self.typo_rate
+        clicking = self.back_press_rate + self.double_submit_rate
+        if max(typing, clicking) > 1 + 1e-9:  # tolerance: 0.33 + 0.56 + 0.11 > 1 in floats
+            raise ValueError("rates that apply to the same action add up to more than 1")
+        return self
+
 
 class Persona(Config):
     id: str = Field(pattern=r"^[a-z][a-z0-9_]*$")

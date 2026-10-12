@@ -23,7 +23,7 @@ pytest -q tests/test_contracts.py::TestFinding::test_valid   # one test
 
 Browser tests need `pip install -e ".[dev,browser]"` and `playwright install --only-shell chromium`, then `pytest -q tests/e2e --override-ini addopts=` (plain `pytest` skips them).
 
-Built so far: `agent/contracts.py`, `agent/perception.py` (snapshot to tree with refs, pure), `agent/actions.py` (action whitelist validator, pure), `agent/persona.py` (loads and validates `personas/*.yaml`; P1 is `personas/error_prone.yaml`) and `agent/browser.py` (Playwright side: `observe`, `locate`, `act`). Other module folders hold a README naming purpose and owner. Add commands here as each module lands.
+Built so far: `agent/contracts.py`, `agent/perception.py` (snapshot to tree with refs, pure), `agent/actions.py` (action whitelist validator, pure), `agent/persona.py` (loads and validates `personas/*.yaml`; P1 is `personas/error_prone.yaml`), `agent/perturb.py` (seeded mistakes between intent and execution) and `agent/browser.py` (Playwright side: `observe`, `locate`, `act`). Other module folders hold a README naming purpose and owner. Add commands here as each module lands.
 
 ## CI/CD
 

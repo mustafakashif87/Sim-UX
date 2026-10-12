@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Actions fixture</title>
+</head>
+<body>
+  <main>
+    <h1>Order</h1>
+    <label for="name">Full name</label>
+    <input id="name" type="text" value="old">
+    <button type="button" id="add">Add</button>
+    <button type="button" id="locked" disabled>Locked</button>
+    <button type="button" id="send">Send</button>
+    <p id="count">0</p>
+    <p id="sent"></p>
+    <p id="last-key"></p>
+    <a href="perception.html">Next page</a>
+    <div style="height: 3000px"></div>
+    <button type="button" id="far">Far away</button>
+  </main>
+  <script>
+    let n = 0;
+    document.getElementById('add').addEventListener('click', () => {
+      document.getElementById('count').textContent = String(++n);
+    });
+    // Like the test-app forms: submit with fetch, show the result in the page.
+    // Tests intercept this endpoint with page.route.
+    document.getElementById('send').addEventListener('click', async () => {
+      const res = await fetch('https://fixture.test/api/send', { method: 'POST' });
+      document.getElementById('sent').textContent = await res.text();
+    });
+    document.addEventListener('keydown', (e) => {
+      document.getElementById('last-key').textContent = e.key;
+    });
+  </script>
+</body>
+</html>

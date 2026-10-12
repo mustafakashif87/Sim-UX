@@ -12,6 +12,18 @@ class TestAction:
     def test_click_with_ref(self):
         assert act(action="click", ref="e3").ref == "e3"
 
+    @pytest.mark.parametrize(
+        "kw",
+        [
+            {"action": "back"},
+            {"action": "give_up"},
+            {"action": "press", "key": "Tab"},
+            {"action": "scroll"},
+        ],
+    )
+    def test_ref_is_optional_where_not_needed(self, kw):
+        assert act(**kw).ref is None
+
     def test_unknown_action_rejected(self):
         with pytest.raises(ValidationError):
             act(action="hover", ref="e1")

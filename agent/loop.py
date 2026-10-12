@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Literal, Protocol
 from urllib.parse import urlparse
 
+from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
 
 from agent.actions import validate
@@ -51,6 +52,10 @@ class Task:
     url: str
     text: str  # what the user wants, as the model reads it; never names a bug
     goal: Goal
+    # URL glob of the form's submission endpoint, e.g. "**/api/orders". The
+    # harness answers it with 200, so a run does not depend on where the page
+    # is hosted (GitHub Pages rejects POSTs). Submissions are logged either way.
+    endpoint: str | None = None
 
 
 @dataclass(frozen=True)
@@ -111,8 +116,12 @@ def run(
 ) -> RunResult:
     """Run one task to success, give-up or the step cap, logging every step.
 
-    Writes `<log_root>/<run_id>/steps.jsonl` (one StepRecord per line, as each
-    step happens) and `run.json` (what is needed to replay the run).
+    Writes to `<log_root>/<run_id>/`, each line as it happens:
+    - `steps.jsonl`: one StepRecord per step
+    - `observations.jsonl`: what the persona saw at each step, then the final page
+    - `network.jsonl`: every non-GET request, with the step that caused it
+    and at the end `run.json`, with what is needed to replay the run.
+    Detectors read these files, never what the model said happened.
     """
     perturber = Perturber(persona.perturbation, seed=seed)
     policy = persona.action_policy
@@ -138,12 +147,34 @@ def run(
     status: RunStatus = "crashed"
     notes: list[str] = []
     last_content: str | None = None
+    current = {"step": -1}  # the step whose action is running; -1 while loading
+    submissions: list[dict] = []
+
+    def on_request(request) -> None:
+        if request.method == "GET" or current["step"] < 0:
+            return
+        try:
+            body = request.post_data
+        except (PlaywrightError, UnicodeDecodeError):  # binary body
+            body = None
+        submissions.append(
+            {"step": current["step"], "method": request.method, "url": request.url, "body": body}
+        )
+
+    page.on("request", on_request)
+    if task.endpoint:
+        page.route(task.endpoint, _answer_submission)
 
     try:
         page.goto(task.url)
         settle(page)
-        with open(log_dir / "steps.jsonl", "a", encoding="utf-8") as log:
+        with (
+            open(log_dir / "steps.jsonl", "a", encoding="utf-8") as log,
+            open(log_dir / "observations.jsonl", "a", encoding="utf-8") as obs_log,
+            open(log_dir / "network.jsonl", "a", encoding="utf-8") as net_log,
+        ):
             for step in range(persona.memory.max_steps):
+                current["step"] = step
                 obs, refs = observe(page, step, persona.perception.filters, notes)
                 obs_hash = observation_hash(obs)
                 content = _content_hash(obs)
@@ -156,6 +187,8 @@ def run(
                         obs = obs.model_copy(
                             update={"persona_notes": [*notes, "Nothing visibly changed."]}
                         )
+
+                _append(obs_log, {"step": step, "observation": obs.model_dump()})
 
                 window = persona.memory.history_turns
                 action = model.next_action(task.text, obs, history[-window:] if window else [])
@@ -181,6 +214,9 @@ def run(
                     notes = ["That action did not work."] if result == "error" else []
 
                 reached = goal_reached(page, task.goal.role, task.goal.name)
+                for sub in submissions:
+                    if sub["step"] == step:
+                        _append(net_log, sub)
                 record = _record(
                     run_id, persona, page_name, step, obs_hash, action, perturbed, result, reached
                 )
@@ -193,7 +229,19 @@ def run(
                     break
             else:
                 status = "step_cap"
+            # The page as the run left it: detectors compare it with the last
+            # step. The run is already decided, so a page mid-navigation here
+            # must not crash it; detectors cope with the entry missing.
+            try:
+                final, _ = observe(page, len(steps), persona.perception.filters)
+                entry = {"step": len(steps), "observation": final.model_dump(), "final": True}
+                _append(obs_log, entry)
+            except PlaywrightError:
+                pass
     finally:
+        page.remove_listener("request", on_request)
+        if task.endpoint:
+            page.unroute(task.endpoint, _answer_submission)
         meta |= {
             "status": status,
             "steps": len(steps),
@@ -239,6 +287,15 @@ def _record(
         result=result,
         goal_reached=goal_reached,
     )
+
+
+def _answer_submission(route) -> None:
+    route.fulfill(status=200, body="ok", headers={"Access-Control-Allow-Origin": "*"})
+
+
+def _append(log, entry: dict) -> None:
+    log.write(json.dumps(entry) + "\n")
+    log.flush()
 
 
 def _write(log, steps: list[StepRecord], record: StepRecord) -> None:

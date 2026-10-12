@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout, step 1 of 3 – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Checkout</h1>
+    <p>Stainless steel kettle, $39.00</p>
+
+    <form id="step1" class="step" novalidate>
+      <h2 tabindex="-1">Step 1 of 3: Delivery address</h2>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" autocomplete="name" aria-describedby="error1">
+      </div>
+      <div class="field">
+        <label for="street">Street address</label>
+        <input type="text" id="street" autocomplete="street-address" aria-describedby="error1">
+      </div>
+      <div class="field">
+        <label for="city">City</label>
+        <input type="text" id="city" autocomplete="address-level2" aria-describedby="error1">
+      </div>
+      <p id="error1" class="error" role="alert"></p>
+      <button type="submit">Continue</button>
+    </form>
+
+    <form id="step2" class="step" novalidate hidden>
+      <h2 tabindex="-1">Step 2 of 3: Delivery option</h2>
+      <fieldset class="field">
+        <legend>Delivery option</legend>
+        <label><input type="radio" name="speed" value="standard" checked> Standard, 3 to 5 days ($5.00)</label><br>
+        <label><input type="radio" name="speed" value="express"> Express, next day ($12.00)</label>
+      </fieldset>
+      <button type="submit">Continue</button>
+    </form>
+
+    <form id="step3" class="step" novalidate hidden>
+      <h2 tabindex="-1">Step 3 of 3: Billing address</h2>
+      <p>The address your card statements are sent to.</p>
+      <div class="field">
+        <label for="bill-street">Billing street address</label>
+        <input type="text" id="bill-street" aria-describedby="error3">
+      </div>
+      <div class="field">
+        <label for="bill-city">Billing city</label>
+        <input type="text" id="bill-city" aria-describedby="error3">
+      </div>
+      <p id="error3" class="error" role="alert"></p>
+      <button type="submit">Place order</button>
+    </form>
+
+    <div id="result"></div>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach((s) => { s.hidden = s.id !== 'step' + n; });
+      document.title = `Checkout, step ${n} of 3 – SimShop`;
+      $('step' + n).querySelector('h2').focus();
+    }
+
+    // Marks empty fields invalid; returns true when all are filled.
+    function requireFilled(fields, errorId) {
+      const empty = fields.filter(([el]) => !el.value.trim());
+      fields.forEach(([el]) => el.removeAttribute('aria-invalid'));
+      empty.forEach(([el]) => el.setAttribute('aria-invalid', 'true'));
+      $(errorId).textContent = empty.map(([, label]) => `Enter your ${label}.`).join(' ');
+      return empty.length === 0;
+    }
+
+    $('step1').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const ok = requireFilled(
+        [[$('name'), 'full name'], [$('street'), 'street address'], [$('city'), 'city']],
+        'error1');
+      if (ok) showStep(2);
+    });
+
+    $('step2').addEventListener('submit', (e) => {
+      e.preventDefault();
+      showStep(3);
+    });
+
+    $('step3').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const ok = requireFilled(
+        [[$('bill-street'), 'billing street address'], [$('bill-city'), 'billing city']],
+        'error3');
+      if (!ok) return;
+      await fetch('api/checkout', { method: 'POST', body: $('street').value });
+      $('step3').hidden = true;
+      $('result').innerHTML = '<h2>Thank you for your order</h2>';
+    });
+  </script>
+</body>
+</html>

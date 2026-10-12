@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Newsletter – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Get our weekly deals</h1>
+    <p>One email a week with our best offers. Unsubscribe at any time.</p>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="text" id="email" autocomplete="email" aria-describedby="error">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Subscribe</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const email = document.getElementById('email');
+    const error = document.getElementById('error');
+
+    function showError(message) {
+      email.setAttribute('aria-invalid', 'true');
+      error.textContent = message;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) {
+        return;
+      }
+      email.removeAttribute('aria-invalid');
+      error.textContent = '';
+      await fetch('api/subscribe', { method: 'POST', body: email.value });
+      form.hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Subscribed</h2>';
+    });
+  </script>
+</body>
+</html>

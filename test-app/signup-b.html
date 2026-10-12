@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Create account – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Create account</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name" autocomplete="name" aria-describedby="error">
+      </div>
+      <div class="field">
+        <label for="email">Email address</label>
+        <input type="text" id="email" autocomplete="email" aria-describedby="error">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Create account</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const name = document.getElementById('name');
+    const email = document.getElementById('email');
+    const error = document.getElementById('error');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const problems = [];
+      name.removeAttribute('aria-invalid');
+      email.removeAttribute('aria-invalid');
+      if (!name.value.trim()) problems.push([name, 'Enter your full name.']);
+      if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.value.trim())) {
+        problems.push([email, 'Enter an email address like name@example.com.']);
+      }
+      if (problems.length) {
+        problems.forEach(([field]) => field.setAttribute('aria-invalid', 'true'));
+        error.textContent = problems.map(([, message]) => message).join(' ');
+        return;
+      }
+      error.textContent = '';
+      await fetch('api/signup', { method: 'POST', body: email.value });
+      form.hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Account created</h2>';
+    });
+  </script>
+</body>
+</html>

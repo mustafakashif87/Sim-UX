@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Request a callback – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Request a callback</h1>
+    <p>Leave your number and our team will call you back within one working day.</p>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="name">Your name</label>
+        <input type="text" id="name" autocomplete="name" aria-describedby="error">
+      </div>
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input type="text" id="phone" autocomplete="tel" inputmode="numeric" aria-describedby="error">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Request callback</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const name = document.getElementById('name');
+    const phone = document.getElementById('phone');
+    const error = document.getElementById('error');
+
+    const MESSAGES = {
+      name: 'Enter your name.',
+      phone: 'Phone number must be 11 digits, for example 03001234567.',
+    };
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const invalid = [];
+      name.removeAttribute('aria-invalid');
+      phone.removeAttribute('aria-invalid');
+      if (!name.value.trim()) invalid.push(name);
+      if (!/^\d{11}$/.test(phone.value.replace(/[\s-]/g, ''))) invalid.push(phone);
+      if (invalid.length) {
+        invalid.forEach((field) => field.setAttribute('aria-invalid', 'true'));
+        error.textContent = 'Invalid input.';
+        return;
+      }
+      error.textContent = '';
+      await fetch('api/callback', { method: 'POST', body: phone.value });
+      form.hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Callback requested</h2>';
+    });
+  </script>
+</body>
+</html>

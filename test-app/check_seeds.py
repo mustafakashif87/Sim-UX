@@ -1,9 +1,10 @@
 """Check every seeded bug against the ground truth in SEEDED_BUGS.md.
 
 For each row of the Bugs table, the bug must be present on the buggy page and
-absent on the clean page. Exits 1 on any mismatch, or when a row has no check
-here (or a check has no row), so CI's `seeds` job fails instead of trusting a
-stale ground truth.
+absent on the clean page. Every task in tasks.yaml must also reach its goal on
+both pages of its pair when done correctly, so the goal check is known to work.
+Exits 1 on any mismatch, or when a row or task has no check here (or the other
+way round), so CI's `seeds` job fails instead of trusting a stale ground truth.
 
 This is not the agent. Each check is a scripted user or a direct reading of
 the accessibility tree, so the ground truth is verified, not assumed.
@@ -20,20 +21,36 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
+import yaml
 from playwright.sync_api import Browser, Page, sync_playwright
+from playwright.sync_api import TimeoutError as PlaywrightTimeout
 
 APP_DIR = Path(__file__).resolve().parent
 GROUND_TRUTH = APP_DIR / "SEEDED_BUGS.md"
+TASKS = APP_DIR / "tasks.yaml"
 MAX_TABS = 25
 
-# A check opens a fresh page and returns True when the bug is present on it.
-Check = Callable[[Page], bool]
+# A check gets a fresh page and the bodies of the POSTs it has sent so far,
+# and returns True when the bug is present on it.
+Check = Callable[[Page, list[str]], bool]
 CHECKS: dict[str, Check] = {}
+
+# A happy path completes a task the way a careful user would.
+HappyPath = Callable[[Page], None]
+HAPPY: dict[str, HappyPath] = {}
 
 
 def check(bug_id: str):
     def register(fn: Check) -> Check:
         CHECKS[bug_id] = fn
+        return fn
+
+    return register
+
+
+def happy(task_id: str):
+    def register(fn: HappyPath) -> HappyPath:
+        HAPPY[task_id] = fn
         return fn
 
     return register
@@ -65,36 +82,165 @@ def reached_goal(page: Page, role: str, name: str, timeout_ms: int = 3000) -> bo
     try:
         page.get_by_role(role, name=name, exact=True).first.wait_for(timeout=timeout_ms)
         return True
-    except Exception:
+    except PlaywrightTimeout:
         return False
+
+
+def alert_text(page: Page, timeout_ms: int = 3000) -> str:
+    """Text of the first alert that has any, or "" if none appears."""
+    alert = page.get_by_role("alert").filter(has_text=re.compile(r"\S")).first
+    try:
+        alert.wait_for(timeout=timeout_ms)
+    except PlaywrightTimeout:
+        return ""
+    return alert.inner_text().strip()
+
+
+def shows_error(page: Page) -> bool:
+    """An alert with text, or a field marked invalid (as the P1 detectors see it)."""
+    if alert_text(page, timeout_ms=500):
+        return True
+    return page.locator("[aria-invalid=true]").count() > 0
+
+
+def fill_delivery_address(page: Page) -> None:
+    """Checkout step 1, filled correctly, then on to step 2."""
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.get_by_label("Street address", exact=True).fill("12 Canal Road")
+    page.get_by_label("City", exact=True).fill("Lahore")
+    page.get_by_role("button", name="Continue").click()
 
 
 # --- SB-01 to SB-05: deterministic-layer fixtures --------------------------
 
 
 @check("SB-01")
-def image_without_alt(page: Page) -> bool:
+def image_without_alt(page: Page, posts: list[str]) -> bool:
     return has_unnamed(page, "img")
 
 
 @check("SB-02")
-def button_without_name(page: Page) -> bool:
+def button_without_name(page: Page, posts: list[str]) -> bool:
     return has_unnamed(page, "button")
 
 
 @check("SB-03")
-def field_without_label(page: Page) -> bool:
+def field_without_label(page: Page, posts: list[str]) -> bool:
     return has_unnamed(page, "textbox")
 
 
 @check("SB-04")
-def focus_trap(page: Page) -> bool:
+def focus_trap(page: Page, posts: list[str]) -> bool:
     return not tab_to_and_activate(page, "button[type=submit]")
 
 
 @check("SB-05")
-def mouse_only_control(page: Page) -> bool:
+def mouse_only_control(page: Page, posts: list[str]) -> bool:
     return not tab_to_and_activate(page, "#confirm")
+
+
+# --- B1 to B6: P1 Error-prone user -----------------------------------------
+
+
+@check("B1")
+def form_clears_on_error(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.get_by_label("Email address").fill("sam.khan")  # no @: invalid
+    page.get_by_role("button", name="Create account").click()
+    alert_text(page)
+    return page.get_by_label("Full name").input_value() == ""
+
+
+@check("B2")
+def invalid_input_rejected_silently(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Email address").fill("sam.khan")
+    page.get_by_role("button", name="Subscribe").click()
+    page.wait_for_timeout(500)
+    return not posts and not shows_error(page)
+
+
+@check("B3")
+def error_does_not_name_field(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Your name").fill("Sam Khan")
+    page.get_by_label("Phone number").fill("12345")
+    page.get_by_role("button", name="Request callback").click()
+    return "phone" not in alert_text(page).lower()
+
+
+@check("B4")
+def double_submit_sends_twice(page: Page, posts: list[str]) -> bool:
+    button = page.get_by_role("button", name="Place order")
+    button.click()
+    try:  # a second press straight after, as the perturbation layer does it
+        button.click(timeout=500)
+    except PlaywrightTimeout:
+        pass  # the button was disabled: the page working as intended
+    page.wait_for_timeout(300)
+    return len(posts) >= 2
+
+
+@check("B5")
+def deletes_without_confirmation(page: Page, posts: list[str]) -> bool:
+    page.get_by_role("button", name="Delete account").click()
+    page.wait_for_timeout(500)
+    return bool(posts)
+
+
+@check("B6")
+def asks_again_for_address(page: Page, posts: list[str]) -> bool:
+    fill_delivery_address(page)
+    page.get_by_role("button", name="Continue").click()  # step 2: keep the default
+    billing = page.get_by_label("Billing street address")
+    billing.wait_for()
+    return billing.input_value() == ""
+
+
+# --- happy paths: every task in tasks.yaml reaches its goal on both pages ---
+
+
+@happy("signup")
+def sign_up(page: Page) -> None:
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.get_by_label("Email address").fill("sam.khan@example.com")
+    page.get_by_role("button", name="Create account").click()
+
+
+@happy("subscribe")
+def subscribe(page: Page) -> None:
+    page.get_by_label("Email address").fill("sam.khan@example.com")
+    page.get_by_role("button", name="Subscribe").click()
+
+
+@happy("callback")
+def request_callback(page: Page) -> None:
+    page.get_by_label("Your name").fill("Sam Khan")
+    page.get_by_label("Phone number").fill("03001234567")
+    page.get_by_role("button", name="Request callback").click()
+
+
+@happy("order")
+def place_order(page: Page) -> None:
+    page.get_by_role("button", name="Place order").click()
+
+
+@happy("account")
+def delete_account(page: Page) -> None:
+    page.get_by_role("button", name="Delete account").click()
+    try:
+        page.get_by_role("button", name="Yes, delete my account").click(timeout=1000)
+    except PlaywrightTimeout:
+        pass  # this version has no confirmation step
+
+
+@happy("checkout")
+def check_out(page: Page) -> None:
+    fill_delivery_address(page)
+    page.get_by_role("button", name="Continue").click()
+    for label, value in [("Billing street address", "12 Canal Road"), ("Billing city", "Lahore")]:
+        field = page.get_by_label(label)
+        if not field.input_value():
+            field.fill(value)
+    page.get_by_role("button", name="Place order").click()
 
 
 # --- runner ----------------------------------------------------------------
@@ -122,31 +268,57 @@ def _serve() -> http.server.ThreadingHTTPServer:
     return server
 
 
-def _present(browser: Browser, base: str, name: str, fn: Check) -> bool:
+def _open(browser: Browser, url: str) -> tuple[Page, list[str]]:
+    """A fresh page whose POSTs to api/ are answered with 200 and recorded,
+    as the harness does with a task's endpoint."""
     page = browser.new_page()
+    posts: list[str] = []
+
+    def answer(route) -> None:
+        if route.request.method == "POST":
+            posts.append(route.request.post_data or "")
+        route.fulfill(status=200, body="ok")
+
+    page.route("**/api/**", answer)
+    page.goto(url)
+    return page, posts
+
+
+def _present(browser: Browser, base: str, name: str, fn: Check) -> bool:
+    page, posts = _open(browser, f"{base}/{name}")
     try:
-        page.goto(f"{base}/{name}")
-        return fn(page)
+        return fn(page, posts)
+    finally:
+        page.close()
+
+
+def _completes(browser: Browser, base: str, name: str, task: dict) -> bool:
+    page, _ = _open(browser, f"{base}/{name}")
+    try:
+        HAPPY[task["id"]](page)
+        return reached_goal(page, task["goal"]["role"], task["goal"]["name"])
     finally:
         page.close()
 
 
 def main() -> int:
     rows = ground_truth()
-    problems = [
-        f"{bug}: in SEEDED_BUGS.md but has no check" for bug, *_ in rows if bug not in CHECKS
-    ]
+    tasks = yaml.safe_load(TASKS.read_text(encoding="utf-8"))
+    row_ids = {r[0] for r in rows}
+    task_ids = {t["id"] for t in tasks}
+    problems = [f"{bug}: in SEEDED_BUGS.md but has no check" for bug in row_ids - CHECKS.keys()]
     problems += [
-        f"{bug}: has a check but no row in SEEDED_BUGS.md"
-        for bug in CHECKS
-        if bug not in {r[0] for r in rows}
+        f"{bug}: has a check but no row in SEEDED_BUGS.md" for bug in CHECKS.keys() - row_ids
     ]
+    problems += [f"task {t}: in tasks.yaml but has no happy path" for t in task_ids - HAPPY.keys()]
+    problems += [f"happy path {t}: no task in tasks.yaml" for t in HAPPY.keys() - task_ids]
 
     server = _serve()
     base = f"http://127.0.0.1:{server.server_port}"
-    print(f"{'bug':<6} {'buggy page':<20} {'present':<8} {'clean page':<20} present")
     with sync_playwright() as p:
         browser = p.chromium.launch()
+
+        print(f"{'bug':<6} {'buggy page':<20} {'present':<8} {'clean page':<20} present")
         for bug, buggy, clean in rows:
             if bug not in CHECKS:
                 continue
@@ -157,17 +329,27 @@ def main() -> int:
                 problems.append(f"{bug}: missing from buggy page {buggy}")
             if on_clean:
                 problems.append(f"{bug}: present on clean page {clean}")
+
+        print(f"\n{'task':<10} {'page':<20} goal reached")
+        for task in tasks:
+            if task["id"] not in HAPPY:
+                continue
+            for name in task["pages"]:
+                done = _completes(browser, base, name, task)
+                print(f"{task['id']:<10} {name:<20} {done}")
+                if not done:
+                    problems.append(f"task {task['id']}: goal not reached on {name}")
+
         browser.close()
     server.shutdown()
 
     for problem in problems:
         print(f"FAIL {problem}", file=sys.stderr)
-    print(
-        "OK: every seeded bug matches the ground truth"
-        if not problems
-        else f"{len(problems)} mismatch(es)"
-    )
-    return 1 if problems else 0
+    if problems:
+        print(f"{len(problems)} mismatch(es)")
+        return 1
+    print("OK: every seeded bug matches the ground truth and every goal is reachable")
+    return 0
 
 
 if __name__ == "__main__":

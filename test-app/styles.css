@@ -107,3 +107,5 @@ button.secondary {
 .hint { color: var(--muted); font-size: 0.9rem; }
 
 ul.pages li { margin-bottom: 8px; }
+
+.error { color: #a00000; font-weight: 600; min-height: 1.5em; }

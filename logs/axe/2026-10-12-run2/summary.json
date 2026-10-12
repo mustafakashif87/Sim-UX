@@ -1,0 +1,44 @@
+{
+  "account-a.html": [],
+  "account-b.html": [],
+  "basket-a.html": [],
+  "basket-b.html": [],
+  "booking-a.html": [],
+  "booking-b.html": [],
+  "callback-a.html": [],
+  "callback-b.html": [],
+  "checkout-a.html": [],
+  "checkout-b.html": [],
+  "contact-a.html": [
+    {
+      "id": "label",
+      "impact": "critical",
+      "nodes": 1
+    }
+  ],
+  "contact-b.html": [],
+  "index.html": [],
+  "order-a.html": [],
+  "order-b.html": [],
+  "promo-a.html": [
+    {
+      "id": "image-alt",
+      "impact": "critical",
+      "nodes": 1
+    }
+  ],
+  "promo-b.html": [],
+  "search-a.html": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "nodes": 1
+    }
+  ],
+  "search-b.html": [],
+  "signup-a.html": [],
+  "signup-b.html": [],
+  "subscribe-a.html": [],
+  "subscribe-b.html": [],
+  "success.html": []
+}

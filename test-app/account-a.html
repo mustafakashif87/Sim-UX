@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Account settings – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Account settings</h1>
+    <div id="settings">
+      <dl>
+        <dt>Name</dt><dd>Sam Khan</dd>
+        <dt>Email</dt><dd>sam.khan@example.com</dd>
+      </dl>
+      <h2>Close your account</h2>
+      <p>Deleting your account removes your order history and saved addresses.</p>
+      <button type="button" id="delete">Delete account</button>
+    </div>
+    <dialog id="confirm" aria-labelledby="confirm-heading">
+      <h2 id="confirm-heading">Delete your account?</h2>
+      <p>This removes your order history and saved addresses. It cannot be undone.</p>
+      <button type="button" id="confirm-yes">Yes, delete my account</button>
+      <button type="button" class="secondary" id="confirm-no">Cancel</button>
+    </dialog>
+    <div id="result"></div>
+  </main>
+  <script>
+    const dialog = document.getElementById('confirm');
+
+    async function deleteAccount() {
+      dialog.close();
+      await fetch('api/account/delete', { method: 'POST', body: 'sam.khan@example.com' });
+      document.getElementById('settings').hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Account deleted</h2>';
+    }
+
+    document.getElementById('delete').addEventListener('click', deleteAccount);
+    document.getElementById('confirm-yes').addEventListener('click', deleteAccount);
+    document.getElementById('confirm-no').addEventListener('click', () => dialog.close());
+  </script>
+</body>
+</html>

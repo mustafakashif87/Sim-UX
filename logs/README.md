@@ -8,6 +8,7 @@ Owner: Person A. Spec: Evaluation protocol.
 | Path | Contents |
 | --- | --- |
 | `axe/<date>/` | axe-core 4.10.2 scan of every `test-app/` page (`.github/scripts/axe-scan.mjs`): one JSON per page plus `summary.json` |
+| `axe/README.md` | Per-page summary of the latest scan: the axe-core column of the comparison table |
 
 ## axe-core results, 2026-10-12
 

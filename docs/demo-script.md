@@ -10,27 +10,26 @@ Wednesday. Fill them in before the rehearsal.
 
 ## The one decision to make before rehearsal
 
-P1's configured rates are low (`personas/error_prone.yaml`): a 10% chance of a
-double press and 15% of a typo. With them, a live run on `order-a` usually
-makes no mistake, so there is nothing to detect. Pick one approach and say it
-out loud in the demo:
+P1's configured rates are low (`personas/error_prone.yaml`), so a single live
+run usually makes no mistake and there is nothing to detect.
 
-- **Demo rates (recommended):** run the demo with `double_submit_rate: 1.0` on
-  the order pages and `typo_rate: 1.0` on the signup pages, as the detector
-  tests do. Say: "For the demo we turn the mistake rate up to 1, so the slip
-  happens on cue. The evaluation uses the configured rates, five seeds each."
-- **Hunted seeds:** find a seed that triggers the mistake at the configured
-  rate. It is more realistic, but the model's step count can change between
-  runs and the seed may stop working on the day.
+- **Signup pages: decided.** Use **seed 37**, which triggers a **skipped
+  field** at the configured rates (verified in Person B's dry run). A typo
+  does not work here: the typo run failed in the dry run.
+- **Order pages: still open.** Either run with `double_submit_rate: 1.0`, as
+  the detector tests do, and say "for the demo we turn the double-press rate
+  up to 1 so the slip happens on cue; the evaluation uses the configured
+  rates, five seeds each", or find a seed that triggers a double press at
+  the configured rate, as was done for signup.
 
-TODO (Person B): demo persona config or flag = __
+TODO (Person B): order-page rate override or seed = __
 
 ## Before the panel arrives
 
 - [ ] Test app opens: https://mustafakashif87.github.io/Sim-UX/ (or locally:
       `python -m http.server 8000 -d test-app`)
 - [ ] `python test-app/check_seeds.py` prints `OK` (all bugs in place)
-- [ ] Groq and Gemini keys loaded in the environment; one warm-up call each
+- [ ] Groq and OpenRouter keys loaded in the environment; one warm-up call each
 - [ ] Recorded run open in a background tab (fallback 3)
 - [ ] Fake-model fallback tested on this laptop (fallback 4, command below)
 - [ ] Terminal and browser zoomed so the back row can read them
@@ -76,13 +75,18 @@ TODO (Person B): demo persona config or flag = __
 
 ### 4. P1 on `signup-a`, then `signup-b` (2 min)
 
-> "Now a typo. The agent types the email; the harness swaps one character so
-> it's invalid."
+> "Now a lapse. The agent fills in the form, but the harness leaves one
+> required field empty, as a person who forgot a field would. The page should
+> say what's missing and keep everything else."
 
-- `signup-a`: the error appears, **and the name field the agent already filled
-  is wiped**. Finding: `data_loss_on_error`, Nielsen #9, WCAG 3.3.7 Redundant
+- Seed 37 on both pages, so the same field is skipped at the same step.
+- Point at the step where the intended action typed into a field and the
+  executed action did nothing (perturbation `skip_field`).
+- `signup-a`: the error appears, **and the field the agent did fill is
+  wiped**. Finding: `data_loss_on_error`, Nielsen #9, WCAG 3.3.7 Redundant
   Entry.
-- `signup-b`: same typo, the error appears, the name stays. **No finding.**
+- `signup-b`: same skipped field, the error appears, the filled field stays.
+  **No finding.**
 
 > "The one-line difference here is `form.reset()` on error."
 
@@ -111,7 +115,7 @@ fallback as live.
 | Rung | What | How |
 | --- | --- | --- |
 | 1 | Groq, live | TODO: command / env = __ |
-| 2 | Gemini, live | TODO: command / env = __ |
+| 2 | Open-weight model via OpenRouter, live (keeps the proposal's open-weight-only claim) | TODO: model ID and command / env = __ |
 | 3 | Replay of the recorded run (`order-a`, `signup-a`, recorded Wed with Person B) | TODO: path `logs/demo/<run_id>/`; show `steps.jsonl` (intended vs executed) and the findings |
 | 4 | Fake model, offline, no key | `pytest -v tests/e2e/test_test_app.py --override-ini addopts=`: shows each detector firing on the buggy page and silent on the clean one, plus a careful user succeeding on both signup pages. Tested: 6 passed in 13 s |
 

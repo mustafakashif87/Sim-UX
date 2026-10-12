@@ -1,0 +1,52 @@
+# Nielsen's 10 usability heuristics: heuristic number, name, and a short attributed
+# excerpt only (never the full article). Source: Jakob Nielsen, "10 Usability
+# Heuristics for User Interface Design", Nielsen Norman Group,
+# https://www.nngroup.com/articles/ten-usability-heuristics/ (retrieved 2026-10-12).
+# Excerpts are copied verbatim from that page. Copyright NN/g: keep excerpts short
+# and keep the link. Heuristics #4, #7, #8 and #10 are not used by any signal
+# (spec: Coverage); add them here when a signal needs them.
+
+- id: Nielsen 1
+  source: Nielsen
+  title: Visibility of System Status
+  url: https://www.nngroup.com/articles/ten-usability-heuristics/
+  text: The design should always keep users informed about what is going on, through appropriate feedback
+    within a reasonable amount of time.
+  key_quote: The design should always keep users informed about what is going on
+- id: Nielsen 2
+  source: Nielsen
+  title: Match Between the System and the Real World
+  url: https://www.nngroup.com/articles/ten-usability-heuristics/
+  text: The design should speak the users' language. Use words, phrases, and concepts familiar to the
+    user, rather than internal jargon.
+  key_quote: Use words, phrases, and concepts familiar to the user, rather than internal jargon.
+- id: Nielsen 3
+  source: Nielsen
+  title: User Control and Freedom
+  url: https://www.nngroup.com/articles/ten-usability-heuristics/
+  text: Users often perform actions by mistake. When it's easy for people to back out of a process or
+    undo an action, it fosters a sense of freedom and confidence.
+  key_quote: Users often perform actions by mistake.
+- id: Nielsen 5
+  source: Nielsen
+  title: Error Prevention
+  url: https://www.nngroup.com/articles/ten-usability-heuristics/
+  text: Good error messages are important, but the best designs carefully prevent problems from occurring
+    in the first place. Either eliminate error-prone conditions, or check for them and present users with
+    a confirmation option before they commit to the action.
+  key_quote: check for them and present users with a confirmation option before they commit to the action
+- id: Nielsen 6
+  source: Nielsen
+  title: Recognition Rather than Recall
+  url: https://www.nngroup.com/articles/ten-usability-heuristics/
+  text: Minimize the user's memory load by making elements, actions, and options visible. The user should
+    not have to remember information from one part of the interface to another.
+  key_quote: The user should not have to remember information from one part of the interface to another.
+- id: Nielsen 9
+  source: Nielsen
+  title: Help Users Recognize, Diagnose, and Recover from Errors
+  url: https://www.nngroup.com/articles/ten-usability-heuristics/
+  text: Error messages should be expressed in plain language (no error codes), precisely indicate the
+    problem, and constructively suggest a solution.
+  key_quote: Error messages should be expressed in plain language (no error codes), precisely indicate
+    the problem, and constructively suggest a solution.

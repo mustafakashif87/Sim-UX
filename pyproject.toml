@@ -23,7 +23,7 @@ browser = [
 ]
 
 [tool.setuptools.packages.find]
-include = ["agent*"]
+include = ["agent*", "grounding*"]
 
 [tool.ruff]
 line-length = 100

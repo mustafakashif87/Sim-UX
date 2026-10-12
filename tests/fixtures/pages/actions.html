@@ -27,7 +27,8 @@
     // Like the test-app forms: submit with fetch, show the result in the page.
     // Tests intercept this endpoint with page.route.
     document.getElementById('send').addEventListener('click', async () => {
-      const res = await fetch('https://fixture.test/api/send', { method: 'POST' });
+      const api = new URLSearchParams(location.search).get('api') || 'https://fixture.test/api/send';
+      const res = await fetch(api, { method: 'POST' });
       document.getElementById('sent').textContent = await res.text();
     });
     document.addEventListener('keydown', (e) => {

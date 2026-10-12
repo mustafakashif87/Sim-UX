@@ -5,6 +5,7 @@
 `act` executes an action that `agent.actions.validate` has accepted.
 """
 
+import time
 from typing import Literal
 from urllib.parse import urlparse
 
@@ -79,6 +80,7 @@ def act(
     """
     if action.action == "give_up":
         raise ValueError("give_up ends the run; it is not executed")
+    track_requests(page)  # before the action, so requests it starts are seen
     if action.ref and action.ref not in refs:
         # validate() rejects this; reaching here means a harness bug, e.g. in
         # the perturbation layer. Fail the step, not the run.
@@ -111,15 +113,44 @@ def act(
                     return "error"
     except PlaywrightError:
         return "error"
-    _settle(page, settle_ms)
+    if settle_ms > 0:  # Playwright reads a timeout of 0 as "wait forever"
+        settle(page, settle_ms)
     return "ok"
 
 
-def _settle(page: Page, timeout_ms: int) -> None:
-    """Wait until the page has loaded and its network is quiet, up to a bound."""
+# The page counts as settled once no request has been in flight for this long,
+# which also lets a form's fetch handler update the page after its response.
+QUIET_MS = 150
+_POLL_MS = 25
+
+
+def track_requests(page: Page) -> set:
+    """Start counting this page's in-flight requests (once per page).
+
+    Playwright's "networkidle" load state cannot be used: it fires once per
+    navigation, so after a page has loaded it no longer waits for a form's
+    fetch.
+    """
+    if not hasattr(page, "_simux_pending"):
+        pending: set = set()
+        page.on("request", lambda r: pending.add(r))
+        page.on("requestfinished", lambda r: pending.discard(r))
+        page.on("requestfailed", lambda r: pending.discard(r))
+        page._simux_pending = pending
+    return page._simux_pending
+
+
+def settle(page: Page, timeout_ms: int = SETTLE_TIMEOUT_MS) -> None:
+    """Wait until the page has loaded and no request has been in flight for
+    QUIET_MS, up to timeout_ms. Hitting the bound is not an error."""
+    pending = track_requests(page)
+    deadline = time.monotonic() + timeout_ms / 1000
     try:
         page.wait_for_load_state("load", timeout=timeout_ms)
-        page.wait_for_load_state("networkidle", timeout=timeout_ms)
+        quiet = 0
+        while quiet < QUIET_MS and time.monotonic() < deadline:
+            page.wait_for_timeout(_POLL_MS)  # lets Playwright deliver request events
+            quiet = 0 if pending else quiet + _POLL_MS
     except PlaywrightError:
         pass
 

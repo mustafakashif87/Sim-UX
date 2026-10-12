@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Search – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Search products</h1>
+    <form action="success.html" method="get" role="search">
+      <input type="hidden" name="form" value="search">
+      <div class="row">
+        <div class="field grow">
+          <label for="q">Search term</label>
+          <input type="search" id="q" name="q">
+        </div>
+        <div class="field">
+          <button type="submit">
+            <svg aria-hidden="true" focusable="false" width="20" height="20" viewBox="0 0 20 20">
+              <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="2"/>
+              <line x1="12.5" y1="12.5" x2="18" y2="18" stroke="currentColor" stroke-width="2"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <select id="category" name="category">
+          <option>All</option>
+          <option>Kitchen</option>
+          <option>Garden</option>
+        </select>
+      </div>
+    </form>
+  </main>
+</body>
+</html>

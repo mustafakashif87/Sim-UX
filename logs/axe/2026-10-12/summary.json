@@ -1,0 +1,32 @@
+{
+  "basket-a.html": [],
+  "basket-b.html": [],
+  "booking-a.html": [],
+  "booking-b.html": [],
+  "contact-a.html": [
+    {
+      "id": "label",
+      "impact": "critical",
+      "nodes": 1
+    }
+  ],
+  "contact-b.html": [],
+  "index.html": [],
+  "promo-a.html": [
+    {
+      "id": "image-alt",
+      "impact": "critical",
+      "nodes": 1
+    }
+  ],
+  "promo-b.html": [],
+  "search-a.html": [
+    {
+      "id": "button-name",
+      "impact": "critical",
+      "nodes": 1
+    }
+  ],
+  "search-b.html": [],
+  "success.html": []
+}

@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Booking – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Book a delivery slot</h1>
+    <!-- No <form> element here, so Enter in a field can't trigger implicit
+         submission; the only way to submit is the Confirm control. -->
+    <div class="field">
+      <label for="day">Day</label>
+      <select id="day">
+        <option>Monday</option>
+        <option>Tuesday</option>
+        <option>Wednesday</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="slot">Time slot</label>
+      <select id="slot">
+        <option>09:00 – 12:00</option>
+        <option>12:00 – 15:00</option>
+        <option>15:00 – 18:00</option>
+      </select>
+    </div>
+    <div class="btn" id="confirm">Confirm booking</div>
+  </main>
+
+  <script>
+    document.getElementById('confirm').addEventListener('click', () => {
+      window.location.href = 'success.html?form=booking';
+    });
+  </script>
+</body>
+</html>

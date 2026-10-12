@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Submission received – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <!-- Task-success marker: the agent run counts as passed when it lands
+         here, i.e. URL path ends in success.html and this heading is present. -->
+    <h1>Submission received</h1>
+    <p id="which"></p>
+  </main>
+  <script>
+    const form = new URLSearchParams(location.search).get('form');
+    if (form) document.getElementById('which').textContent = 'Form: ' + form;
+  </script>
+</body>
+</html>

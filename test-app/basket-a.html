@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Checkout – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Checkout</h1>
+    <section class="summary" aria-labelledby="summary-heading">
+      <h2 id="summary-heading">Order summary</h2>
+      <dl>
+        <dt>Stainless steel kettle</dt><dd>$39.00</dd>
+        <dt>Delivery</dt><dd>$5.00</dd>
+        <dt><strong>Total</strong></dt><dd><strong>$44.00</strong></dd>
+      </dl>
+    </section>
+
+    <!-- The promo widget sits outside the order form, so pressing Enter in
+         the code field never places the order. -->
+    <div class="promo-box" id="promo">
+      <div class="row">
+        <div class="field grow">
+          <label for="promo-code">Promo code</label>
+          <input type="text" id="promo-code">
+        </div>
+        <div class="field">
+          <button type="button" class="secondary" id="promo-apply">Apply</button>
+        </div>
+      </div>
+      <p class="hint" id="promo-status" aria-live="polite"></p>
+    </div>
+
+    <form id="checkout" action="success.html" method="get">
+      <input type="hidden" name="form" value="checkout">
+      <button type="submit">Place order</button>
+    </form>
+  </main>
+
+  <script>
+    const promo = document.getElementById('promo');
+    const promoFocusables = [...promo.querySelectorAll('input, button')];
+
+    // Keep Tab cycling between the promo code field and Apply.
+    promo.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return;
+      e.preventDefault();
+      const i = promoFocusables.indexOf(document.activeElement);
+      const n = promoFocusables.length;
+      promoFocusables[e.shiftKey ? (i - 1 + n) % n : (i + 1) % n].focus();
+    });
+
+    document.getElementById('promo-apply').addEventListener('click', () => {
+      document.getElementById('promo-status').textContent = 'That code is not valid.';
+    });
+  </script>
+</body>
+</html>

@@ -10,7 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 # Harness-assigned element reference, e.g. "e12". The model only ever sees
 # these; the ref-to-locator map stays inside the harness.
-ElementRef = Field(pattern=r"^e\d+$")
+REF_PATTERN = r"^e\d+$"
+ElementRef = Field(pattern=REF_PATTERN)
 
 ActionKind = Literal["click", "type", "press", "scroll", "back", "give_up"]
 
@@ -40,7 +41,7 @@ class Action(Contract):
 
     thought: str
     action: ActionKind
-    ref: str | None = ElementRef
+    ref: str | None = Field(default=None, pattern=REF_PATTERN)
     text: str | None = None
     key: str | None = None
 

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Loop fixture</title>
+</head>
+<body>
+  <main>
+    <h1>Contact</h1>
+    <form id="form" novalidate>
+      <label for="name">Full name</label>
+      <input id="name" type="text">
+      <p id="error" role="alert"></p>
+      <button type="button" id="send">Send</button>
+      <!-- Disables itself on the first press, as a clean submit button should. -->
+      <button type="button" id="send-once">Send once</button>
+      <button type="button" id="nothing">Refresh</button>
+    </form>
+    <a href="perception.html">Help</a>
+    <div id="result"></div>
+  </main>
+  <script>
+    // Submits with fetch, like the test-app forms; tests intercept the endpoint.
+    async function submit() {
+      const name = document.getElementById('name').value.trim();
+      if (!name) {
+        document.getElementById('error').textContent = 'Enter your full name.';
+        return;
+      }
+      await fetch('https://fixture.test/api/send', { method: 'POST', body: name });
+      document.getElementById('result').innerHTML = '<h2>Message sent</h2>';
+    }
+    document.getElementById('send').addEventListener('click', submit);
+    document.getElementById('send-once').addEventListener('click', (e) => {
+      e.target.disabled = true;
+      submit();
+    });
+  </script>
+</body>
+</html>

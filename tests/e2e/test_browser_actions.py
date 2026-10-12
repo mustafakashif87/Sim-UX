@@ -1,4 +1,5 @@
 import pytest
+from conftest import FIXTURE_PAGES
 
 from agent.browser import act, observe
 from agent.contracts import Action
@@ -80,6 +81,22 @@ def test_fetch_result_is_on_the_page_when_act_returns(page_and_refs):
     )
     act(page, Action(thought="", action="click", ref=ref_for(refs, "button", "Send")), refs)
     assert text_of(page, "#sent") == "Sent"
+
+
+def test_act_waits_for_a_slow_submission(browser, slow_endpoint):
+    # Only a settle that really waits for in-flight requests can pass this.
+    page = browser.new_page()
+    try:
+        url = (FIXTURE_PAGES / "actions.html").resolve().as_uri() + f"?api={slow_endpoint}"
+        page.goto(url)
+        # As in a run: the page has loaded and gone quiet before the agent acts.
+        # Playwright's "networkidle" fires once here and never waits again.
+        page.wait_for_load_state("networkidle")
+        _, refs = observe(page, step=0, filters=["full_tree"])
+        act(page, Action(thought="", action="click", ref=ref_for(refs, "button", "Send")), refs)
+        assert text_of(page, "#sent") == "Sent"
+    finally:
+        page.close()
 
 
 def test_back_returns_to_previous_page(page_and_refs):

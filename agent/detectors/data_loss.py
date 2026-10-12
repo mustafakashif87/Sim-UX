@@ -65,4 +65,4 @@ def data_loss_on_error(run: RunLog) -> Finding | None:
             continue
         if lost_fields(before, after):
             evidence.append(step.step)
-    return make_finding(run, SIGNAL, evidence) if evidence else None
+    return make_finding(run, SIGNAL, evidence, data_loss=True) if evidence else None

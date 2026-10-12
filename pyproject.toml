@@ -19,7 +19,9 @@ dev = [
     "ruff>=0.6",
 ]
 browser = [
-    "playwright>=1.47",
+    # Capped: perception parses Playwright's accessibility snapshot, whose format
+    # can change between releases. Raise the cap through a pull request so CI runs.
+    "playwright>=1.47,<1.64",
 ]
 
 [tool.setuptools.packages.find]
@@ -34,4 +36,7 @@ select = ["E", "F", "W", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Import agent/ and grounding/ from the checkout, so a package added after
+# `pip install -e .` (e.g. grounding/) is found without reinstalling.
+pythonpath = ["."]
 addopts = "--ignore=tests/e2e"

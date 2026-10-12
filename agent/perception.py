@@ -125,10 +125,24 @@ def walk(nodes: list[Node]):
         yield from walk(node.children)
 
 
+def _not_built(name: str, reason: str):
+    """A filter a config may name but no run may use yet: fail loudly rather
+    than silently show the full tree."""
+
+    def apply(nodes: list[Node]) -> list[Node]:
+        raise NotImplementedError(f"perception filter '{name}' is not built yet: {reason}")
+
+    return apply
+
+
 # Perception filters by config name (spec: Persona framework). Each takes and
 # returns the node list; later personas add their filters here.
 FILTERS = {
     "full_tree": lambda nodes: nodes,
+    # P3: words outside a common-word list become [unknown]. Its word list is an
+    # open decision in the spec, so the filter is registered (P3's config is
+    # valid) but cannot run until the list is chosen.
+    "vocab_filter": _not_built("vocab_filter", "the P3 word list is an open decision"),
 }
 
 

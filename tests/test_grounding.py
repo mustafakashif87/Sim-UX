@@ -3,7 +3,6 @@
 import pytest
 
 from agent.contracts import Finding
-from agent.detectors import CANDIDATES
 from grounding import (
     default_corpus,
     default_signal_map,
@@ -63,10 +62,6 @@ class TestSignalMap:
     def test_model_judged_signals_match_the_spec(self):
         judged = {s for s in SIGNALS.signals() if SIGNALS.entry(s).type == "model_judged"}
         assert judged == {"error_not_actionable", "system_language"}
-
-    def test_detectors_interim_map_agrees(self):
-        for signal, criteria in CANDIDATES.items():
-            assert SIGNALS.candidates(signal) == criteria
 
     def test_nielsen_only_signals_have_no_wcag(self):
         # Spec: no_way_back and system_language have no WCAG criterion.

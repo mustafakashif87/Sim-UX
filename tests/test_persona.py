@@ -53,7 +53,7 @@ class TestRejected:
             lambda d: d["actions"].update(allowed=["click", "give_up"]),
             lambda d: d["actions"].update(keys=["enter"]),
             lambda d: d["actions"].update(allowed=["click"]),  # keys without press
-            lambda d: d["perception"].update(filters=["vocab_filter"]),  # not built yet
+            lambda d: d["perception"].update(filters=["screenshot"]),  # no such filter
             lambda d: d["perception"].update(filters=[]),
             lambda d: d["perturbation"].update(typo_rate=1.5),
             lambda d: d["perturbation"].update(back_press_rate=-0.1),
@@ -130,3 +130,30 @@ class TestConfigHash:
         data = p1.model_dump()
         data["perturbation"]["typo_rate"] = 0.2
         assert Persona.model_validate(data).config_hash != p1.config_hash
+
+
+class TestP2AndP3Configs:
+    """Spec, mid-eval scope: P2 and P3 are delivered as configs."""
+
+    def test_p2_memoryless(self):
+        p2 = load_persona("memoryless")
+        assert p2.memory.history_turns == 0 and p2.memory.max_steps == 25
+        assert p2.perception.filters == ["full_tree"]
+        assert p2.perturbation.typo_rate == p2.perturbation.double_submit_rate == 0.0
+
+    def test_p3_low_literacy(self):
+        p3 = load_persona("low_literacy")
+        assert p3.perception.filters == ["vocab_filter"] and p3.memory.max_steps == 15
+        assert p3.perturbation.typo_rate == 0.0
+
+    def test_personas_differ_on_one_axis_each(self):
+        p1, p2, p3 = (load_persona(i) for i in ("error_prone", "memoryless", "low_literacy"))
+        assert p1.perturbation.typo_rate > 0 == p2.perturbation.typo_rate  # P1: perturbation
+        assert p2.memory.history_turns == 0 < p1.memory.history_turns  # P2: memory
+        assert p3.perception.filters != p1.perception.filters  # P3: perception
+
+    def test_unbuilt_filter_fails_loudly(self):
+        from agent.perception import apply_filters
+
+        with pytest.raises(NotImplementedError, match="not built yet"):
+            apply_filters([], ["vocab_filter"])

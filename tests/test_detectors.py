@@ -3,7 +3,7 @@
 import pytest
 
 from agent.contracts import Action, Observation, StepRecord
-from agent.detectors import RunLog, Submission, detect
+from agent.detectors import RunLog, Submission, detect, signal_map
 from agent.detectors.data_loss import data_loss_on_error, lost_fields
 from agent.detectors.duplicate_submission import duplicate_submission
 
@@ -101,7 +101,9 @@ class TestDuplicateSubmission:
         finding = duplicate_submission(run)
         assert finding.evidence_steps == [1]
         assert finding.candidate_criteria == ["Nielsen 5", "WCAG 3.3.4"]
-        assert finding.severity == 3  # completed, but with two orders
+        # Spec rule: completed without data loss is 2. Whether a duplicate order
+        # should be 3 is a team decision; change it in grounding.severity.
+        assert finding.severity == 2
 
     @pytest.mark.parametrize(
         "subs",
@@ -118,3 +120,19 @@ class TestDuplicateSubmission:
 def test_detect_runs_every_detector():
     run = run_log([obs(FILLED), obs(WIPED_WITH_ERROR, 1)], [record(0)], [sub(0), sub(0)])
     assert sorted(f.signal for f in detect(run)) == ["data_loss_on_error", "duplicate_submission"]
+
+
+class TestGroundingIsTheSource:
+    """Candidates, severity and confidence come from grounding/, not the detectors."""
+
+    def test_every_detector_signal_is_in_the_signal_map(self):
+        run = run_log([obs(FILLED), obs(WIPED_WITH_ERROR, 1)], [record(0)], [sub(0), sub(0)])
+        for finding in detect(run):
+            assert finding.candidate_criteria == signal_map().candidates(finding.signal)
+
+    def test_severity_follows_the_spec_rule(self):
+        # grounding.severity: 3 only for data loss (or a long path) when completed.
+        lost = run_log([obs(FILLED), obs(WIPED_WITH_ERROR, 1)], [record(0)], status="succeeded")
+        double = run_log([], [], [sub(1), sub(1)], status="succeeded")
+        assert data_loss_on_error(lost).severity == 3
+        assert duplicate_submission(double).severity == 2

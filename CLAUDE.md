@@ -23,7 +23,7 @@ pytest -q tests/test_contracts.py::TestFinding::test_valid   # one test
 
 Browser tests need `pip install -e ".[dev,browser]"` and `playwright install --only-shell chromium`, then `pytest -q tests/e2e --override-ini addopts=` (plain `pytest` skips them). With the same extras, `python test-app/check_seeds.py` checks every seeded bug against `test-app/SEEDED_BUGS.md` and exits 1 on any mismatch.
 
-Built so far: `agent/contracts.py`, `agent/perception.py` (snapshot to tree with refs, pure), `agent/actions.py` (action whitelist validator, pure), `agent/persona.py` (loads and validates `personas/*.yaml`; P1 is `personas/error_prone.yaml`), `agent/perturb.py` (seeded mistakes between intent and execution), `agent/loop.py` (one run: observe, model, validate, perturb, act, log, goal check), `agent/fake_model.py` (scripted model for tests), `agent/detectors/` (read a run's logs, emit Findings: `data_loss_on_error`, `duplicate_submission`), `agent/tasks.py` (`Task`, loads `test-app/tasks.yaml` and `SEEDED_BUGS.md`, `serve()` gives the test app over HTTP) and `agent/browser.py` (Playwright side: `observe`, `locate`, `act`). `grounding/` (signal map, verbatim WCAG and Nielsen corpus, quote verification, rule-based severity; stub without retrieval). Other module folders hold a README naming purpose and owner. Add commands here as each module lands.
+Built so far: `agent/contracts.py`, `agent/perception.py` (snapshot to tree with refs, pure), `agent/actions.py` (action whitelist validator, pure), `agent/persona.py` (loads and validates `personas/*.yaml`: P1 `error_prone.yaml` is built; P2 `memoryless.yaml` and P3 `low_literacy.yaml` are configs only, and P3's `vocab_filter` raises until its word list is chosen), `agent/perturb.py` (seeded mistakes between intent and execution), `agent/loop.py` (one run: observe, model, validate, perturb, act, log, goal check), `agent/fake_model.py` (scripted model for tests), `agent/detectors/` (read a run's logs, emit Findings: `data_loss_on_error`, `duplicate_submission`; candidates, severity and confidence come from `grounding/`), `agent/tasks.py` (`Task`, loads `test-app/tasks.yaml` and `SEEDED_BUGS.md`, `serve()` gives the test app over HTTP) and `agent/browser.py` (Playwright side: `observe`, `locate`, `act`), plus `grounding/` (signal map, verbatim WCAG and Nielsen corpus, quote verification, rule-based severity; stub without retrieval). Other module folders hold a README naming purpose and owner. Add commands here as each module lands.
 
 ## CI/CD
 
@@ -70,5 +70,5 @@ A new detector ships with a fixture pair: it fires on the buggy page and stays s
 
 ## Workflow
 
-- GitHub flow: `main` is protected; work on a short-lived branch (`feat/`, `fix/`, `test/`, `ci/`, `docs/`) and merge by pull request with one review.
+- GitHub flow: `main` is protected; work on a short-lived branch (`feat/`, `fix/`, `test/`, `ci/`, `docs/`) and merge by pull request once CI passes (reviews welcome, not required).
 - Keep each change small enough for its owner to explain line by line at the mid-eval.

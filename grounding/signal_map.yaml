@@ -1,0 +1,88 @@
+# Signal to candidate criteria: the single source of truth for which guideline a
+# finding may cite (spec: Grounding pipeline, step 2). The LLM never picks a
+# criterion; it only writes the justification for these.
+#
+# Order matters: it is the order of `Finding.candidate_criteria`. IDs match the
+# corpus files in grounding/corpus/. Persona signals and their criteria come from
+# the spec's persona tables; deterministic-layer rows come from
+# test-app/SEEDED_BUGS.md. Reviewed by the team before each change.
+#
+# type: deterministic (computed by the harness) or model_judged (LLM rates the
+# evidence against a rubric). Starting confidence is 0.9 / 0.6 respectively.
+
+signals:
+  # P1 Error-prone user (error_prone) -- built for mid-eval
+  data_loss_on_error:
+    source: error_prone
+    type: deterministic
+    criteria: ["Nielsen 9", "WCAG 3.3.7"]
+  error_not_identified:
+    source: error_prone
+    type: deterministic
+    criteria: ["Nielsen 9", "WCAG 3.3.1"]
+  error_not_actionable:
+    source: error_prone
+    type: model_judged
+    criteria: ["Nielsen 9", "WCAG 3.3.3"]
+  duplicate_submission:
+    source: error_prone
+    type: deterministic
+    criteria: ["Nielsen 5", "WCAG 3.3.4"]
+  destructive_without_confirm:
+    source: error_prone
+    type: deterministic
+    criteria: ["Nielsen 5", "Nielsen 3", "WCAG 3.3.4"]
+  no_way_back:
+    source: error_prone
+    type: deterministic
+    criteria: ["Nielsen 3"]
+
+  # P2 Memoryless first-time user (memoryless) -- config and seeded bugs only
+  recall_required:
+    source: memoryless
+    type: deterministic
+    criteria: ["Nielsen 6", "WCAG 3.3.2"]
+  lost_location:
+    source: memoryless
+    type: deterministic
+    criteria: ["Nielsen 1", "WCAG 2.4.2"]
+  no_progress_indicator:
+    source: memoryless
+    type: deterministic
+    criteria: ["Nielsen 1", "WCAG 2.4.6"]
+
+  # P3 Low-literacy or non-native reader (low_literacy) -- config and seeded bugs only
+  label_unintelligible:
+    source: low_literacy
+    type: deterministic
+    criteria: ["Nielsen 2", "WCAG 3.3.2"]
+  instruction_unintelligible:
+    source: low_literacy
+    type: deterministic
+    criteria: ["Nielsen 2", "WCAG 3.1.5"]
+  system_language:
+    source: low_literacy
+    type: model_judged
+    criteria: ["Nielsen 2"]
+
+  # Deterministic layer (no LLM): axe-core rules and the keyboard sweep
+  image-alt:
+    source: axe_core
+    type: deterministic
+    criteria: ["WCAG 1.1.1"]
+  button-name:
+    source: axe_core
+    type: deterministic
+    criteria: ["WCAG 4.1.2"]
+  label:
+    source: axe_core
+    type: deterministic
+    criteria: ["WCAG 1.3.1"]
+  keyboard_trap:
+    source: keyboard_sweep
+    type: deterministic
+    criteria: ["WCAG 2.1.2"]
+  unreachable_control:
+    source: keyboard_sweep
+    type: deterministic
+    criteria: ["WCAG 2.1.1"]

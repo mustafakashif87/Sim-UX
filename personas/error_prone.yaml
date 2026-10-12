@@ -1,0 +1,18 @@
+# P1 Error-prone user. Spec: "P1 Error-prone user" and "Config schema".
+# Every limit here is enforced in harness code, never in the prompt.
+id: error_prone
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, press, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 3
+  max_steps: 20
+perturbation:
+  seed: 1234            # fixed per run so results replay exactly
+  typo_rate: 0.15       # chance a type() gets one character swapped
+  skip_field_rate: 0.10 # chance a required field is left empty
+  double_submit_rate: 0.10
+  back_press_rate: 0.05
+task_types: [complete_form, recover_from_error]

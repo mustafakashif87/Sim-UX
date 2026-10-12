@@ -24,8 +24,9 @@
   source: Nielsen
   title: User Control and Freedom
   url: https://www.nngroup.com/articles/ten-usability-heuristics/
-  text: Users often perform actions by mistake. When it's easy for people to back out of a process or
-    undo an action, it fosters a sense of freedom and confidence.
+  text: Users often perform actions by mistake. They need a clearly marked "emergency exit" to leave
+    the unwanted action without having to go through an extended process. When it's easy for people to
+    back out of a process or undo an action, it fosters a sense of freedom and confidence.
   key_quote: Users often perform actions by mistake.
 - id: Nielsen 5
   source: Nielsen

@@ -29,6 +29,7 @@ from agent.contracts import Action, Observation, StepRecord
 from agent.perception import RefMap
 from agent.persona import Persona
 from agent.perturb import SKIP_FIELD, Perturbed, Perturber
+from agent.tasks import Goal, Task  # noqa: F401  (Goal re-exported for callers)
 
 RunStatus = Literal["succeeded", "gave_up", "step_cap", "crashed"]
 
@@ -36,26 +37,6 @@ RunStatus = Literal["succeeded", "gave_up", "step_cap", "crashed"]
 # real double press would. On a page that disables its button after one press
 # the second click finds it disabled; that is the page working, not an error.
 SECOND_CLICK_TIMEOUT_MS = 500
-
-
-@dataclass(frozen=True)
-class Goal:
-    """Harness-side success check: a visible element with this role and name."""
-
-    role: str
-    name: str
-
-
-@dataclass(frozen=True)
-class Task:
-    id: str
-    url: str
-    text: str  # what the user wants, as the model reads it; never names a bug
-    goal: Goal
-    # URL glob of the form's submission endpoint, e.g. "**/api/orders". The
-    # harness answers it with 200, so a run does not depend on where the page
-    # is hosted (GitHub Pages rejects POSTs). Submissions are logged either way.
-    endpoint: str | None = None
 
 
 @dataclass(frozen=True)

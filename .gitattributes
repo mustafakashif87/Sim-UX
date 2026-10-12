@@ -9,4 +9,4 @@
 *.zip binary
 
 # Raw scan output: kept as evidence, collapsed in pull request diffs.
-logs/axe/** linguist-generated=true
+logs/axe/**/*.json linguist-generated=true

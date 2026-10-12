@@ -46,5 +46,6 @@ as the `axe-results` artifact on every pull request.
 Every axe-core hit is a real seeded bug (precision 3/3), but it sees only the
 static ones. All six P1 bugs and both keyboard bugs need someone to *use* the
 page (submit, double-press, change step, Tab through), which a static scan
-never does. B1 to B6 are covered by the P1 persona's detectors, and SB-04 and
-SB-05 by the planned keyboard sweep.
+never does. Of B1 to B6, the P1 persona's detectors cover B1 and B4 today;
+B2, B3 and B5 are planned; B6 is a known gap. SB-04 and SB-05 are for the
+planned keyboard sweep.

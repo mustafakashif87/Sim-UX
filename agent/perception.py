@@ -93,7 +93,8 @@ def _parse_key(key: str) -> Node:
         raise SnapshotError(f"unrecognised snapshot line: {key!r}")
     name = json.loads(m["name"]) if m["name"] else None
     attrs = {k.strip(): (v or "").strip() for k, v in _ATTR.findall(m["attrs"] or "")}
-    return Node(role=m["role"], name=name, attrs=attrs)
+    # A rendered tree (e.g. a logged observation) carries refs as [ref=eN].
+    return Node(role=m["role"], name=name, attrs=attrs, ref=attrs.pop("ref", None))
 
 
 def assign_refs(nodes: list[Node]) -> RefMap:
@@ -140,12 +141,17 @@ def apply_filters(nodes: list[Node], names: list[str]) -> list[Node]:
 
 
 def render(nodes: list[Node], indent: int = 0) -> str:
-    """Render nodes as the tree text the model sees, with refs and no HTML."""
+    """Render nodes as the tree text the model sees, with refs and no HTML.
+
+    The output is Playwright's snapshot format plus refs, and is valid YAML:
+    `parse_snapshot(render(nodes))` gives the same tree back, which is how
+    detectors read logged observations.
+    """
     lines: list[str] = []
     for node in nodes:
         pad = "  " * indent
         if node.role == _TEXT_ROLE:
-            lines.append(f"{pad}- text: {node.text or ''}")
+            lines.append(f"{pad}- text: {_value(node.text or '')}")
             continue
         head = node.role
         if node.name is not None:
@@ -153,11 +159,35 @@ def render(nodes: list[Node], indent: int = 0) -> str:
         for k, v in node.attrs.items():
             head += f" [{k}={v}]" if v else f" [{k}]"
         head += f" [ref={node.ref}]" if node.ref else ""
+        line = f"{pad}- {_key(head)}"
         if node.text is not None:
-            head += f": {node.text}"
-        lines.append(pad + "- " + head)
+            line += f": {_value(node.text)}"
+        elif node.children or node.props:
+            line += ":"  # a parent, as in Playwright's format
+        lines.append(line)
         for k, v in node.props.items():
-            lines.append(f"{pad}  - /{k}: {v}")
+            lines.append(f"{pad}  - /{k}: {_value(v)}")
         if node.children:
             lines.append(render(node.children, indent + 1))
     return "\n".join(line for line in lines if line)
+
+
+def _loads(text: str):
+    try:
+        return yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+
+
+def _value(text: str) -> str:
+    """Text after a colon, quoted only when YAML would misread it, e.g. "a: b",
+    "123" or "#tag"."""
+    return text if _loads(f"k: {text}") == {"k": text} else json.dumps(text, ensure_ascii=False)
+
+
+def _key(head: str) -> str:
+    """An element line, single-quoted only when YAML would misread it, as
+    Playwright does: 'button "Save: now"'."""
+    if _loads(f"- {head}") == [head] and _loads(f"{head}: v") == {head: "v"}:
+        return head
+    return "'" + head.replace("'", "''") + "'"

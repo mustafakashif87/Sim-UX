@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from agent.perception import (
+    Node,
     RefTarget,
     SnapshotError,
     apply_filters,
@@ -103,3 +104,40 @@ class TestFilters:
     def test_unknown_filter_rejected(self, nodes):
         with pytest.raises(ValueError, match="unknown perception filter"):
             apply_filters(nodes, ["viewport_only"])
+
+
+def shape(nodes):
+    """Everything render keeps, for comparing trees."""
+    return [(n.role, n.name, n.attrs, n.text, n.props, n.ref, shape(n.children)) for n in nodes]
+
+
+class TestRoundTrip:
+    """Detectors parse logged observations, so render must give valid YAML."""
+
+    def test_rendered_tree_parses_back(self, nodes):
+        assign_refs(nodes)
+        assert shape(parse_snapshot(render(nodes))) == shape(nodes)
+
+    @pytest.mark.parametrize(
+        "text", ["Error: invalid input", "123", "#tag", "[x] done", "", "yes", "it's", "- dash"]
+    )
+    def test_awkward_text_survives(self, text):
+        tree = [
+            Node(
+                "main",
+                children=[
+                    Node("alert", text=text),
+                    Node("textbox", name=f"Name: {text}", text=text),
+                    Node("text", text=text),
+                    Node("link", name=text, props={"url": text}),
+                ],
+            )
+        ]
+        assign_refs(tree)
+        assert shape(parse_snapshot(render(tree))) == shape(tree)
+
+    def test_plain_text_stays_unquoted(self, nodes):
+        assign_refs(nodes)
+        out = render(nodes)
+        assert '- textbox "Full name" [ref=e' in out and "]: Ali" in out
+        assert out.count("- main [ref=e") == 1

@@ -277,7 +277,7 @@ The POC types are updated to match this spec: `PersonaId` lists the three person
 
 The team uses GitHub flow: one long-lived branch and short-lived branches for each piece of work.
 
-- `main` is protected. Changes arrive only through a pull request with passing CI and one approving review from another member. No direct pushes.
+- `main` is protected. Changes arrive only through a pull request with passing CI. No direct pushes. Reviews from other members are encouraged but not required, so an owner can merge once CI passes.
 - Branch names state the work: `feat/p1-perturbation`, `feat/b4-double-submit-page`, `test/detector-fixtures`, `ci/deploy-api`, `fix/<issue>`, `docs/<topic>`.
 - Each pull request links its issue and stays small enough to review in one sitting. Large single drops are avoided, because every member must be able to explain their own code line by line.
 - `CODEOWNERS`, added once every member has repository access, assigns review: `test-app/` and `logs/` to Person A; `agent/`, `api/` and `tests/` to Person B; `grounding/` and `web/` to Person C.
@@ -321,40 +321,40 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 
 ### Person A: test app and evaluation runs
 
-- [ ] Pages for B1 to B6, each in a buggy and a clean version, with a harness-readable goal check
-- [ ] `SEEDED_BUGS.md`: bug ID, page, persona, expected signal, Nielsen heuristic, WCAG criterion
-- [ ] axe-core run on every page; results saved to `logs/axe/`
-- [ ] Keep the existing SB-01 to SB-05 pages as fixtures for axe-core (SB-01 to SB-03) and the keyboard sweep (SB-04, SB-05); add a clean version of each
-- [ ] Extend `check_seeds.py` to cover B1 to B6 and to check that clean pages are bug-free
-- [ ] GitHub Pages deployment for `test-app/`
+- [x] Pages for B1 to B6, each in a buggy and a clean version, with a harness-readable goal check
+- [x] `SEEDED_BUGS.md`: bug ID, page, persona, expected signal, Nielsen heuristic, WCAG criterion
+- [x] axe-core run on every page; results saved to `logs/axe/`
+- [x] Keep the existing SB-01 to SB-05 pages as fixtures for axe-core (SB-01 to SB-03) and the keyboard sweep (SB-04, SB-05); add a clean version of each
+- [x] Extend `check_seeds.py` to cover B1 to B6 and to check that clean pages are bug-free
+- [x] GitHub Pages deployment for `test-app/`
 - [ ] Evaluation workflow: run the 3 conditions × 5 seeds with Person B and upload every log as an artifact
-- [ ] Own the live demo script and the recorded fallback run
+- [ ] Own the live demo script and the recorded fallback run (done: the demo script, `docs/demo-script.md`; left: the recorded run, after the LLM client)
 
 ### Person B: framework, P1 and tests
 
-- [ ] `perception.py`, `actions.py`, `perturb.py`, `loop.py` with the four interface contracts as Pydantic models
-- [ ] P1 detectors: `data_loss_on_error`, `error_not_identified`, `duplicate_submission`, `destructive_without_confirm`, `no_way_back`; `error_not_actionable` if time allows
+- [x] `perception.py`, `actions.py`, `perturb.py`, `loop.py` with the four interface contracts as Pydantic models
+- [ ] P1 detectors: `data_loss_on_error`, `error_not_identified`, `duplicate_submission`, `destructive_without_confirm`, `no_way_back`; `error_not_actionable` if time allows (done: `data_loss_on_error`, `duplicate_submission`)
 - [ ] Keyboard sweep (Tab-cycle trap and unreachable control) as a non-LLM check
 - [ ] Baseline mode: same loop with all constraints off
-- [ ] Unit tests with a scripted fake model, as listed in the Evaluation protocol
+- [x] Unit tests with a scripted fake model, as listed in the Evaluation protocol
 - [ ] `api/`: `POST /runs`, `GET /runs/{id}`, `GET /runs/{id}/stream`
-- [ ] Tests that switch on the CI `seeds` and `e2e` jobs; Dockerfile for `api/`
+- [ ] Tests that switch on the CI `seeds` and `e2e` jobs; Dockerfile for `api/` (done: both jobs run and are required checks; left: the Dockerfile)
 - [ ] Implementation Documentation section of the report
 
 ### Person C: grounding, report and paperwork
 
-- [ ] `grounding/signal_map.yaml` and corpus entries for every P1 criterion, with verified source text
-- [ ] Citation verification and rule-based severity (with Person B)
+- [x] `grounding/signal_map.yaml` and corpus entries for every P1 criterion, with verified source text
+- [x] Citation verification and rule-based severity (with Person B)
 - [ ] R&D section: verify and cite the realism basis for all three personas
 - [ ] FRs and NFRs with acceptance checks tied to the unit tests and run conditions
 - [ ] Move the POC into `web/`; connect `useDemoRun.ts` to the API and update the types to this spec; CI job `web` and Vercel deployment
-- [ ] Branch protection on `main`, `CODEOWNERS`, pull request template, `v0.1-mid-eval` tag and release
+- [ ] Branch protection on `main`, `CODEOWNERS`, pull request template, `v0.1-mid-eval` tag and release (done: branch protection, pull request template; left: `CODEOWNERS`, tag and release)
 - [ ] Panel Action Register entry for the persona change, and the risk register (including corpus licensing, sending page content to a third-party API, and secret handling)
 
 ### Open decisions
 
 - [ ] Supervisor sign-off on the three-persona set (replacing the proposal's keyboard and motor personas) and on the Error-prone user as the mid-eval persona. Both are tentative; get this before committing the team to the new scope.
-- [ ] Detecting duplicate submissions: count network requests, or expose a submission counter on the test page?
+- [x] Detecting duplicate submissions: count network requests. The harness logs every non-GET request with the step that caused it (`network.jsonl`), so test pages need no counter.
 - [ ] Word list for P3: the New General Service List or another published list.
 - [ ] Whether model-judged signals use the same model as the agent, or a second model to avoid self-agreement.
 - [ ] When to move the POC repository (`mustafakashif87/simUX`) into `web/`, keeping its history. Both repositories are under the same account.

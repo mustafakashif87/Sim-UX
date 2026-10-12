@@ -11,21 +11,18 @@ clean fixture pages.
 import json
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 
 from agent.contracts import Finding, Observation, StepRecord
+from grounding.ground import SignalMap, default_signal_map, severity, start_confidence
 
-# Candidate criteria per signal, from the spec's P1 table. Interim: once
-# grounding/signal_map.yaml exists (Person C), it is the single source of
-# truth and this map is read from it.
-CANDIDATES = {
-    "data_loss_on_error": ["Nielsen 9", "WCAG 3.3.7"],
-    "duplicate_submission": ["Nielsen 5", "WCAG 3.3.4"],
-}
 
-# Spec, Grounding pipeline: deterministic signals start at 0.9 and are later
-# multiplied by the reproduction rate across repeated runs.
-DETERMINISTIC_CONFIDENCE = 0.9
+@cache
+def signal_map() -> SignalMap:
+    """grounding/signal_map.yaml: the single source of truth for each signal's
+    candidate criteria and type (spec: Grounding pipeline, step 2)."""
+    return default_signal_map()
 
 
 @dataclass(frozen=True)
@@ -62,18 +59,26 @@ def load_run(log_dir: Path) -> RunLog:
     )
 
 
-def make_finding(run: RunLog, signal: str, evidence_steps: list[int]) -> Finding:
-    """A Finding with rule-based severity (spec: Grounding pipeline, Score):
-    4 when the task was not completed, 3 when it was but with this harm."""
+def make_finding(
+    run: RunLog, signal: str, evidence_steps: list[int], *, data_loss: bool = False
+) -> Finding:
+    """A Finding whose candidates, severity and starting confidence all come
+    from grounding/, so detectors and grounding cannot disagree.
+
+    Severity is the spec's rule (grounding.severity): 4 if the task was not
+    completed, 3 if completed with data loss, otherwise 2.
+    """
+    entry = signal_map().entry(signal)
     return Finding(
         finding_id=f"{run.meta['run_id']}-{signal}",
         persona=run.meta["persona"],
         page=run.meta["page"],
         signal=signal,
         evidence_steps=evidence_steps,
-        candidate_criteria=CANDIDATES[signal],
-        severity=3 if run.meta["status"] == "succeeded" else 4,
-        confidence=DETERMINISTIC_CONFIDENCE,
+        candidate_criteria=signal_map().candidates(signal),
+        severity=severity(task_completed=run.meta["status"] == "succeeded", data_loss=data_loss),
+        # Times the k/5 reproduction rate once runs are repeated.
+        confidence=start_confidence(entry.type),
         # Unknown until the baseline condition runs on the same page.
         baseline_reproduced=False,
     )

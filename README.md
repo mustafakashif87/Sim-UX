@@ -8,7 +8,17 @@ FYP 2026–27, Department of AI & Data Science, FAST-NUCES. Supervisor: Ms. Sair
 
 ## Status
 
-Interface contracts (`agent/contracts.py`) with tests, and the full CI/CD pipeline, are in place; the other modules are still folders with a README. The mid-evaluation target is the persona framework with the Error-prone user (P1) built end to end, running live behind the web interface and delivered through GitHub CI/CD. See [`docs/persona-design-spec.md`](docs/persona-design-spec.md).
+The P1 Error-prone user runs end to end: it attempts a task on a real page, makes seeded mistakes, and its detectors turn the run into findings. On the seeded test app it reports a duplicate order (B4) and lost form data (B1) on the buggy pages and nothing on the clean ones.
+
+| Built | Not built yet |
+| --- | --- |
+| Harness (`agent/`): perception, action validator, perturbation, agent loop, scripted fake model | LLM client and demo runner |
+| P1 detectors `data_loss_on_error` (B1), `duplicate_submission` (B4) | Detectors for B2, B3, B5; keyboard sweep; baseline mode |
+| Persona configs P1, P2, P3 (`personas/`); P3's vocabulary filter is not built | API (`api/`) and web interface (`web/`) |
+| Grounding stub (`grounding/`): signal map, verbatim corpus, quote verification, severity | Retrieval and the LLM-written justification |
+| Seeded test app (`test-app/`), live at [mustafakashif87.github.io/Sim-UX](https://mustafakashif87.github.io/Sim-UX/) | Evaluation runs (3 conditions × 5 seeds) |
+
+The mid-evaluation target is P1 built end to end and delivered through GitHub CI/CD; the design is in [`docs/persona-design-spec.md`](docs/persona-design-spec.md). After pulling, run `pip install -e ".[dev,browser]"` again whenever `pyproject.toml` changed.
 
 ## Repository layout
 
@@ -27,7 +37,7 @@ Interface contracts (`agent/contracts.py`) with tests, and the full CI/CD pipeli
 
 ## Contributing
 
-`main` changes only through pull requests. Branch from `main` with a prefix that names the work (`feat/`, `fix/`, `test/`, `docs/`, `ci/`), keep each pull request small, and get one review from another member before merging.
+`main` changes only through pull requests. Branch from `main` with a prefix that names the work (`feat/`, `fix/`, `test/`, `docs/`, `ci/`), keep each pull request small, and merge once CI passes. Reviews from other members are welcome but not required.
 
 ## CI/CD
 

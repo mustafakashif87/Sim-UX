@@ -1,0 +1,14 @@
+# P3 Low-literacy or non-native reader. Spec: "P3 Low-literacy or non-native reader".
+# Config only for mid-eval: vocab_filter is registered but not built (its word
+# list is an open decision), so a run with this persona fails until it is.
+id: low_literacy
+perception:
+  filters: [vocab_filter]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 3
+  max_steps: 15
+# No perturbation section: P3 makes no injected mistakes.
+task_types: [complete_form]

@@ -1,0 +1,14 @@
+# P2 Memoryless first-time user. Spec: "P2 Memoryless first-time user".
+# Config only for mid-eval: its detectors and seeded pages (B7 to B9) come later.
+# The constraint is the history window: the model sees only the current page.
+id: memoryless
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 0
+  max_steps: 25
+# No perturbation section: P2 makes no injected mistakes.
+task_types: [multi_step_form]

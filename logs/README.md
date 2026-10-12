@@ -22,3 +22,12 @@ Owner: Person A. Spec: Evaluation protocol.
 No violations on any clean page, `index.html` or `success.html`. This is the
 axe-core column of the comparison table (spec: Comparison systems), and the
 evidence that the keyboard sweep is needed for 2.1.1 and 2.1.2.
+
+## axe-core results, 2026-10-12, run 2 (with B1 to B6)
+
+`axe/2026-10-12-run2/`: the same scan after the P1 pages were added. SB-01 to
+SB-05 results are unchanged. axe-core reports **no violation on any B1 to B6
+page, buggy or clean**: all six are behavioural (what happens after a submit,
+a double press or a step change), so a static scan cannot see them. That
+column of the comparison table is therefore 0/6 for B1 to B6, which is the
+spec's case for task-based personas. No page has an unplanned violation.

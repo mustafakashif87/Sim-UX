@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your basket – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Your basket</h1>
+    <section class="summary" aria-labelledby="summary-heading">
+      <h2 id="summary-heading">Order summary</h2>
+      <dl>
+        <dt>Stainless steel kettle</dt><dd>$39.00</dd>
+        <dt>Delivery</dt><dd>$5.00</dd>
+        <dt><strong>Total</strong></dt><dd><strong>$44.00</strong></dd>
+      </dl>
+      <p>Paying with the card ending 4242. Delivery to 12 Canal Road, Lahore.</p>
+    </section>
+    <button type="button" id="place">Place order</button>
+    <div id="result"></div>
+  </main>
+  <script>
+    const button = document.getElementById('place');
+    button.addEventListener('click', async () => {
+      await fetch('api/orders', { method: 'POST', body: 'kettle' });
+      document.getElementById('result').innerHTML = '<h2>Order placed</h2>';
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+# Agent tasks for the P1 pages. One task per buggy/clean pair; both pages of
+# a pair get the same task, so a difference in outcome comes from the page.
+#
+# Fields map to agent.loop.Task: `text` is what the model reads (it never
+# names a bug), `goal` is the harness-side success check (a visible element
+# with this role and name), `endpoint` is the URL glob the harness answers
+# with 200. Build `url` from the host plus each entry in `pages`.
+#
+# Which page of a pair is buggy is recorded only in SEEDED_BUGS.md.
+# check_seeds.py drives every task's happy path on both pages and fails if
+# the goal is not reached.
+
+- id: signup
+  pages: [signup-a.html, signup-b.html]
+  text: Create an account for Sam Khan with the email address sam.khan@example.com.
+  goal: {role: heading, name: Account created}
+  endpoint: "**/api/signup"
+
+- id: subscribe
+  pages: [subscribe-a.html, subscribe-b.html]
+  text: Subscribe to the weekly deals email with the address sam.khan@example.com.
+  goal: {role: heading, name: Subscribed}
+  endpoint: "**/api/subscribe"
+
+- id: callback
+  pages: [callback-a.html, callback-b.html]
+  text: Request a callback for Sam Khan on phone number 03001234567.
+  goal: {role: heading, name: Callback requested}
+  endpoint: "**/api/callback"
+
+- id: order
+  pages: [order-a.html, order-b.html]
+  text: Place the order for the kettle in your basket.
+  goal: {role: heading, name: Order placed}
+  endpoint: "**/api/orders"
+
+- id: account
+  pages: [account-a.html, account-b.html]
+  text: Delete your SimShop account.
+  goal: {role: heading, name: Account deleted}
+  endpoint: "**/api/account/delete"
+
+- id: checkout
+  pages: [checkout-a.html, checkout-b.html]
+  text: >-
+    Buy the kettle with standard delivery to Sam Khan, 12 Canal Road, Lahore.
+    Your billing address is the same as your delivery address.
+  goal: {role: heading, name: Thank you for your order}
+  endpoint: "**/api/checkout"

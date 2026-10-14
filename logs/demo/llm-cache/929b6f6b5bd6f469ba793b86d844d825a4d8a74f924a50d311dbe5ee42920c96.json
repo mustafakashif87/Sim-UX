@@ -1,0 +1,21 @@
+{
+ "model_id": "groq/openai/gpt-oss-120b",
+ "request": {
+  "model": "openai/gpt-oss-120b",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are a person using a web page to complete a task. Each turn you see the page as an accessibility tree. Every element you can act on has a reference such as [ref=e12].\n\nReply with exactly one JSON object and nothing else:\n{\"thought\": \"<one short sentence>\", \"action\": \"<kind>\", \"ref\": \"<ref or null>\", \"text\": \"<text or null>\", \"key\": \"<key or null>\"}\n\nKinds:\n- click: needs ref.\n- type: needs ref and text. Replaces what is in the field.\n- press: needs key, e.g. \"Tab\", \"Enter\" or \"Escape\". Add a ref to press it on that element.\n- scroll: optional ref to scroll it into view; without one, scrolls down.\n- back: the browser's back button. No ref, text or key.\n- give_up: you cannot complete the task. No ref, text or key.\n\nYou cannot declare the task done; keep going until it is, or give up."
+   },
+   {
+    "role": "user",
+    "content": "Task: Place the order for the kettle in your basket.\n\nStep 0. Page: /order-b.html\nFocused: nothing\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Your basket\" [level=1] [ref=e5]\n  - region \"Order summary\" [ref=e6]:\n    - heading \"Order summary\" [level=2] [ref=e7]\n    - term [ref=e8]: Stainless steel kettle\n    - definition [ref=e9]: $39.00\n    - term [ref=e10]: Delivery\n    - definition [ref=e11]: $5.00\n    - term [ref=e12]:\n      - strong [ref=e13]: Total\n    - definition [ref=e14]:\n      - strong [ref=e15]: $44.00\n    - paragraph [ref=e16]: Paying with the card ending 4242. Delivery to 12 Canal Road, Lahore.\n  - button \"Place order\" [ref=e17]"
+   }
+  ],
+  "temperature": 0,
+  "response_format": {
+   "type": "json_object"
+  }
+ },
+ "content": "{\"thought\":\"Click the Place order button to submit the order\",\"action\":\"click\",\"ref\":\"e17\",\"text\":null,\"key\":null}"
+}

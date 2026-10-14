@@ -5,32 +5,56 @@ and the detectors; Person C answers questions about grounding and the report.
 Rehearsal: Wednesday night, end to end, with a timer. Target: 7 minutes plus
 questions.
 
-Items marked **TODO** depend on the LLM client and the recorded run, both due
-Wednesday. Fill them in before the rehearsal.
+Every run below uses one command, from the repo root with the venv active:
 
-## The one decision to make before rehearsal
+```bash
+python -m agent.run --page <page> --seed <seed> --logs logs/demo --headed
+```
+
+It serves `test-app/` locally, runs P1 with the real model, and prints each
+step's intended and executed action, then the findings. `--headed` shows the
+browser, slowed down so the panel can follow it. The key is read from `.env`
+(see "Before the panel arrives").
+
+## Seeds: decided
 
 P1's configured rates are low (`personas/error_prone.yaml`), so a single live
-run usually makes no mistake and there is nothing to detect.
+run with an arbitrary seed usually makes no mistake and there is nothing to
+detect. The demo uses seeds chosen in advance, at the configured rates (no
+rate is turned up):
 
-- **Signup pages: decided.** Use **seed 37**, which triggers a **skipped
-  field** at the configured rates (verified in Person B's dry run). A typo
-  does not work here: the typo run failed in the dry run.
-- **Order pages: still open.** Either run with `double_submit_rate: 1.0`, as
-  the detector tests do, and say "for the demo we turn the double-press rate
-  up to 1 so the slip happens on cue; the evaluation uses the configured
-  rates, five seeds each", or find a seed that triggers a double press at
-  the configured rate, as was done for signup.
+| Pages | Seed | What the seed does |
+| --- | --- | --- |
+| `order-a`, `order-b` | **1** | Doubles the first click (`double_submit`) |
+| `signup-a`, `signup-b` | **69** | Skips the email field on step 1 (`skip_field`), then no other mistake |
 
-TODO (Person B): order-page rate override or seed = __
+Say so if asked: "we picked these seeds so the slip happens on cue; the
+evaluation uses seeds 1 to 5 on every page and reports k out of 5." Seed 1 is
+also the evaluation's first seed.
+
+Seed 37, used in the dry run with the scripted model, no longer fits: with the
+real model it took 16 steps on `signup-a` and picked up a typo and a double
+press on the way. Recorded with `groq/openai/gpt-oss-120b` on 14 Oct; all four
+runs are in `logs/demo/`:
+
+| Page | Seed | Steps | Finding |
+| --- | --- | --- | --- |
+| `order-a` | 1 | 1 | `duplicate_submission`, severity 2 |
+| `order-b` | 1 | 1 | none |
+| `signup-a` | 69 | 6 | `data_loss_on_error`, severity 3 |
+| `signup-b` | 69 | 5 | none |
 
 ## Before the panel arrives
 
 - [ ] Test app opens: https://mustafakashif87.github.io/Sim-UX/ (or locally:
       `python -m http.server 8000 -d test-app`)
 - [ ] `python test-app/check_seeds.py` prints `OK` (all bugs in place)
-- [ ] Groq and OpenRouter keys loaded in the environment; one warm-up call each
-- [ ] Recorded run open in a background tab (fallback 3)
+- [ ] `.env` in the repo root holds `LLM_API_KEY` (Groq); it is git-ignored and
+      read automatically. Never open it on the projector.
+- [ ] Warm-up: `python -m agent.run --page order-b --seed 1 --logs logs/rehearsal`
+      ends `status: succeeded` (a live call; not the demo's log folder)
+- [ ] Replay checked: `python -m agent.run --page order-a --seed 1 --logs logs/demo --replay`
+      prints `REPLAY` and the finding (fallback 3)
 - [ ] Fake-model fallback tested on this laptop (fallback 4, command below)
 - [ ] Terminal and browser zoomed so the back row can read them
 - [ ] Notifications off, laptop on power
@@ -54,18 +78,21 @@ TODO (Person B): order-page rate override or seed = __
 > "The task is: place the order for the kettle. Watch the step log. Each step
 > shows what the agent *intended* and what was actually *executed*."
 
-- Run P1 on `order-a`. TODO: command = __
+- Run: `python -m agent.run --page order-a --seed 1 --logs logs/demo --headed`
 - Point at the step where intended = one click and executed = two clicks
   (perturbation `double_submit`).
 - Point at the network log: two identical `POST api/orders` in the same step.
 - Show the finding: `duplicate_submission`, Nielsen #5 Error prevention, WCAG
-  3.3.4 Error Prevention, severity 3 (task done, but with harm).
+  3.3.4 Error Prevention, severity 2. The rule (`grounding/ground.py`): 4 if
+  the task failed, 3 if it was completed with data loss, otherwise 2. The
+  order went through, and nothing the user entered was lost.
 
 > "The agent didn't decide to order twice. The page let a slip become two
 > orders. That's a failure of the interface, not the agent."
 
 ### 3. The same on `order-b`: silent (1 min)
 
+- Run: `python -m agent.run --page order-b --seed 1 --logs logs/demo --headed`
 - Same persona, same seed, same slip.
 - The second press finds the button disabled; one POST; **no finding**.
 
@@ -79,14 +106,16 @@ TODO (Person B): order-page rate override or seed = __
 > required field empty, as a person who forgot a field would. The page should
 > say what's missing and keep everything else."
 
-- Seed 37 on both pages, so the same field is skipped at the same step.
-- Point at the step where the intended action typed into a field and the
-  executed action did nothing (perturbation `skip_field`).
+- Run: `python -m agent.run --page signup-a --seed 69 --logs logs/demo --headed`,
+  then the same with `--page signup-b`.
+- Seed 69 on both pages, so the same field is skipped at the same step.
+- Point at step 1: the intended action typed the email; the executed action
+  is `(nothing)` (perturbation `skip_field`).
 - `signup-a`: the error appears, **and the field the agent did fill is
-  wiped**. Finding: `data_loss_on_error`, Nielsen #9, WCAG 3.3.7 Redundant
-  Entry.
-- `signup-b`: same skipped field, the error appears, the filled field stays.
-  **No finding.**
+  wiped**, so the agent types the name again (step 4). Finding:
+  `data_loss_on_error`, severity 3, Nielsen #9, WCAG 3.3.7 Redundant Entry.
+- `signup-b`: same skipped field, the error appears, the filled field stays;
+  the agent only adds the email. **No finding**, one step shorter.
 
 > "The one-line difference here is `form.reset()` on error."
 
@@ -114,13 +143,19 @@ fallback as live.
 
 | Rung | What | How |
 | --- | --- | --- |
-| 1 | Groq, live | TODO: command / env = __ |
-| 2 | Open-weight model via OpenRouter, live (keeps the proposal's open-weight-only claim) | TODO: model ID and command / env = __ |
-| 3 | Replay of the recorded run (`order-a`, `signup-a`, recorded Wed with Person B) | TODO: path `logs/demo/<run_id>/`; show `steps.jsonl` (intended vs executed) and the findings |
+| 1 | Groq, live: `openai/gpt-oss-120b`, an open-weight model | The commands above. Rate limits are retried automatically; a spent quota ends the run as `aborted_provider` |
+| 2 | Groq, live, another open-weight model | Add `LLM_MODEL=qwen/qwen3.8-27b` before the command. Answers a test call; not rehearsed on the demo pages, so the seeds may not trigger the same steps |
+| 3 | Replay of the recorded runs (all four pages, 14 Oct) | The same commands with `--replay` instead of `--headed`. No API call; the page, harness and detectors still run for real. The output says `REPLAY`, and `run.json` records `"replay": true` |
 | 4 | Fake model, offline, no key | `pytest -v tests/e2e/test_test_app.py --override-ini addopts=`: shows each detector firing on the buggy page and silent on the clean one, plus a careful user succeeding on both signup pages. Tested: 6 passed in 13 s |
 
 Rungs 3 and 4 still show real pages, real logs and real detectors; only the
 model's choices are replayed or scripted.
+
+A live run never reads the recording: it always calls the API. Only
+`--replay` reads `logs/demo/llm-cache/`, so a replay cannot pass as live.
+
+OpenRouter (`LLM_PROVIDER=openrouter`) is supported by the client but has no
+key or test run yet; add it as a rung only after one rehearsed run.
 
 ## Questions Person A should be ready for
 

@@ -1,0 +1,29 @@
+{
+ "model_id": "groq/openai/gpt-oss-120b",
+ "request": {
+  "model": "openai/gpt-oss-120b",
+  "messages": [
+   {
+    "role": "system",
+    "content": "You are a person using a web page to complete a task. Each turn you see the page as an accessibility tree. Every element you can act on has a reference such as [ref=e12].\n\nReply with exactly one JSON object and nothing else:\n{\"thought\": \"<one short sentence>\", \"action\": \"<kind>\", \"ref\": \"<ref or null>\", \"text\": \"<text or null>\", \"key\": \"<key or null>\"}\n\nKinds:\n- click: needs ref.\n- type: needs ref and text. Replaces what is in the field.\n- press: needs key, e.g. \"Tab\", \"Enter\" or \"Escape\". Add a ref to press it on that element.\n- scroll: optional ref to scroll it into view; without one, scrolls down.\n- back: the browser's back button. No ref, text or key.\n- give_up: you cannot complete the task. No ref, text or key.\n\nYou cannot declare the task done; keep going until it is, or give up."
+   },
+   {
+    "role": "user",
+    "content": "Task: Create an account for Sam Khan with the email address sam.khan@example.com.\n\nStep 0. Page: /signup-a.html\nFocused: nothing\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Create account\" [level=1] [ref=e5]\n  - text: Full name\n  - textbox \"Full name\" [ref=e6]\n  - text: Email address\n  - textbox \"Email address\" [ref=e7]\n  - alert [ref=e8]\n  - button \"Create account\" [ref=e9]"
+   },
+   {
+    "role": "assistant",
+    "content": "{\"thought\":\"Enter full name\",\"action\":\"type\",\"ref\":\"e6\",\"text\":\"Sam Khan\",\"key\":null}"
+   },
+   {
+    "role": "user",
+    "content": "Step 1. Page: /signup-a.html\nFocused: textbox \"Full name\" [ref=e6]\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Create account\" [level=1] [ref=e5]\n  - text: Full name\n  - textbox \"Full name\" [ref=e6]: Sam Khan\n  - text: Email address\n  - textbox \"Email address\" [ref=e7]\n  - alert [ref=e8]\n  - button \"Create account\" [ref=e9]"
+   }
+  ],
+  "temperature": 0,
+  "response_format": {
+   "type": "json_object"
+  }
+ },
+ "content": "{\"thought\":\"Enter email address\",\"action\":\"type\",\"ref\":\"e7\",\"text\":\"sam.khan@example.com\",\"key\":null}"
+}

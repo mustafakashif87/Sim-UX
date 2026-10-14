@@ -5,16 +5,27 @@ and the detectors; Person C answers questions about grounding and the report.
 Rehearsal: Wednesday night, end to end, with a timer. Target: 7 minutes plus
 questions.
 
-Every run below uses one command, from the repo root with the venv active:
+The whole demo is one command, from the repo root with the venv active:
 
 ```bash
-python -m agent.run --page <page> --seed <seed> --logs logs/demo --headed
+python -m agent.demo            # live: real model, browser visible
+python -m agent.demo --replay   # fallback: the recorded runs, no network
 ```
 
-It serves `test-app/` locally, runs P1 with the real model, and prints each
-step's intended and executed action, then the findings. `--headed` shows the
-browser, slowed down so the panel can follow it. The key is read from `.env`
-(see "Before the panel arrives").
+It runs P1 on `order-a`, `order-b`, `signup-a` and `signup-b` with the seeds
+below, pausing for Enter between pages, and ends with one table: page, mode
+(LIVE or REPLAY), finding, and whether it matches the ground truth. Each page
+prints every step's intended and executed action, then the findings. The
+browser is visible and slowed down so the panel can follow it. The key is read
+from `.env`.
+
+If a live run fails (no key, quota, network: 2 attempts and 20 s a call at
+most), the demo stops and prints the command to continue with, for example
+`python -m agent.demo --replay --from signup-a`. It never switches to the
+recording by itself. Pages that ran live keep their live result.
+
+One page on request ("show us signup-b again"):
+`python -m agent.run --page signup-b --seed 69 --logs logs/demo --headed`.
 
 ## Seeds: decided
 
@@ -51,10 +62,9 @@ runs are in `logs/demo/`:
 - [ ] `python test-app/check_seeds.py` prints `OK` (all bugs in place)
 - [ ] `.env` in the repo root holds `LLM_API_KEY` (Groq); it is git-ignored and
       read automatically. Never open it on the projector.
-- [ ] Warm-up: `python -m agent.run --page order-b --seed 1 --logs logs/rehearsal`
-      ends `status: succeeded` (a live call; not the demo's log folder)
-- [ ] Replay checked: `python -m agent.run --page order-a --seed 1 --logs logs/demo --replay`
-      prints `REPLAY` and the finding (fallback 3)
+- [ ] `python -m agent.demo --check` ends with `Ready.`: one live call to the
+      model, and all four recordings replayed with the expected findings
+      (writes nothing to `logs/demo`)
 - [ ] Fake-model fallback tested on this laptop (fallback 4, command below)
 - [ ] Terminal and browser zoomed so the back row can read them
 - [ ] Notifications off, laptop on power
@@ -78,7 +88,7 @@ runs are in `logs/demo/`:
 > "The task is: place the order for the kettle. Watch the step log. Each step
 > shows what the agent *intended* and what was actually *executed*."
 
-- Run: `python -m agent.run --page order-a --seed 1 --logs logs/demo --headed`
+- Start `python -m agent.demo`; it opens with `order-a`.
 - Point at the step where intended = one click and executed = two clicks
   (perturbation `double_submit`).
 - Point at the network log: two identical `POST api/orders` in the same step.
@@ -92,7 +102,7 @@ runs are in `logs/demo/`:
 
 ### 3. The same on `order-b`: silent (1 min)
 
-- Run: `python -m agent.run --page order-b --seed 1 --logs logs/demo --headed`
+- Press Enter: `order-b` runs.
 - Same persona, same seed, same slip.
 - The second press finds the button disabled; one POST; **no finding**.
 
@@ -106,8 +116,8 @@ runs are in `logs/demo/`:
 > required field empty, as a person who forgot a field would. The page should
 > say what's missing and keep everything else."
 
-- Run: `python -m agent.run --page signup-a --seed 69 --logs logs/demo --headed`,
-  then the same with `--page signup-b`.
+- Press Enter for `signup-a`, then again for `signup-b`. Then show the
+  summary table.
 - Seed 69 on both pages, so the same field is skipped at the same step.
 - Point at step 1: the intended action typed the email; the executed action
   is `(nothing)` (perturbation `skip_field`).
@@ -143,9 +153,9 @@ fallback as live.
 
 | Rung | What | How |
 | --- | --- | --- |
-| 1 | Groq, live: `openai/gpt-oss-120b`, an open-weight model | The commands above. Rate limits are retried automatically; a spent quota ends the run as `aborted_provider` |
-| 2 | Groq, live, another open-weight model | Add `LLM_MODEL=qwen/qwen3.8-27b` before the command. Answers a test call; not rehearsed on the demo pages, so the seeds may not trigger the same steps |
-| 3 | Replay of the recorded runs (all four pages, 14 Oct) | The same commands with `--replay` instead of `--headed`. No API call; the page, harness and detectors still run for real. The output says `REPLAY`, and `run.json` records `"replay": true` |
+| 1 | Groq, live: `openai/gpt-oss-120b`, an open-weight model | `python -m agent.demo`. A failed call is retried once; then the demo stops and prints the next command |
+| 2 | Groq, live, another open-weight model | `LLM_MODEL=qwen/qwen3.8-27b python -m agent.demo --from <page>`. Answers a test call; not rehearsed on the demo pages, so the seeds may not trigger the same steps |
+| 3 | Replay of the recorded runs (all four pages, 14 Oct) | `python -m agent.demo --replay --from <page>`, as printed on failure. No API call; the page, harness and detectors still run for real. The output says `REPLAY`, and `run.json` records `"replay": true` |
 | 4 | Fake model, offline, no key | `pytest -v tests/e2e/test_test_app.py --override-ini addopts=`: shows each detector firing on the buggy page and silent on the clean one, plus a careful user succeeding on both signup pages. Tested: 6 passed in 13 s |
 
 Rungs 3 and 4 still show real pages, real logs and real detectors; only the

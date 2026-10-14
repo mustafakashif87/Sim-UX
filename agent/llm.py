@@ -17,6 +17,7 @@ that cannot be retried raises `ProviderError`, which the loop records as
 hash, and `replay=True` serves a recorded run with no network call.
 """
 
+import functools
 import hashlib
 import json
 import os
@@ -114,10 +115,10 @@ def load_env_file(path: Path) -> None:
         os.environ.setdefault(name, value)
 
 
-def _urllib_post(url: str, headers: dict[str, str], body: bytes) -> Response:
+def _urllib_post(url: str, headers: dict[str, str], body: bytes, timeout: float = 60) -> Response:
     request = urllib.request.Request(url, data=body, headers=headers, method="POST")
     try:
-        with urllib.request.urlopen(request, timeout=60) as reply:
+        with urllib.request.urlopen(request, timeout=timeout) as reply:
             return reply.status, dict(reply.headers), reply.read()
     except urllib.error.HTTPError as e:
         return e.code, dict(e.headers or {}), e.read()
@@ -178,7 +179,8 @@ class LLMClient:
         max_attempts: int = 5,
         max_invalid: int = 2,
         max_wait_s: float = 60.0,
-        post: Post = _urllib_post,
+        timeout_s: float = 60.0,
+        post: Post | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ):
         if provider not in PROVIDERS:
@@ -198,7 +200,7 @@ class LLMClient:
         self._max_attempts = max_attempts
         self._max_invalid = max_invalid
         self._max_wait_s = max_wait_s
-        self._post = post
+        self._post = post or functools.partial(_urllib_post, timeout=timeout_s)
         self._sleep = sleep
 
     @classmethod

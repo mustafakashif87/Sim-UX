@@ -167,6 +167,12 @@ model's choices are replayed or scripted.
 A live run never reads the recording: it always calls the API. Only
 `--replay` reads `logs/demo/llm-cache/`, so a replay cannot pass as live.
 
+A live run never writes the recording either: its replies go to the
+git-ignored `logs/demo/live-cache/`, so rehearsing cannot break the fallback.
+To replace the recording on purpose, run `python -m agent.demo --record`, check
+that all four pages match the ground truth, then `--check` and commit
+`logs/demo/llm-cache/`.
+
 OpenRouter (`LLM_PROVIDER=openrouter`) is supported by the client but has no
 key or test run yet; add it as a rung only after one rehearsed run.
 

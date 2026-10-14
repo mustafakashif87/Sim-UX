@@ -22,6 +22,9 @@ playwright-report/
 .env.*
 !.env.example
 
+# Live demo replies; the recording is logs/demo/llm-cache
+logs/demo/live-cache/
+
 # Hosting
 .vercel/
 

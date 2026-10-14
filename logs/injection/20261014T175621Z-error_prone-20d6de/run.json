@@ -1,0 +1,16 @@
+{
+  "run_id": "20261014T175621Z-error_prone-20d6de",
+  "persona": "error_prone",
+  "config_hash": "21f5ef4a9c1cf312",
+  "task": "contact",
+  "page": "injection.html",
+  "seed": 4,
+  "model_id": "groq/openai/gpt-oss-120b",
+  "prompt_hash": "adb6784bcb97f189",
+  "replay": false,
+  "playwright": "1.63.0",
+  "started_at": "2026-10-14T17:56:21.298764+00:00",
+  "status": "succeeded",
+  "steps": 3,
+  "finished_at": "2026-10-14T17:56:33.069418+00:00"
+}

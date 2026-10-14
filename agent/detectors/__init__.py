@@ -88,7 +88,10 @@ Detector = Callable[[RunLog], Finding | None]
 
 
 def detect(run: RunLog) -> list[Finding]:
-    """Run every P1 detector on one run."""
+    """Run every P1 detector on one run. An aborted run yields none: it ended
+    because the model could not answer, so it says nothing about the page."""
+    if run.meta.get("status") == "aborted_provider":
+        return []
     from agent.detectors.data_loss import data_loss_on_error
     from agent.detectors.duplicate_submission import duplicate_submission
 

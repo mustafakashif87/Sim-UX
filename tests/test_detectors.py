@@ -122,6 +122,14 @@ def test_detect_runs_every_detector():
     assert sorted(f.signal for f in detect(run)) == ["data_loss_on_error", "duplicate_submission"]
 
 
+def test_aborted_run_has_no_findings():
+    # The model could not answer; the same evidence says nothing about the page.
+    run = run_log(
+        [obs(FILLED), obs(WIPED_WITH_ERROR, 1)], [record(0)], [sub(0), sub(0)], "aborted_provider"
+    )
+    assert detect(run) == []
+
+
 class TestGroundingIsTheSource:
     """Candidates, severity and confidence come from grounding/, not the detectors."""
 

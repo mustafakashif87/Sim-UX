@@ -26,12 +26,13 @@ from playwright.sync_api import Page
 from agent.actions import validate
 from agent.browser import act, goal_reached, observe, settle
 from agent.contracts import Action, Observation, StepRecord
+from agent.llm import ProviderError
 from agent.perception import RefMap
 from agent.persona import Persona
 from agent.perturb import SKIP_FIELD, Perturbed, Perturber
 from agent.tasks import Goal, Task  # noqa: F401  (Goal re-exported for callers)
 
-RunStatus = Literal["succeeded", "gave_up", "step_cap", "crashed"]
+RunStatus = Literal["succeeded", "gave_up", "step_cap", "aborted_provider", "crashed"]
 
 # The second click of a double submit comes straight after the first, as a
 # real double press would. On a page that disables its button after one press
@@ -96,6 +97,7 @@ def run(
     seed: int | None = None,
 ) -> RunResult:
     """Run one task to success, give-up or the step cap, logging every step.
+    A ProviderError from the model ends it as `aborted_provider`.
 
     Writes to `<log_root>/<run_id>/`, each line as it happens:
     - `steps.jsonl`: one StepRecord per step
@@ -120,6 +122,7 @@ def run(
         "seed": perturber.seed,
         "model_id": model.model_id,
         "prompt_hash": getattr(model, "prompt_hash", None),
+        "replay": getattr(model, "replay", False),
         "playwright": importlib.metadata.version("playwright"),
         "started_at": datetime.now(UTC).isoformat(),
     }
@@ -219,6 +222,11 @@ def run(
                 _append(obs_log, entry)
             except PlaywrightError:
                 pass
+    except ProviderError as e:
+        # The model could not answer (quota, bad key, unusable output). Not a
+        # finding about the page: the run is excluded from k/5 and rerun.
+        status = "aborted_provider"
+        meta["error"] = str(e)
     finally:
         page.remove_listener("request", on_request)
         if task.endpoint:

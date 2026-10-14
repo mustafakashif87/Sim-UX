@@ -18,6 +18,9 @@ import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import sync_playwright
+
 from agent.contracts import Finding, Observation
 from agent.llm import LLMClient, ProviderError
 from agent.loop import RunResult
@@ -39,6 +42,15 @@ DEMO = [
     DemoRun("signup-a", 69, "data_loss_on_error"),  # seed 69 skips the email field
     DemoRun("signup-b", 69, None),
 ]
+
+# The visible browser is full Chromium; CI and the setup docs install only the
+# headless shell, which --headless (and every test) uses.
+INSTALL_BROWSER = "playwright install chromium"
+
+
+def _missing_browser(error: Exception) -> bool:
+    return "Executable doesn't exist" in str(error)
+
 
 # Live demo limits: fail fast and say so, instead of waiting on a rate limit.
 DEMO_LIMITS = {"max_attempts": 2, "max_wait_s": 10.0, "timeout_s": 20.0}
@@ -102,6 +114,11 @@ def demo(replay: bool, start: str | None, pause: bool, headed: bool, logs: Path 
         try:
             result, findings = execute(d.page, d.seed, model, logs, headed=headed)
         except Exception as e:  # a crash must not end the demo without a way on
+            if _missing_browser(e):  # not the model's fault: the replay would fail too
+                print(_banner("The browser is not installed; the model was not reached."))
+                print(f"Run: {INSTALL_BROWSER}   then the same command again")
+                print("(or add --headless to run without a visible browser)")
+                return 1
             print(report_failure(d.page, f"crashed: {e}", replay, rows))
             return 1
         print(report(result, findings))
@@ -130,9 +147,18 @@ def report_failure(page: str, reason: str, replay: bool, rows: list) -> str:
 
 
 def check(logs: Path = LOGS) -> int:
-    """Before the panel arrives: one live call, then every recorded run replayed
-    headless into a temporary folder, so logs/demo is left as it is."""
+    """Before the panel arrives: the visible browser opens, one live call
+    answers, and every recorded run replays headless into a temporary folder,
+    so logs/demo is left as it is."""
     ok = True
+    try:
+        with sync_playwright() as pw:
+            pw.chromium.launch(headless=False).close()
+        print("OK    visible browser opens")
+    except PlaywrightError as e:
+        ok = False
+        hint = f"run: {INSTALL_BROWSER}" if _missing_browser(e) else str(e).splitlines()[0]
+        print(f"FAIL  visible browser: {hint}")
     try:
         model = LLMClient.from_env(**DEMO_LIMITS)  # records nothing into logs/demo
         obs = Observation(step=0, tree='- button "Send" [ref=e1]', url_path="/check.html")
@@ -145,7 +171,13 @@ def check(logs: Path = LOGS) -> int:
     replayed = make_model(True, logs)
     with tempfile.TemporaryDirectory() as tmp:
         for d in DEMO:
-            result, findings = execute(d.page, d.seed, replayed, Path(tmp))
+            try:
+                result, findings = execute(d.page, d.seed, replayed, Path(tmp))
+            except Exception as e:
+                ok = False
+                hint = f"run: {INSTALL_BROWSER}" if _missing_browser(e) else str(e)
+                print(f"FAIL  replay {d.page:<9} seed {d.seed:<3} {hint.splitlines()[0]}")
+                continue
             want = {d.expected} if d.expected else set()
             good = result.status == "succeeded" and {f.signal for f in findings} == want
             ok &= good

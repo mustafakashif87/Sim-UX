@@ -41,6 +41,7 @@
       }
       email.removeAttribute('aria-invalid');
       error.textContent = '';
+      form.querySelector('[type=submit]').disabled = true;
       await fetch('api/subscribe', { method: 'POST', body: email.value });
       form.hidden = true;
       document.getElementById('result').innerHTML = '<h2>Subscribed</h2>';

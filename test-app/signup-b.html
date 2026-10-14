@@ -48,6 +48,7 @@
         return;
       }
       error.textContent = '';
+      form.querySelector('[type=submit]').disabled = true;
       await fetch('api/signup', { method: 'POST', body: email.value });
       form.hidden = true;
       document.getElementById('result').innerHTML = '<h2>Account created</h2>';

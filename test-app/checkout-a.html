@@ -97,6 +97,7 @@
         [[$('bill-street'), 'billing street address'], [$('bill-city'), 'billing city']],
         'error3');
       if (!ok) return;
+      $('step3').querySelector('[type=submit]').disabled = true;
       await fetch('api/checkout', { method: 'POST', body: $('street').value });
       $('step3').hidden = true;
       $('result').innerHTML = '<h2>Thank you for your order</h2>';

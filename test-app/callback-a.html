@@ -52,6 +52,7 @@
         return;
       }
       error.textContent = '';
+      form.querySelector('[type=submit]').disabled = true;
       await fetch('api/callback', { method: 'POST', body: phone.value });
       form.hidden = true;
       document.getElementById('result').innerHTML = '<h2>Callback requested</h2>';

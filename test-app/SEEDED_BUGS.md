@@ -59,6 +59,11 @@ toward the persona's step cost, not recall.
 - **B3** has an alert with text, but the text names no field.
 - **B4** shows in the network log: two identical POSTs to `api/orders` in one
   step (from the double-submit perturbation).
+  Every other B1 to B6 page disables its final button once the submission
+  passes validation, in both versions, so P1's double press sends one POST
+  there. Otherwise a double press anywhere would be a `duplicate_submission`
+  finding this file does not list. `check_seeds.py` checks it with the
+  submissions held unanswered, as a slow server would.
 - **B5** shows as a POST to `api/account/delete` in the step that pressed
   "Delete account", with no dialog in between.
 - **B6** shows on step 3 as empty "Billing street address" and "Billing city"

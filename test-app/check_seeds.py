@@ -3,6 +3,9 @@
 For each row of the Bugs table, the bug must be present on the buggy page and
 absent on the clean page. Every task in tasks.yaml must also reach its goal on
 both pages of its pair when done correctly, so the goal check is known to work.
+On every page but B4's buggy one, a double press on the final button must
+send one submission, so P1's injected double press cannot produce a
+duplicate_submission finding the ground truth does not list.
 Exits 1 on any mismatch, or when a row or task has no check here (or the other
 way round), so CI's `seeds` job fails instead of trusting a stale ground truth.
 
@@ -35,8 +38,9 @@ MAX_TABS = 25
 Check = Callable[[Page, list[str]], bool]
 CHECKS: dict[str, Check] = {}
 
-# A happy path completes a task the way a careful user would.
-HappyPath = Callable[[Page], None]
+# A happy path completes a task the way a careful user would; with
+# double=True its final press is doubled, as P1's perturbation does it.
+HappyPath = Callable[[Page, bool], None]
 HAPPY: dict[str, HappyPath] = {}
 
 
@@ -75,6 +79,17 @@ def tab_to_and_activate(page: Page, selector: str) -> bool:
             page.keyboard.press("Enter")
             return reached_goal(page, "heading", "Submission received")
     return False
+
+
+def press(button, double: bool = False) -> None:
+    """Click, and with double=True click again straight after, as the
+    perturbation layer does. A disabled second press is the page working."""
+    button.click()
+    if double:
+        try:
+            button.click(timeout=500)
+        except PlaywrightTimeout:
+            pass
 
 
 def reached_goal(page: Page, role: str, name: str, timeout_ms: int = 3000) -> bool:
@@ -169,12 +184,7 @@ def error_does_not_name_field(page: Page, posts: list[str]) -> bool:
 
 @check("B4")
 def double_submit_sends_twice(page: Page, posts: list[str]) -> bool:
-    button = page.get_by_role("button", name="Place order")
-    button.click()
-    try:  # a second press straight after, as the perturbation layer does it
-        button.click(timeout=500)
-    except PlaywrightTimeout:
-        pass  # the button was disabled: the page working as intended
+    press(page.get_by_role("button", name="Place order"), double=True)
     page.wait_for_timeout(300)
     return len(posts) >= 2
 
@@ -199,48 +209,50 @@ def asks_again_for_address(page: Page, posts: list[str]) -> bool:
 
 
 @happy("signup")
-def sign_up(page: Page) -> None:
+def sign_up(page: Page, double: bool = False) -> None:
     page.get_by_label("Full name").fill("Sam Khan")
     page.get_by_label("Email address").fill("sam.khan@example.com")
-    page.get_by_role("button", name="Create account").click()
+    press(page.get_by_role("button", name="Create account"), double)
 
 
 @happy("subscribe")
-def subscribe(page: Page) -> None:
+def subscribe(page: Page, double: bool = False) -> None:
     page.get_by_label("Email address").fill("sam.khan@example.com")
-    page.get_by_role("button", name="Subscribe").click()
+    press(page.get_by_role("button", name="Subscribe"), double)
 
 
 @happy("callback")
-def request_callback(page: Page) -> None:
+def request_callback(page: Page, double: bool = False) -> None:
     page.get_by_label("Your name").fill("Sam Khan")
     page.get_by_label("Phone number").fill("03001234567")
-    page.get_by_role("button", name="Request callback").click()
+    press(page.get_by_role("button", name="Request callback"), double)
 
 
 @happy("order")
-def place_order(page: Page) -> None:
-    page.get_by_role("button", name="Place order").click()
+def place_order(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Place order"), double)
 
 
 @happy("account")
-def delete_account(page: Page) -> None:
-    page.get_by_role("button", name="Delete account").click()
+def delete_account(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Delete account"), double)
+    confirm = page.get_by_role("button", name="Yes, delete my account")
     try:
-        page.get_by_role("button", name="Yes, delete my account").click(timeout=1000)
+        confirm.wait_for(timeout=1000)
     except PlaywrightTimeout:
-        pass  # this version has no confirmation step
+        return  # this version has no confirmation step
+    press(confirm, double)
 
 
 @happy("checkout")
-def check_out(page: Page) -> None:
+def check_out(page: Page, double: bool = False) -> None:
     fill_delivery_address(page)
     page.get_by_role("button", name="Continue").click()
     for label, value in [("Billing street address", "12 Canal Road"), ("Billing city", "Lahore")]:
         field = page.get_by_label(label)
         if not field.input_value():
             field.fill(value)
-    page.get_by_role("button", name="Place order").click()
+    press(page.get_by_role("button", name="Place order"), double)
 
 
 # --- runner ----------------------------------------------------------------
@@ -295,8 +307,35 @@ def _present(browser: Browser, base: str, name: str, fn: Check) -> bool:
 def _completes(browser: Browser, base: str, name: str, task: dict) -> bool:
     page, _ = _open(browser, f"{base}/{name}")
     try:
-        HAPPY[task["id"]](page)
+        HAPPY[task["id"]](page, False)
         return reached_goal(page, task["goal"]["role"], task["goal"]["name"])
+    finally:
+        page.close()
+
+
+def _submissions_on_double_press(browser: Browser, base: str, name: str, task: dict) -> int:
+    """Submissions sent when the final press is doubled. Every POST is held
+    unanswered until both presses are done, as a slow server would, so a page
+    that hides its form once answered still shows whether it guards the
+    second press. Without the hold the result depends on timing."""
+    page = browser.new_page()
+    held = []
+
+    def hold(route) -> None:
+        if route.request.method == "POST":
+            held.append(route)
+        else:
+            route.fulfill(status=200, body="ok")
+
+    page.route("**/api/**", hold)
+    try:
+        page.goto(f"{base}/{name}")
+        HAPPY[task["id"]](page, True)
+        page.wait_for_timeout(300)
+        for route in held:
+            route.fulfill(status=200, body="ok")
+        reached_goal(page, task["goal"]["role"], task["goal"]["name"])
+        return len(held)
     finally:
         page.close()
 
@@ -339,6 +378,19 @@ def main() -> int:
                 print(f"{task['id']:<10} {name:<20} {done}")
                 if not done:
                     problems.append(f"task {task['id']}: goal not reached on {name}")
+
+        # Only B4's buggy page may send twice; anywhere else a double press
+        # would be a duplicate_submission finding missing from the ground truth.
+        allowed = {buggy for bug, buggy, _ in rows if bug == "B4"}
+        print(f"\n{'task':<10} {'page':<20} submissions on a double press")
+        for task in tasks:
+            if task["id"] not in HAPPY:
+                continue
+            for name in task["pages"]:
+                sent = _submissions_on_double_press(browser, base, name, task)
+                print(f"{task['id']:<10} {name:<20} {sent}")
+                if sent != 1 and name not in allowed:
+                    problems.append(f"task {task['id']}: {sent} submissions on {name}")
 
         browser.close()
     server.shutdown()

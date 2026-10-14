@@ -5,6 +5,7 @@ import pytest
 
 from agent.contracts import Action, StepRecord
 from agent.fake_model import FakeModel, back, click, give_up, literal, press, type_into
+from agent.llm import ProviderError
 from agent.loop import Goal, Task, run
 from agent.persona import Persona, load_persona
 
@@ -78,6 +79,15 @@ class TestEnding:
             go(page, tmp_path, [boom])
         (run_json,) = tmp_path.glob("*/run.json")
         assert json.loads(run_json.read_text())["status"] == "crashed"
+
+    def test_provider_failure_aborts_without_crashing(self, page, tmp_path):
+        def quota_spent(obs):
+            raise ProviderError("HTTP 429: quota spent")
+
+        result, _ = go(page, tmp_path, [type_into("Full name", "Sara Khan"), quota_spent])
+        assert result.status == "aborted_provider" and len(result.steps) == 1
+        meta = json.loads((result.log_dir / "run.json").read_text())
+        assert meta["status"] == "aborted_provider" and "quota" in meta["error"]
 
 
 class TestValidation:

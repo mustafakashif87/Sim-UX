@@ -4,12 +4,18 @@
     python -m agent.demo --replay             # fallback: recorded replies, no network
     python -m agent.demo --replay --from signup-a   # continue after a live failure
     python -m agent.demo --check              # before the panel: key and recordings
+    python -m agent.demo --record             # live, saved as the new recording
 
 Runs each buggy/clean pair with the seed that makes P1's slip happen at the
 configured rates (docs/demo-script.md), pausing for Enter between pages, then
 prints one summary table. Live runs give up fast (2 attempts, 20 s a call):
 on a failure the demo stops and prints the command to continue with. It never
 switches to the recording by itself, so a replay is always announced.
+
+A live run saves its replies to `live-cache/`, never over the recording in
+`llm-cache/`: at temperature 0 a rehearsal can still answer differently, and
+overwriting one recorded reply breaks the replay from that step on. Only
+`--record` replaces the recording, on purpose.
 """
 
 import argparse
@@ -27,6 +33,8 @@ from agent.loop import RunResult
 from agent.run import execute, report
 
 LOGS = Path("logs/demo")
+RECORDING = "llm-cache"  # what --replay reads; written only by --record
+LIVE_CACHE = "live-cache"  # what a live run writes; git-ignored
 
 
 @dataclass(frozen=True)
@@ -56,8 +64,9 @@ def _missing_browser(error: Exception) -> bool:
 DEMO_LIMITS = {"max_attempts": 2, "max_wait_s": 10.0, "timeout_s": 20.0}
 
 
-def make_model(replay: bool, logs: Path = LOGS) -> LLMClient:
-    return LLMClient.from_env(cache_dir=logs / "llm-cache", replay=replay, **DEMO_LIMITS)
+def make_model(replay: bool, logs: Path = LOGS, record: bool = False) -> LLMClient:
+    cache = RECORDING if replay or record else LIVE_CACHE
+    return LLMClient.from_env(cache_dir=logs / cache, replay=replay, **DEMO_LIMITS)
 
 
 def _banner(text: str) -> str:
@@ -92,7 +101,14 @@ def _next_command(page: str, failed_live: bool) -> str:
     return "pytest -v tests/e2e/test_test_app.py --override-ini addopts=   (scripted model)"
 
 
-def demo(replay: bool, start: str | None, pause: bool, headed: bool, logs: Path = LOGS) -> int:
+def demo(
+    replay: bool,
+    start: str | None,
+    pause: bool,
+    headed: bool,
+    logs: Path = LOGS,
+    record: bool = False,
+) -> int:
     names = [d.page for d in DEMO]
     if start is not None and start not in names:
         print(f"--from must be one of: {', '.join(names)}", file=sys.stderr)
@@ -101,7 +117,7 @@ def demo(replay: bool, start: str | None, pause: bool, headed: bool, logs: Path 
     mode = "REPLAY" if replay else "LIVE"
 
     try:
-        model = make_model(replay, logs)
+        model = make_model(replay, logs, record)
     except ValueError as e:  # no key, unknown provider
         print(f"Cannot start the live demo: {e}")
         print(f"Continue with: {_next_command(runs[0].page, not replay)}")
@@ -195,14 +211,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--replay", action="store_true", help="recorded replies, no network")
     parser.add_argument("--from", dest="start", metavar="PAGE", help="start at this page")
+    parser.add_argument("--record", action="store_true", help="live, saved as the recording")
     parser.add_argument("--check", action="store_true", help="check key and recordings, then exit")
     parser.add_argument("--no-pause", action="store_true", help="do not wait for Enter")
     parser.add_argument("--headless", action="store_true", help="hide the browser")
     parser.add_argument("--logs", type=Path, default=LOGS, help="log root holding llm-cache/")
     args = parser.parse_args(argv)
+    if args.record and args.replay:
+        parser.error("--record is a live run; it cannot be combined with --replay")
     if args.check:
         return check(args.logs)
-    return demo(args.replay, args.start, not args.no_pause, not args.headless, args.logs)
+    pause, headed = not args.no_pause, not args.headless
+    return demo(args.replay, args.start, pause, headed, args.logs, args.record)
 
 
 if __name__ == "__main__":

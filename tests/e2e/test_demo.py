@@ -4,6 +4,7 @@ Each test runs the real command in its own process on a copy of the recorded
 demo runs (logs/demo/llm-cache), so logs/demo itself is never written.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -11,6 +12,10 @@ import sys
 from pathlib import Path
 
 import pytest
+
+from agent import llm
+from agent.contracts import Observation
+from agent.demo import make_model
 
 RECORDING = Path(__file__).parents[2] / "logs" / "demo" / "llm-cache"
 
@@ -65,3 +70,40 @@ def test_live_failure_stops_and_names_the_fallback(logs):
 def test_unknown_start_page(logs):
     done = demo(logs, "--replay", "--from", "nope")
     assert done.returncode == 2 and "order-a, order-b, signup-a, signup-b" in done.stderr
+
+
+def test_record_cannot_be_a_replay(logs):
+    done = demo(logs, "--replay", "--record")
+    assert done.returncode == 2 and "--record is a live run" in done.stderr
+
+
+@pytest.fixture
+def answering_api(monkeypatch):
+    """The provider, answering every call with one click, without the network."""
+    click = {"thought": "t", "action": "click", "ref": "e1", "text": None, "key": None}
+    body = json.dumps({"choices": [{"message": {"content": json.dumps(click)}}]}).encode()
+    monkeypatch.setattr(llm, "_urllib_post", lambda url, headers, data, timeout: (200, {}, body))
+    monkeypatch.setenv("LLM_PROVIDER", "groq")
+    monkeypatch.setenv("LLM_API_KEY", "k")
+
+
+def ask(model):
+    obs = Observation(step=0, tree='- button "Send" [ref=e1]', url_path="/x.html")
+    return model.next_action("Press Send.", obs, [])
+
+
+def test_live_run_never_writes_over_the_recording(logs, answering_api):
+    # A rehearsal answering differently once overwrote recorded replies and
+    # broke the replay of signup-b (14 Oct).
+    recorded = {f.name: f.read_bytes() for f in (logs / "llm-cache").iterdir()}
+    ask(make_model(replay=False, logs=logs))
+    after = {f.name: f.read_bytes() for f in (logs / "llm-cache").iterdir()}
+    assert after == recorded
+    assert len(list((logs / "live-cache").iterdir())) == 1
+
+
+def test_record_writes_the_recording(logs, answering_api):
+    before = len(list((logs / "llm-cache").iterdir()))
+    ask(make_model(replay=False, logs=logs, record=True))
+    assert len(list((logs / "llm-cache").iterdir())) == before + 1
+    assert not (logs / "live-cache").exists()

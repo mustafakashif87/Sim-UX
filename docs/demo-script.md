@@ -62,9 +62,12 @@ runs are in `logs/demo/`:
 - [ ] `python test-app/check_seeds.py` prints `OK` (all bugs in place)
 - [ ] `.env` in the repo root holds `LLM_API_KEY` (Groq); it is git-ignored and
       read automatically. Never open it on the projector.
+- [ ] Once per laptop: `source .venv/bin/activate` then
+      `playwright install chromium`. The demo shows the full browser; the
+      setup in the README installs only the headless one.
 - [ ] `python -m agent.demo --check` ends with `Ready.`: one live call to the
       model, and all four recordings replayed with the expected findings
-      (writes nothing to `logs/demo`)
+      (writes nothing to `logs/demo`); it also opens the visible browser once
 - [ ] Fake-model fallback tested on this laptop (fallback 4, command below)
 - [ ] Terminal and browser zoomed so the back row can read them
 - [ ] Notifications off, laptop on power

@@ -15,7 +15,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "lefthook>=1.10",
-    "pytest>=8",
+    "pytest>=9.2.0",
     "ruff>=0.6",
 ]
 browser = [

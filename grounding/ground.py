@@ -205,3 +205,22 @@ def ground_finding(
 def key_quotes(signal_map: SignalMap, corpus: Corpus, signal: str) -> dict[str, str]:
     """Stand-in for the LLM (step 4): each candidate's verbatim `key_quote`."""
     return {c: corpus.get(c).key_quote for c in signal_map.candidates(signal) if c in corpus}
+
+
+def ground_all(
+    findings: list[Finding],
+    corpus: Corpus | None = None,
+    signal_map: SignalMap | None = None,
+) -> list[GroundingReport]:
+    """Ground each detector finding with the stub's quotes (`key_quotes`).
+
+    A signal the map does not list gets no quotes, so its finding is reported
+    ungrounded with lower confidence rather than dropped.
+    """
+    corpus = corpus or default_corpus()
+    signal_map = signal_map or default_signal_map()
+    reports = []
+    for f in findings:
+        quotes = key_quotes(signal_map, corpus, f.signal) if f.signal in signal_map else {}
+        reports.append(ground_finding(f, corpus, quotes))
+    return reports

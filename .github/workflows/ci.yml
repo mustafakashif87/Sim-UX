@@ -34,6 +34,7 @@ jobs:
       e2e: ${{ steps.d.outputs.e2e }}
       web: ${{ steps.d.outputs.web }}
       axe: ${{ steps.d.outputs.axe }}
+      api: ${{ steps.d.outputs.api }}
     steps:
       - uses: actions/checkout@v7
       - id: d
@@ -44,6 +45,7 @@ jobs:
             echo "e2e=$(has 'tests/e2e/test_*.py')"
             echo "web=$(has web/package-lock.json)"
             echo "axe=$(has 'test-app/*.html')"
+            echo "api=$(has api/Dockerfile)"
           } | tee -a "$GITHUB_OUTPUT"
 
   python:
@@ -60,7 +62,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-      - run: pip install -e ".[dev]"
+      - run: pip install -e ".[dev,api]"
       - run: ruff check .
       - run: ruff format --check .
       - run: pytest -q
@@ -98,7 +100,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
-      - run: pip install -e ".[dev,browser]"
+      - run: pip install -e ".[dev,browser,api]"
       - run: playwright install --with-deps --only-shell chromium
       - run: pytest -q tests/e2e --override-ini addopts=
 
@@ -120,6 +122,27 @@ jobs:
       - run: npm ci
       - run: npx tsc --noEmit
       - run: npm run build
+
+  api-image:
+    name: API image builds and answers
+    needs: detect
+    if: needs.detect.outputs.api == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      # Build only; cd.yml pushes after merge. A broken Dockerfile fails here,
+      # on the pull request, instead of after it reaches main.
+      - run: docker build -f api/Dockerfile -t simux-api:ci .
+      - name: Container serves /health and /options
+        run: |
+          docker run -d --name api -p 8000:8000 simux-api:ci
+          for _ in $(seq 1 30); do
+            if curl -fsS localhost:8000/health; then
+              curl -fsS localhost:8000/options | grep -q error_prone && exit 0
+            fi
+            sleep 2
+          done
+          docker logs api; exit 1
 
   axe:
     name: axe-core scan

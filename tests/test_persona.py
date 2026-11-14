@@ -2,9 +2,16 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from agent.actions import validate
+from agent.actions import BROWSER_ACTIONS, validate
 from agent.contracts import Action
-from agent.persona import PERSONAS_DIR, Persona, is_key_name, load_persona
+from agent.persona import (
+    PERSONAS_DIR,
+    Persona,
+    baseline,
+    for_condition,
+    is_key_name,
+    load_persona,
+)
 
 P1_FILE = PERSONAS_DIR / "error_prone.yaml"
 
@@ -157,3 +164,38 @@ class TestP2AndP3Configs:
 
         with pytest.raises(NotImplementedError, match="not built yet"):
             apply_filters([], ["vocab_filter"])
+
+
+class TestBaseline:
+    """Spec, Run conditions: full tree, full memory, no perturbation, generous budget."""
+
+    @pytest.mark.parametrize("name", ["error_prone", "memoryless", "low_literacy"])
+    def test_every_constraint_is_off(self, name):
+        p = load_persona(name)
+        b = baseline(p)
+        assert b.perception.filters == ["full_tree"]
+        assert set(b.actions.allowed) == BROWSER_ACTIONS
+        assert {"Tab", "Enter", "Escape"} <= set(b.actions.keys)
+        assert b.memory.max_steps == 2 * p.memory.max_steps
+        assert b.memory.history_turns == b.memory.max_steps
+        rates = b.perturbation.model_dump(exclude={"seed"})
+        assert set(rates.values()) == {0.0}
+
+    def test_same_id_and_seed_new_hash(self):
+        p = load_persona("error_prone")
+        b = baseline(p)
+        assert (b.id, b.perturbation.seed) == (p.id, p.perturbation.seed)
+        assert b.task_types == p.task_types
+        assert b.config_hash != p.config_hash
+
+    def test_persona_itself_is_unchanged(self):
+        p = load_persona("error_prone")
+        baseline(p)
+        assert p == load_persona("error_prone")
+
+    def test_for_condition(self):
+        p = load_persona("error_prone")
+        assert for_condition(p, "persona") is p
+        assert for_condition(p, "baseline") == baseline(p)
+        with pytest.raises(ValueError, match="unknown condition"):
+            for_condition(p, "clean")

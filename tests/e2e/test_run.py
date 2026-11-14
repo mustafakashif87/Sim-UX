@@ -28,6 +28,17 @@ def test_clean_page_has_no_finding(browser, tmp_path):
     assert "findings: none" in report(result, findings)
 
 
+def test_baseline_turns_the_mistake_off(browser, tmp_path):
+    # Same page and seed as above, but the Baseline condition: no double press,
+    # so no finding. This is the comparison the attribution rule relies on.
+    model = FakeModel([click("Place order")])
+    result, findings = execute("order-a", 1, model, tmp_path, browser=browser, condition="baseline")
+    assert result.status == "succeeded" and findings == []
+    assert result.steps[0].perturbation is None
+    assert result.meta["condition"] == "baseline" and result.meta["seed"] == 1
+    assert "(baseline)" in report(result, findings)
+
+
 def test_unknown_page_names_the_pages(browser, tmp_path):
     with pytest.raises(SystemExit, match="signup-a"):
         execute("nope", 1, FakeModel([]), tmp_path, browser=browser)

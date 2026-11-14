@@ -11,7 +11,7 @@ import hashlib
 import json
 import re
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
 import yaml
 from pydantic import ConfigDict, Field, field_validator, model_validator
@@ -128,6 +128,42 @@ class Persona(Config):
         """
         canonical = json.dumps(self.model_dump(mode="json"), sort_keys=True)
         return hashlib.sha256(canonical.encode()).hexdigest()[:16]
+
+
+Condition = Literal["persona", "baseline"]
+CONDITIONS: tuple[Condition, ...] = ("persona", "baseline")
+
+# Spec, Run conditions: the baseline has "full tree, full memory, no
+# perturbation, generous budget". Generous is our number: twice the persona's
+# step cap. Change it here and in the report together.
+BASELINE_STEP_FACTOR = 2
+BASELINE_KEYS = ("Tab", "Enter", "Escape")
+
+
+def baseline(persona: Persona) -> Persona:
+    """The same persona with every constraint off, for the Baseline condition.
+
+    Full tree, every browser action, the whole run in memory, no perturbation
+    and twice the steps. The id and the perturbation seed stay the same, so a
+    baseline run differs from the persona run only in its constraints; the
+    config hash changes, so the log shows which config ran.
+    """
+    steps = persona.memory.max_steps * BASELINE_STEP_FACTOR
+    data = persona.model_dump()
+    data["perception"] = {"filters": ["full_tree"]}
+    data["actions"] = {
+        "allowed": sorted(BROWSER_ACTIONS),
+        "keys": list(dict.fromkeys([*persona.actions.keys, *BASELINE_KEYS])),
+    }
+    data["memory"] = {"history_turns": steps, "max_steps": steps}
+    data["perturbation"] = {"seed": persona.perturbation.seed}  # every rate 0
+    return Persona.model_validate(data)
+
+
+def for_condition(persona: Persona, condition: Condition) -> Persona:
+    if condition not in CONDITIONS:
+        raise ValueError(f"unknown condition {condition!r}; one of {', '.join(CONDITIONS)}")
+    return baseline(persona) if condition == "baseline" else persona
 
 
 def load_persona(name_or_path: str | Path) -> Persona:

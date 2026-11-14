@@ -95,9 +95,12 @@ def run(
     model: Model,
     log_root: Path,
     seed: int | None = None,
+    condition: str = "persona",
 ) -> RunResult:
     """Run one task to success, give-up or the step cap, logging every step.
-    A ProviderError from the model ends it as `aborted_provider`.
+    A ProviderError from the model ends it as `aborted_provider`. `condition`
+    is only logged: the caller passes the persona already set for it
+    (`persona.for_condition`).
 
     Writes to `<log_root>/<run_id>/`, each line as it happens:
     - `steps.jsonl`: one StepRecord per step
@@ -116,6 +119,7 @@ def run(
     meta = {
         "run_id": run_id,
         "persona": persona.id,
+        "condition": condition,
         "config_hash": persona.config_hash,
         "task": task.id,
         "page": page_name,

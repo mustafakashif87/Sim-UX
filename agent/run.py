@@ -23,7 +23,7 @@ from agent.contracts import Action, Finding
 from agent.detectors import audit
 from agent.llm import LLMClient
 from agent.loop import Model, RunResult, run
-from agent.persona import load_persona
+from agent.persona import CONDITIONS, Condition, for_condition, load_persona
 from agent.tasks import load_tasks, serve
 
 # Slows each browser action in --headed mode so the audience can follow it.
@@ -39,33 +39,35 @@ def execute(
     base: str | None = None,
     headed: bool = False,
     browser: Browser | None = None,
+    condition: Condition = "persona",
 ) -> tuple[RunResult, list[Finding]]:
     """One run of `persona` on `<page_name>.html`, and the findings from its log.
-    Launches Chromium unless given a `browser` (tests share one)."""
+    Launches Chromium unless given a `browser` (tests share one). The
+    `baseline` condition runs the same persona with every constraint off."""
     with serve() if base is None else nullcontext(base) as url:
         tasks = {t.url.rsplit("/", 1)[-1]: t for t in load_tasks(url)}
         task = tasks.get(f"{page_name}.html")
         if task is None:
             names = sorted(name.removesuffix(".html") for name in tasks)
             raise SystemExit(f"no task for page {page_name!r}; pages: {', '.join(names)}")
-        p = load_persona(persona)
+        p = for_condition(load_persona(persona), condition)
         if browser is not None:
-            result = _run_in(browser, task, p, model, logs, seed)
+            result = _run_in(browser, task, p, model, logs, seed, condition)
         else:
             with sync_playwright() as pw:
                 slow_mo = HEADED_SLOW_MO_MS if headed else 0
                 launched = pw.chromium.launch(headless=not headed, slow_mo=slow_mo)
                 try:
-                    result = _run_in(launched, task, p, model, logs, seed)
+                    result = _run_in(launched, task, p, model, logs, seed, condition)
                 finally:
                     launched.close()
     return result, audit(result.log_dir)
 
 
-def _run_in(browser: Browser, task, persona, model, logs, seed) -> RunResult:
+def _run_in(browser: Browser, task, persona, model, logs, seed, condition) -> RunResult:
     page = browser.new_page()
     try:
-        return run(page, task, persona, model, logs, seed)
+        return run(page, task, persona, model, logs, seed, condition)
     finally:
         page.close()
 
@@ -81,7 +83,8 @@ def _describe(action: Action | None) -> str:
 def report(result: RunResult, findings: list[Finding]) -> str:
     meta = result.meta
     lines = [
-        f"run {result.run_id}: {meta['persona']} on {meta['page']}, seed {meta['seed']}, "
+        f"run {result.run_id}: {meta['persona']} ({meta.get('condition', 'persona')}) "
+        f"on {meta['page']}, seed {meta['seed']}, "
         f"model {meta['model_id']}",
         *(["REPLAY of recorded model replies, not a live run"] if meta.get("replay") else []),
         "",
@@ -118,6 +121,9 @@ def main(argv: list[str] | None = None) -> int:
         "--seed", type=int, default=None, help="perturbation seed (default: config)"
     )
     parser.add_argument("--persona", default="error_prone")
+    parser.add_argument(
+        "--condition", choices=CONDITIONS, default="persona", help="baseline: constraints off"
+    )
     parser.add_argument("--logs", type=Path, default=Path("logs/runs"), help="log root")
     parser.add_argument("--base", help="serve pages from this URL instead of test-app/")
     parser.add_argument("--replay", action="store_true", help="recorded replies only, no API call")
@@ -126,7 +132,14 @@ def main(argv: list[str] | None = None) -> int:
 
     model = LLMClient.from_env(cache_dir=args.logs / "llm-cache", replay=args.replay)
     result, findings = execute(
-        args.page, args.seed, model, args.logs, args.persona, args.base, args.headed
+        args.page,
+        args.seed,
+        model,
+        args.logs,
+        args.persona,
+        args.base,
+        args.headed,
+        condition=args.condition,
     )
     print(report(result, findings))
     return 1 if result.status in ("aborted_provider", "crashed") else 0

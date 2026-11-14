@@ -1,9 +1,11 @@
 """Detectors on hand-built run logs: no browser, so edge cases are cheap."""
 
+import json
+
 import pytest
 
 from agent.contracts import Action, Observation, StepRecord
-from agent.detectors import RunLog, Submission, detect, signal_map
+from agent.detectors import RunLog, Submission, audit, detect, signal_map
 from agent.detectors.data_loss import data_loss_on_error, lost_fields
 from agent.detectors.duplicate_submission import duplicate_submission
 
@@ -128,6 +130,35 @@ def test_aborted_run_has_no_findings():
         [obs(FILLED), obs(WIPED_WITH_ERROR, 1)], [record(0)], [sub(0), sub(0)], "aborted_provider"
     )
     assert detect(run) == []
+
+
+def write_log(log_dir, run: RunLog) -> None:
+    """Write a RunLog to disk in the layout agent/loop.py uses."""
+    log_dir.mkdir()
+    (log_dir / "run.json").write_text(json.dumps(run.meta), encoding="utf-8")
+    (log_dir / "steps.jsonl").write_text(
+        "".join(s.model_dump_json() + "\n" for s in run.steps), encoding="utf-8"
+    )
+    (log_dir / "observations.jsonl").write_text(
+        "".join(
+            json.dumps({"step": o.step, "observation": o.model_dump()}) + "\n"
+            for o in run.observations
+        ),
+        encoding="utf-8",
+    )
+    (log_dir / "network.jsonl").write_text(
+        "".join(json.dumps(vars(s)) + "\n" for s in run.submissions), encoding="utf-8"
+    )
+
+
+def test_audit_reads_the_log_and_grounds_each_finding(tmp_path):
+    run = run_log([obs(FILLED), obs(WIPED_WITH_ERROR, 1)], [record(0)], [sub(0), sub(0)])
+    write_log(tmp_path / "r1", run)
+    findings = audit(tmp_path / "r1")
+    assert sorted(f.signal for f in findings) == ["data_loss_on_error", "duplicate_submission"]
+    for f in findings:
+        assert f.citations, f"{f.signal} has no verified citation"
+        assert {c.criterion_id for c in f.citations} <= set(f.candidate_criteria)
 
 
 class TestGroundingIsTheSource:

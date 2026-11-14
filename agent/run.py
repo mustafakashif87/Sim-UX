@@ -6,8 +6,10 @@
 Serves `test-app/` locally (or uses `--base`, e.g. the GitHub Pages site),
 runs the loop with the LLM client from `.env` or the environment, then prints
 each step's intended and executed action and the findings the detectors read
-from the log. Logs go to `<logs>/<run_id>/`; model replies are recorded in
-`<logs>/llm-cache/`, which `--replay` serves with no API call.
+from the log, each with its verified citations (grounding stub: the corpus
+key quotes stand in for the LLM's) or marked ungrounded. Logs go to
+`<logs>/<run_id>/`; model replies are recorded in `<logs>/llm-cache/`, which
+`--replay` serves with no API call.
 """
 
 import argparse
@@ -18,7 +20,7 @@ from pathlib import Path
 from playwright.sync_api import Browser, sync_playwright
 
 from agent.contracts import Action, Finding
-from agent.detectors import detect, load_run
+from agent.detectors import audit
 from agent.llm import LLMClient
 from agent.loop import Model, RunResult, run
 from agent.persona import load_persona
@@ -57,7 +59,7 @@ def execute(
                     result = _run_in(launched, task, p, model, logs, seed)
                 finally:
                     launched.close()
-    return result, detect(load_run(result.log_dir))
+    return result, audit(result.log_dir)
 
 
 def _run_in(browser: Browser, task, persona, model, logs, seed) -> RunResult:
@@ -99,9 +101,13 @@ def report(result: RunResult, findings: list[Finding]) -> str:
         lines.append("findings: none")
     for f in findings:
         lines.append(
-            f"finding: {f.signal}, severity {f.severity}, "
+            f"finding: {f.signal}, severity {f.severity}, confidence {f.confidence:.2f}, "
             f"{' / '.join(f.candidate_criteria)}, evidence steps {f.evidence_steps}"
         )
+        if not f.citations:
+            lines.append("  ungrounded: no quote passed verification")
+        for c in f.citations:
+            lines.append(f'  cites {c.criterion_id}: "{c.quote}"')
     return "\n".join(lines)
 
 

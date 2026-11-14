@@ -97,3 +97,12 @@ def detect(run: RunLog) -> list[Finding]:
 
     detectors: list[Detector] = [data_loss_on_error, duplicate_submission]
     return [f for d in detectors if (f := d(run)) is not None]
+
+
+def audit(log_dir: Path) -> list[Finding]:
+    """A finished run's findings, each with its verified citations or marked
+    ungrounded (no citations, lower confidence). What `agent.run` prints and
+    the API returns."""
+    from grounding.ground import ground_all
+
+    return [r.finding for r in ground_all(detect(load_run(log_dir)))]

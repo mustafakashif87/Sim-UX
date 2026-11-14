@@ -1,4 +1,20 @@
-# CLAUDE.md — SimUX POC Project Context
+# CLAUDE.md — SimUX web interface
+
+> **Update, 14 Nov 2026 (moved into `Sim-UX/web/`).** This app now lives in
+> the main repository and is no longer fully static. New Run (`/new-run`)
+> calls the real API (`api/`, see `src/lib/api.ts`) and opens
+> `/runs/:runId` (`pages/LiveRun.tsx`), which streams a real run's steps and
+> shows its grounded findings through `hooks/useRun.ts`. Set
+> `VITE_SIMUX_API_URL` (see `.env.example`); local development expects
+> `uvicorn api.app:app --port 8000` from the repo root. The landing page,
+> `/running`, `/results`, `/results/:id` and `/correction` still read the
+> fixture through `useDemoRun()` and keep their "scripted" labels; they move
+> to the real API and the three spec personas (Error-prone, Memoryless,
+> Low-literacy) in Sprint 2. Rule 1 below ("nothing executes") now holds
+> only for those fixture screens. The repository-wide rules are in the root
+> `CLAUDE.md`.
+
+## Original POC context
 
 This file is a complete handoff document for the **SimUX POC** — paste it
 into a new chat (along with `DESIGN.md` and `POC_SPEC.md`) if you need to

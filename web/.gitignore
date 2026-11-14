@@ -28,10 +28,8 @@ npm-debug.log*
 # Vercel (created locally by `vercel link` / `vercel dev`)
 .vercel
 
-# Env files — this project has none in use yet (no backend, no API keys,
-# see CLAUDE.md rule 1), but ignored preemptively so one is never
-# accidentally committed if that changes later.
+# Env files. .env.example holds no secret (only the API's address) and is
+# committed; any real .env stays local.
 .env
 .env.*
 !.env.example
-.env*

@@ -61,7 +61,7 @@ export function Footer() {
             Detect · Ground · Fix · Verify
           </p>
           <p className="font-mono text-micro uppercase text-paper/55">
-            Proof-of-concept prototype · Nothing here is running live
+            New Run is live · The landing walkthrough is scripted
           </p>
         </div>
 

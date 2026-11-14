@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import Landing from "@/pages/Landing";
 import NewRun from "@/pages/NewRun";
+import LiveRun from "@/pages/LiveRun";
 import Running from "@/pages/Running";
 import Results from "@/pages/Results";
 import FindingDetail from "@/pages/FindingDetail";
@@ -36,6 +37,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/new-run" element={<NewRun />} />
+        <Route path="/runs/:runId" element={<LiveRun />} />
         <Route path="/running" element={<Running />} />
         <Route path="/results" element={<Results />} />
         <Route path="/results/:findingId" element={<FindingDetail />} />

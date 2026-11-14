@@ -5,6 +5,7 @@ import yaml
 from pydantic import ValidationError
 
 from agent.tasks import TEST_APP, load_entries, load_seeded_bugs, load_tasks, serve
+from grounding import default_signal_map
 
 PAGES_URL = "https://mustafakashif87.github.io/Sim-UX"
 
@@ -24,11 +25,18 @@ class TestTasksYaml:
         assert tasks[0].url == f"{PAGES_URL}/{entries[0].pages[0]}"
         assert tasks[0].goal.role and tasks[0].goal.name
 
-    def test_every_p1_bug_page_has_a_task(self):
+    def test_every_persona_bug_page_has_a_task(self):
         pages = {t.url.rsplit("/", 1)[-1] for t in load_tasks(PAGES_URL)}
+        persona_bugs = [b for b in load_seeded_bugs() if b.detected_by[:2] in ("P1", "P2", "P3")]
+        assert {b.id for b in persona_bugs} >= {f"B{i}" for i in range(1, 13)}
+        for bug in persona_bugs:
+            assert {bug.buggy, bug.clean} <= pages, bug.id
+
+    def test_both_pages_of_a_pair_share_one_task(self):
+        by_page = {page: e.id for e in load_entries() for page in e.pages}
         for bug in load_seeded_bugs():
-            if bug.detected_by.startswith("P1"):
-                assert {bug.buggy, bug.clean} <= pages, bug.id
+            if bug.buggy in by_page:
+                assert by_page[bug.buggy] == by_page.get(bug.clean), bug.id
 
     @pytest.mark.parametrize("base", [PAGES_URL, PAGES_URL + "/"])
     def test_base_url_with_or_without_slash(self, base):
@@ -90,6 +98,14 @@ class TestSeededBugs:
         assert bugs["B1"].signal == "data_loss_on_error"
         assert bugs["B4"].signal == "duplicate_submission"
         assert all(b.buggy != b.clean for b in bugs.values())
+
+    def test_every_expected_persona_signal_is_mapped(self):
+        # The signal each persona bug should produce has candidate criteria in
+        # grounding/signal_map.yaml, so its finding can be grounded.
+        signals = default_signal_map()
+        for bug in load_seeded_bugs():
+            if bug.detected_by[:2] in ("P1", "P2", "P3") and bug.signal:
+                assert bug.signal in signals, bug.id
 
     def test_no_detector_yet_is_none(self, tmp_path):
         md = tmp_path / "SEEDED_BUGS.md"

@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Send money – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Send money from your wallet</h1>
+    <p>Wallet balance: Rs 2,000</p>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="account">Account number</label>
+        <input type="text" id="account" inputmode="numeric" autocomplete="off" aria-describedby="error">
+      </div>
+      <div class="field">
+        <label for="amount">Amount in rupees</label>
+        <input type="text" id="amount" inputmode="numeric" autocomplete="off" aria-describedby="error">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Send money</button>
+      <button type="reset">Cancel</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const account = document.getElementById('account');
+    const amount = document.getElementById('amount');
+    const error = document.getElementById('error');
+
+    form.addEventListener('reset', () => {
+      error.textContent = '';
+      [account, amount].forEach((f) => f.removeAttribute('aria-invalid'));
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const problems = [];
+      [account, amount].forEach((f) => f.removeAttribute('aria-invalid'));
+      if (!/^\d{8}$/.test(account.value.replace(/\s/g, ''))) {
+        problems.push([account, 'Enter the 8-digit account number.']);
+      }
+      const rupees = Number(amount.value.replace(/[,\s]/g, ''));
+      if (!Number.isInteger(rupees) || rupees < 1 || rupees > 2000) {
+        problems.push([amount, 'Enter a whole number of rupees, up to 2,000.']);
+      }
+      if (problems.length) {
+        problems.forEach(([field]) => field.setAttribute('aria-invalid', 'true'));
+        error.textContent = problems.map(([, message]) => message).join(' ');
+        return;
+      }
+      error.textContent = '';
+      form.querySelector('[type=submit]').disabled = true;
+      await fetch('api/transfer', { method: 'POST', body: `${account.value}/${rupees}` });
+      form.hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Money sent</h2>';
+    });
+  </script>
+</body>
+</html>

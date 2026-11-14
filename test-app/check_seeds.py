@@ -118,6 +118,28 @@ def shows_error(page: Page) -> bool:
     return page.locator("[aria-invalid=true]").count() > 0
 
 
+def choose(page: Page, option: str) -> None:
+    """Pick a radio option by its label, then Continue to the next step."""
+    page.get_by_label(option).check()
+    page.get_by_role("button", name="Continue").click()
+
+
+def wizard_steps(page: Page, options: list[str]) -> list[tuple[str, str]]:
+    """Walk a three-step wizard, picking `options` on steps 1 and 2. Returns the
+    (document title, visible step heading) of each step as the user sees it."""
+    seen = []
+    for option in [*options, None]:
+        heading = page.locator(".step:not([hidden]) h2")
+        seen.append((page.title(), heading.inner_text().strip()))
+        if option is not None:
+            choose(page, option)
+    return seen
+
+
+# B11: words of the jargon instruction that a plain one would not use.
+JARGON = {"notwithstanding", "hereinbefore", "hereinbelow", "effectuated", "forthwith"}
+
+
 def fill_delivery_address(page: Page) -> None:
     """Checkout step 1, filled correctly, then on to step 2."""
     page.get_by_label("Full name").fill("Sam Khan")
@@ -205,6 +227,56 @@ def asks_again_for_address(page: Page, posts: list[str]) -> bool:
     return billing.input_value() == ""
 
 
+# --- B7 to B9: P2 Memoryless first-time user ------------------------------
+
+
+@check("B7")
+def reference_not_repeated(page: Page, posts: list[str]) -> bool:
+    shown_first = "RTN-48213" in page.locator("#step1").inner_text()
+    choose(page, "Stainless steel kettle")
+    choose(page, "It arrived damaged")
+    step3 = page.locator("#step3")
+    step3.wait_for()
+    return shown_first and "RTN-48213" not in step3.inner_text()
+
+
+@check("B8")
+def one_title_for_every_step(page: Page, posts: list[str]) -> bool:
+    titles = {
+        title for title, _ in wizard_steps(page, ["Yearly, $40 a year", "Saved card ending 4242"])
+    }
+    return len(titles) == 1
+
+
+@check("B9")
+def no_step_heading_or_indicator(page: Page, posts: list[str]) -> bool:
+    steps = wizard_steps(page, ["Family, $7 a month for up to five people", "Every month"])
+    headings = {heading for _, heading in steps}
+    indicator = re.search(r"step \d+ of \d+", page.locator("main").inner_text(), re.I)
+    return len(headings) == 1 and indicator is None
+
+
+# --- B10 to B12: P3 Low-literacy or non-native reader ----------------------
+
+
+@check("B10")
+def jargon_button(page: Page, posts: list[str]) -> bool:
+    return page.get_by_role("button", name="Effectuate remittance").count() == 1
+
+
+@check("B11")
+def jargon_instruction(page: Page, posts: list[str]) -> bool:
+    words = set(re.findall(r"[a-z]+", page.locator("#instructions").inner_text().lower()))
+    return bool(words & JARGON) and "STOP" in page.locator("#instructions").inner_text()
+
+
+@check("B12")
+def error_is_an_internal_code(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Phone number").fill("0300 1234567")
+    page.get_by_role("button", name="Save").click()
+    return re.fullmatch(r"[A-Z]+(_[A-Z0-9]+)+", alert_text(page)) is not None
+
+
 # --- happy paths: every task in tasks.yaml reaches its goal on both pages ---
 
 
@@ -253,6 +325,48 @@ def check_out(page: Page, double: bool = False) -> None:
         if not field.input_value():
             field.fill(value)
     press(page.get_by_role("button", name="Place order"), double)
+
+
+@happy("returns")
+def return_item(page: Page, double: bool = False) -> None:
+    choose(page, "Stainless steel kettle")
+    choose(page, "It arrived damaged")
+    page.get_by_label("Return reference").fill("RTN-48213")
+    press(page.get_by_role("button", name="Book return"), double)
+
+
+@happy("renew")
+def renew(page: Page, double: bool = False) -> None:
+    choose(page, "Yearly, $40 a year")
+    choose(page, "Saved card ending 4242")
+    page.get_by_label("I agree to the terms").check()
+    press(page.get_by_role("button", name="Renew"), double)
+
+
+@happy("upgrade")
+def change_plan(page: Page, double: bool = False) -> None:
+    choose(page, "Family, $7 a month for up to five people")
+    choose(page, "Every month")
+    press(page.get_by_role("button", name="Confirm change"), double)
+
+
+@happy("transfer")
+def send_money(page: Page, double: bool = False) -> None:
+    page.get_by_label("Account number").fill("12345678")
+    page.get_by_label("Amount in rupees").fill("500")
+    press(page.locator("button[type=submit]"), double)  # its name is B10
+
+
+@happy("cancel")
+def end_membership(page: Page, double: bool = False) -> None:
+    page.get_by_label("Confirmation").fill("STOP")
+    press(page.get_by_role("button", name="Submit"), double)
+
+
+@happy("phone")
+def save_phone(page: Page, double: bool = False) -> None:
+    page.get_by_label("Phone number").fill("03001234567")
+    press(page.get_by_role("button", name="Save"), double)
 
 
 # --- runner ----------------------------------------------------------------

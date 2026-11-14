@@ -9,14 +9,14 @@ description = "Multi-persona UI/UX auditor with code-enforced persona constraint
 requires-python = ">=3.12"
 dependencies = [
     "pydantic>=2.14.3,<3",
-    "pyyaml>=6",
+    "pyyaml>=6.0.3",
 ]
 
 [project.optional-dependencies]
 dev = [
     "httpx>=0.27",  # FastAPI's TestClient, for tests/test_api.py
     "lefthook>=2.2.2",
-    "pytest>=8",
+    "pytest>=9.2.0",
     "ruff>=0.17.4",
 ]
 browser = [

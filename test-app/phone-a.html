@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Phone number – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Your phone number</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input type="text" id="phone" inputmode="tel" autocomplete="tel" aria-describedby="error">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Save</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const phone = document.getElementById('phone');
+    const error = document.getElementById('error');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      phone.removeAttribute('aria-invalid');
+      if (!/^03\d{9}$/.test(phone.value.trim())) {
+        phone.setAttribute('aria-invalid', 'true');
+        error.textContent = 'ERR_VALIDATION_422';
+        return;
+      }
+      error.textContent = '';
+      form.querySelector('[type=submit]').disabled = true;
+      await fetch('api/phone', { method: 'POST', body: phone.value.trim() });
+      form.hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Phone number saved</h2>';
+    });
+  </script>
+</body>
+</html>

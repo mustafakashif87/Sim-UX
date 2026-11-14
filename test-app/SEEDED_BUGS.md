@@ -20,6 +20,12 @@ there, or CI fails.
 | B4 | `order-a.html` | `order-b.html` | P1 Error-prone | `duplicate_submission` | #5 | 3.3.4 Error Prevention | "Place order" is not disabled after the first press, so a double press sends two orders |
 | B5 | `account-a.html` | `account-b.html` | P1 Error-prone | `destructive_without_confirm` | #5, #3 | 3.3.4 Error Prevention | "Delete account" deletes at once; the clean page asks in a dialog first |
 | B6 | `checkout-a.html` | `checkout-b.html` | P1 Error-prone | none yet (see note) | open | 3.3.7 Redundant Entry | Step 3 asks for the billing address with empty fields; the clean page pre-fills it from step 1 |
+| B7 | `returns-a.html` | `returns-b.html` | P2 Memoryless | `recall_required` | #6 | 3.3.2 Labels or Instructions | The return reference shown on step 1 must be typed on step 3, which does not show it again; the clean page repeats it beside the field |
+| B8 | `renew-a.html` | `renew-b.html` | P2 Memoryless | `lost_location` | #1 | 2.4.2 Page Titled | All three steps of the wizard keep one `<title>` ("SimShop Plus – SimShop"); the clean page names the step in the title |
+| B9 | `upgrade-a.html` | `upgrade-b.html` | P2 Memoryless | `no_progress_indicator` | #1 | 2.4.6 Headings and Labels | Every step of the wizard has the heading "Change your plan" and no "Step N of 3"; the clean page's headings name each step and its number |
+| B10 | `transfer-a.html` | `transfer-b.html` | P3 Low-literacy | `label_unintelligible` | #2 | 3.3.2 Labels or Instructions | The submit button reads "Effectuate remittance"; the clean page says "Send money" |
+| B11 | `cancel-a.html` | `cancel-b.html` | P3 Low-literacy | `instruction_unintelligible` | #2 | 3.1.5 Reading Level (AAA, advisory) | The instruction naming the word to type (STOP) is written in legal jargon; the clean page says it plainly |
+| B12 | `phone-a.html` | `phone-b.html` | P3 Low-literacy | `system_language` | #2 | none (Nielsen only) | A number with a space is rejected with "ERR_VALIDATION_422"; the clean page says what to type |
 | SB-01 | `promo-a.html` | `promo-b.html` | axe-core | `image-alt` | n/a | 1.1.1 Non-text Content | Promo image has no `alt`; its offer text ("20% off… WELCOME20") appears nowhere else |
 | SB-02 | `search-a.html` | `search-b.html` | axe-core | `button-name` | n/a | 4.1.2 Name, Role, Value | Icon-only submit button with no accessible name |
 | SB-03 | `contact-a.html` | `contact-b.html` | axe-core | `label` | n/a | 1.3.1 Info and Relationships | Email field's visible text is not a `<label>`, so the field has no name |
@@ -33,10 +39,10 @@ role and name appears (`agent.loop.Goal`).
 
 | Pages | Goal (role, name) |
 | --- | --- |
-| B1 to B6 | Per task in [`tasks.yaml`](tasks.yaml), with the task text and endpoint |
+| B1 to B12 | Per task in [`tasks.yaml`](tasks.yaml), with the task text and endpoint |
 | SB-01 to SB-05 | `heading`, "Submission received" (on `success.html`) |
 
-B1 to B6 pages send their submission as a `POST` to a relative `api/...` URL,
+B1 to B12 pages send their submission as a `POST` to a relative `api/...` URL,
 which the harness answers (`Task.endpoint`). **Serve the pages over HTTP**
 (GitHub Pages, or `python -m http.server -d test-app`), never as `file://`: from
 `file://` the relative POST fails, the goal never appears and every run ends in
@@ -59,7 +65,7 @@ toward the persona's step cost, not recall.
 - **B3** has an alert with text, but the text names no field.
 - **B4** shows in the network log: two identical POSTs to `api/orders` in one
   step (from the double-submit perturbation).
-  Every other B1 to B6 page disables its final button once the submission
+  Every other B1 to B12 page disables its final button once the submission
   passes validation, in both versions, so P1's double press sends one POST
   there. Otherwise a double press anywhere would be a `duplicate_submission`
   finding this file does not list. `check_seeds.py` checks it with the
@@ -68,6 +74,20 @@ toward the persona's step cost, not recall.
   "Delete account", with no dialog in between.
 - **B6** shows on step 3 as empty "Billing street address" and "Billing city"
   fields for values the task already gave on step 1.
+- **B7** shows across the step history: "RTN-48213" is in the step 1
+  observation but not in the step 3 one, where a "Return reference" field
+  needs it. With no memory (P2) the persona cannot know it; the baseline,
+  with full memory, can.
+- **B8** is not in the accessibility tree at all: only `document.title`
+  stays the same across the steps. `lost_location` needs the page title
+  logged with each observation, which the harness does not do yet (to build
+  with the P2 detectors).
+- **B9** shows in the tree: the step heading is "Change your plan" on all
+  three steps and no text says "Step N of 3".
+- **B10** to **B12** show only through P3's vocabulary filter: the button
+  name (B10) and the instruction (B11) become mostly `[unknown]`, and the
+  error text (B12) is an internal code. The words a user needs on each clean
+  page are common ones, so the clean page survives the filter.
 - **SB-01/02/03** appear in `aria_snapshot()` as `img`, `button` and `textbox`
   nodes **with no name**. Pruned snapshots drop unnamed nodes, so read the tree
   with `locator.aria_snapshot()`.

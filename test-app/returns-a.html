@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Return an item, step 1 of 3 – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Return an item</h1>
+
+    <form id="step1" class="step" novalidate>
+      <h2 tabindex="-1">Step 1 of 3: Choose the item</h2>
+      <p>Your return reference is RTN-48213.</p>
+      <fieldset class="field">
+        <legend>Item to return</legend>
+        <label><input type="radio" name="item" value="kettle"> Stainless steel kettle</label><br>
+        <label><input type="radio" name="item" value="toaster"> Two-slice toaster</label>
+      </fieldset>
+      <p id="error1" class="error" role="alert"></p>
+      <button type="submit">Continue</button>
+    </form>
+
+    <form id="step2" class="step" novalidate hidden>
+      <h2 tabindex="-1">Step 2 of 3: Reason</h2>
+      <fieldset class="field">
+        <legend>Why are you returning it?</legend>
+        <label><input type="radio" name="reason" value="damaged"> It arrived damaged</label><br>
+        <label><input type="radio" name="reason" value="mind"> I changed my mind</label><br>
+        <label><input type="radio" name="reason" value="wrong"> I got the wrong item</label>
+      </fieldset>
+      <p id="error2" class="error" role="alert"></p>
+      <button type="submit">Continue</button>
+    </form>
+
+    <form id="step3" class="step" novalidate hidden>
+      <h2 tabindex="-1">Step 3 of 3: Confirm</h2>
+      <div class="field">
+        <label for="reference">Return reference</label>
+        <input type="text" id="reference" autocomplete="off" aria-describedby="error3">
+      </div>
+      <p id="error3" class="error" role="alert"></p>
+      <button type="submit">Book return</button>
+    </form>
+
+    <div id="result"></div>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const REFERENCE = 'RTN-48213';
+
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach((s) => { s.hidden = s.id !== 'step' + n; });
+      document.title = `Return an item, step ${n} of 3 – SimShop`;
+      $('step' + n).querySelector('h2').focus();
+    }
+
+    function picked(name, errorId, message) {
+      const choice = document.querySelector(`input[name=${name}]:checked`);
+      $(errorId).textContent = choice ? '' : message;
+      return choice;
+    }
+
+    $('step1').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (picked('item', 'error1', 'Choose the item to return.')) showStep(2);
+    });
+
+    $('step2').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (picked('reason', 'error2', 'Choose a reason.')) showStep(3);
+    });
+
+    $('step3').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const field = $('reference');
+      const value = field.value.trim().toUpperCase();
+      field.removeAttribute('aria-invalid');
+      if (value !== REFERENCE) {
+        field.setAttribute('aria-invalid', 'true');
+        $('error3').textContent = value ? 'That return reference is not right.' : 'Enter your return reference.';
+        return;
+      }
+      $('error3').textContent = '';
+      $('step3').querySelector('[type=submit]').disabled = true;
+      await fetch('api/returns', { method: 'POST', body: value });
+      $('step3').hidden = true;
+      $('result').innerHTML = '<h2>Return booked</h2>';
+    });
+  </script>
+</body>
+</html>

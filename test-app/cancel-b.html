@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>End SimShop Plus – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>End SimShop Plus</h1>
+    <p id="instructions">To end your membership, type the word STOP in the box below.</p>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="word">Confirmation</label>
+        <input type="text" id="word" autocomplete="off" aria-describedby="instructions error">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Submit</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const form = document.getElementById('form');
+    const word = document.getElementById('word');
+    const error = document.getElementById('error');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      word.removeAttribute('aria-invalid');
+      if (word.value.trim().toUpperCase() !== 'STOP') {
+        word.setAttribute('aria-invalid', 'true');
+        error.textContent = 'Type the word given above.';
+        return;
+      }
+      error.textContent = '';
+      form.querySelector('[type=submit]').disabled = true;
+      await fetch('api/cancel', { method: 'POST', body: 'STOP' });
+      form.hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Membership ended</h2>';
+    });
+  </script>
+</body>
+</html>

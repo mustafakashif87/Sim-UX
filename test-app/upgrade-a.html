@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Change plan, step 1 of 3 – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Your plan</h1>
+
+    <form id="step1" class="step" novalidate>
+      <h2 tabindex="-1">Change your plan</h2>
+      <fieldset class="field">
+        <legend>Plan</legend>
+        <label><input type="radio" name="plan" value="basic"> Basic, free</label><br>
+        <label><input type="radio" name="plan" value="plus"> Plus, $4 a month</label><br>
+        <label><input type="radio" name="plan" value="family"> Family, $7 a month for up to five people</label>
+      </fieldset>
+      <p id="error1" class="error" role="alert"></p>
+      <button type="submit">Continue</button>
+    </form>
+
+    <form id="step2" class="step" novalidate hidden>
+      <h2 tabindex="-1">Change your plan</h2>
+      <fieldset class="field">
+        <legend>Billing</legend>
+        <label><input type="radio" name="billing" value="monthly"> Every month</label><br>
+        <label><input type="radio" name="billing" value="yearly"> Every year, with two months free</label>
+      </fieldset>
+      <p id="error2" class="error" role="alert"></p>
+      <button type="submit">Continue</button>
+    </form>
+
+    <form id="step3" class="step" novalidate hidden>
+      <h2 tabindex="-1">Change your plan</h2>
+      <p id="summary"></p>
+      <button type="submit">Confirm change</button>
+    </form>
+
+    <div id="result"></div>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const choice = (name) => document.querySelector(`input[name=${name}]:checked`);
+
+    function showStep(n) {
+      document.querySelectorAll('.step').forEach((s) => { s.hidden = s.id !== 'step' + n; });
+      document.title = `Change plan, step ${n} of 3 – SimShop`;
+      $('step' + n).querySelector('h2').focus();
+    }
+
+    $('step1').addEventListener('submit', (e) => {
+      e.preventDefault();
+      $('error1').textContent = choice('plan') ? '' : 'Choose a plan.';
+      if (choice('plan')) showStep(2);
+    });
+
+    $('step2').addEventListener('submit', (e) => {
+      e.preventDefault();
+      $('error2').textContent = choice('billing') ? '' : 'Choose how often to pay.';
+      if (!choice('billing')) return;
+      const plan = choice('plan').parentElement.textContent.trim().split(',')[0];
+      const billing = choice('billing').value === 'monthly' ? 'every month' : 'every year';
+      $('summary').textContent = `New plan: ${plan}, paid ${billing}.`;
+      showStep(3);
+    });
+
+    $('step3').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      $('step3').querySelector('[type=submit]').disabled = true;
+      await fetch('api/plan', { method: 'POST', body: `${choice('plan').value}/${choice('billing').value}` });
+      $('step3').hidden = true;
+      $('result').innerHTML = '<h2>Plan changed</h2>';
+    });
+  </script>
+</body>
+</html>

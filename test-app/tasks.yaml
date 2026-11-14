@@ -1,4 +1,4 @@
-# Agent tasks for the P1 pages. One task per buggy/clean pair; both pages of
+# Agent tasks for the P1, P2 and P3 pages. One task per buggy/clean pair; both pages of
 # a pair get the same task, so a difference in outcome comes from the page.
 #
 # Fields map to agent.loop.Task: `text` is what the model reads (it never
@@ -47,3 +47,43 @@
     Your billing address is the same as your delivery address.
   goal: {role: heading, name: Thank you for your order}
   endpoint: "**/api/checkout"
+
+# P2 Memoryless first-time user (B7 to B9)
+
+- id: returns
+  pages: [returns-a.html, returns-b.html]
+  text: Return the stainless steel kettle, because it arrived damaged.
+  goal: {role: heading, name: Return booked}
+  endpoint: "**/api/returns"
+
+- id: renew
+  pages: [renew-a.html, renew-b.html]
+  text: Renew your SimShop Plus membership for a year and pay with your saved card.
+  goal: {role: heading, name: Membership renewed}
+  endpoint: "**/api/renew"
+
+- id: upgrade
+  pages: [upgrade-a.html, upgrade-b.html]
+  text: Change your plan to Family, paid every month.
+  goal: {role: heading, name: Plan changed}
+  endpoint: "**/api/plan"
+
+# P3 Low-literacy or non-native reader (B10 to B12)
+
+- id: transfer
+  pages: [transfer-a.html, transfer-b.html]
+  text: Send 500 rupees from your wallet to account number 12345678.
+  goal: {role: heading, name: Money sent}
+  endpoint: "**/api/transfer"
+
+- id: cancel
+  pages: [cancel-a.html, cancel-b.html]
+  text: End your SimShop Plus membership.
+  goal: {role: heading, name: Membership ended}
+  endpoint: "**/api/cancel"
+
+- id: phone
+  pages: [phone-a.html, phone-b.html]
+  text: Save the phone number 0300 1234567 to your SimShop account.
+  goal: {role: heading, name: Phone number saved}
+  endpoint: "**/api/phone"

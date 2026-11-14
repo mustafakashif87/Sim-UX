@@ -25,6 +25,9 @@ playwright-report/
 # Live demo replies; the recording is logs/demo/llm-cache
 logs/demo/live-cache/
 
+# Runs started through the API (SIMUX_LOGS); evaluation evidence goes elsewhere
+logs/api/
+
 # Hosting
 .vercel/
 

@@ -40,6 +40,7 @@ def execute(
     headed: bool = False,
     browser: Browser | None = None,
     condition: Condition = "persona",
+    run_id: str | None = None,
 ) -> tuple[RunResult, list[Finding]]:
     """One run of `persona` on `<page_name>.html`, and the findings from its log.
     Launches Chromium unless given a `browser` (tests share one). The
@@ -52,22 +53,22 @@ def execute(
             raise SystemExit(f"no task for page {page_name!r}; pages: {', '.join(names)}")
         p = for_condition(load_persona(persona), condition)
         if browser is not None:
-            result = _run_in(browser, task, p, model, logs, seed, condition)
+            result = _run_in(browser, task, p, model, logs, seed, condition, run_id)
         else:
             with sync_playwright() as pw:
                 slow_mo = HEADED_SLOW_MO_MS if headed else 0
                 launched = pw.chromium.launch(headless=not headed, slow_mo=slow_mo)
                 try:
-                    result = _run_in(launched, task, p, model, logs, seed, condition)
+                    result = _run_in(launched, task, p, model, logs, seed, condition, run_id)
                 finally:
                     launched.close()
     return result, audit(result.log_dir)
 
 
-def _run_in(browser: Browser, task, persona, model, logs, seed, condition) -> RunResult:
+def _run_in(browser: Browser, task, persona, model, logs, seed, condition, run_id) -> RunResult:
     page = browser.new_page()
     try:
-        return run(page, task, persona, model, logs, seed, condition)
+        return run(page, task, persona, model, logs, seed, condition, run_id)
     finally:
         page.close()
 

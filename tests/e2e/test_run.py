@@ -15,8 +15,10 @@ def test_execute_runs_the_page_and_its_detectors(browser, tmp_path):
     result, findings = execute("order-a", 1, model, tmp_path, browser=browser)
     assert result.status == "succeeded"
     assert [f.signal for f in findings] == ["duplicate_submission"]
+    assert findings[0].citations, "the finding has no verified citation"
     text = report(result, findings)
     assert "double_submit" in text and "finding: duplicate_submission, severity 2" in text
+    assert "cites WCAG 3.3.4:" in text and "ungrounded" not in text
 
 
 def test_clean_page_has_no_finding(browser, tmp_path):
@@ -24,6 +26,17 @@ def test_clean_page_has_no_finding(browser, tmp_path):
     result, findings = execute("order-b", 1, model, tmp_path, browser=browser)
     assert result.steps[0].perturbation == "double_submit" and findings == []
     assert "findings: none" in report(result, findings)
+
+
+def test_baseline_turns_the_mistake_off(browser, tmp_path):
+    # Same page and seed as above, but the Baseline condition: no double press,
+    # so no finding. This is the comparison the attribution rule relies on.
+    model = FakeModel([click("Place order")])
+    result, findings = execute("order-a", 1, model, tmp_path, browser=browser, condition="baseline")
+    assert result.status == "succeeded" and findings == []
+    assert result.steps[0].perturbation is None
+    assert result.meta["condition"] == "baseline" and result.meta["seed"] == 1
+    assert "(baseline)" in report(result, findings)
 
 
 def test_unknown_page_names_the_pages(browser, tmp_path):

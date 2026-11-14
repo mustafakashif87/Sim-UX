@@ -13,7 +13,6 @@ in the prompt.
 import hashlib
 import importlib.metadata
 import json
-import uuid
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -26,6 +25,7 @@ from playwright.sync_api import Page
 from agent.actions import validate
 from agent.browser import act, goal_reached, observe, settle
 from agent.contracts import Action, Observation, StepRecord
+from agent.ids import new_run_id
 from agent.llm import ProviderError
 from agent.perception import RefMap
 from agent.persona import Persona
@@ -95,9 +95,14 @@ def run(
     model: Model,
     log_root: Path,
     seed: int | None = None,
+    condition: str = "persona",
+    run_id: str | None = None,
 ) -> RunResult:
     """Run one task to success, give-up or the step cap, logging every step.
-    A ProviderError from the model ends it as `aborted_provider`.
+    A ProviderError from the model ends it as `aborted_provider`. `condition`
+    is only logged: the caller passes the persona already set for it
+    (`persona.for_condition`). `run_id` is made here unless given (the API
+    makes it first so a client can follow the run at once).
 
     Writes to `<log_root>/<run_id>/`, each line as it happens:
     - `steps.jsonl`: one StepRecord per step
@@ -109,13 +114,14 @@ def run(
     perturber = Perturber(persona.perturbation, seed=seed)
     policy = persona.action_policy
     page_name = urlparse(task.url).path.rsplit("/", 1)[-1]
-    run_id = f"{datetime.now(UTC):%Y%m%dT%H%M%SZ}-{persona.id}-{uuid.uuid4().hex[:6]}"
+    run_id = run_id or new_run_id(persona.id)
     log_dir = log_root / run_id
     log_dir.mkdir(parents=True)
 
     meta = {
         "run_id": run_id,
         "persona": persona.id,
+        "condition": condition,
         "config_hash": persona.config_hash,
         "task": task.id,
         "page": page_name,

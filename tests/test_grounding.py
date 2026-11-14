@@ -6,6 +6,7 @@ from agent.contracts import Finding
 from grounding import (
     default_corpus,
     default_signal_map,
+    ground_all,
     ground_finding,
     key_quotes,
     severity,
@@ -183,3 +184,24 @@ class TestSeverityAndConfidence:
         assert start_confidence("deterministic") == 0.9
         assert start_confidence("model_judged") == 0.6
         assert start_confidence("deterministic", 4 / 5) == pytest.approx(0.72)
+
+
+class TestGroundAll:
+    def test_mapped_signals_are_grounded(self):
+        reports = ground_all([finding("data_loss_on_error"), finding("duplicate_submission")])
+        assert [r.grounded for r in reports] == [True, True]
+        for r in reports:
+            assert {c.criterion_id for c in r.finding.citations} == set(
+                r.finding.candidate_criteria
+            )
+            assert r.finding.confidence == 0.9
+
+    def test_unmapped_signal_is_kept_but_ungrounded(self):
+        f = finding("data_loss_on_error").model_copy(update={"signal": "not_in_the_map"})
+        (report,) = ground_all([f])
+        assert not report.grounded and report.finding.citations == []
+        assert report.finding.confidence == pytest.approx(0.45)
+
+    def test_order_is_kept(self):
+        signals = ["duplicate_submission", "data_loss_on_error"]
+        assert [r.finding.signal for r in ground_all([finding(s) for s in signals])] == signals

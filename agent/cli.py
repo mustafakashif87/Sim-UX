@@ -89,13 +89,13 @@ def _script_model(script: list[dict]):
     return FakeModel(steps)
 
 
-def audit_pages(config: Config, base_dir: Path, logs: Path) -> tuple[list[Finding], list[dict]]:
-    from playwright.sync_api import sync_playwright
-
-    from agent.detectors import audit
-    from agent.loop import run
+def audit_pages(
+    config: Config, base_dir: Path, logs: Path, browser=None
+) -> tuple[list[Finding], list[dict]]:
+    """Run every page and seed; Chromium is launched unless `browser` is given
+    (tests share one)."""
     from agent.persona import Persona, load_persona
-    from agent.tasks import Goal, Task, serve
+    from agent.tasks import serve
 
     persona = load_persona(config.persona)
     if config.perturbation:
@@ -108,47 +108,55 @@ def audit_pages(config: Config, base_dir: Path, logs: Path) -> tuple[list[Findin
 
         llm = LLMClient.from_env(cache_dir=logs / "llm-cache")
 
+    served = serve(base_dir / config.serve) if config.serve else nullcontext("")
+    with served as root:
+        if browser is not None:
+            return _audit(config, base_dir, logs, persona, llm, root, browser)
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as p:
+            launched = p.chromium.launch()
+            try:
+                return _audit(config, base_dir, logs, persona, llm, root, launched)
+            finally:
+                launched.close()
+
+
+def _audit(config, base_dir, logs, persona, llm, root, browser):
+    from agent.detectors import audit
+    from agent.loop import run
+    from agent.tasks import Goal, Task
+
     findings: list[Finding] = []
     runs: list[dict] = []
-    served = serve(base_dir / config.serve) if config.serve else nullcontext("")
-    with served as root, sync_playwright() as p:
-        browser = p.chromium.launch()
-        try:
-            for i, entry in enumerate(config.pages):
-                if "://" in entry.url:
-                    url = entry.url
-                elif root:
-                    url = root + entry.url
-                else:
-                    url = (base_dir / entry.url).resolve().as_uri()
-                task = Task(
-                    f"page{i}",
-                    url,
-                    entry.task,
-                    Goal(entry.goal.role, entry.goal.name),
-                    entry.endpoint,
-                )
-                for seed in config.seeds:
-                    model = llm or _script_model(config.model["script"])
-                    page = browser.new_page()
-                    try:
-                        result = run(page, task, persona, model, logs, seed)
-                    finally:
-                        page.close()
-                    found = audit(result.log_dir)
-                    findings += found
-                    runs.append(
-                        {
-                            "url": entry.url,
-                            "seed": seed,
-                            "run_id": result.run_id,
-                            "status": result.status,
-                            "steps": len(result.steps),
-                            "signals": [f.signal for f in found],
-                        }
-                    )
-        finally:
-            browser.close()
+    for i, entry in enumerate(config.pages):
+        if "://" in entry.url:
+            url = entry.url
+        elif root:
+            url = root + entry.url
+        else:
+            url = (base_dir / entry.url).resolve().as_uri()
+        goal = Goal(entry.goal.role, entry.goal.name)
+        task = Task(f"page{i}", url, entry.task, goal, entry.endpoint)
+        for seed in config.seeds:
+            model = llm or _script_model(config.model["script"])
+            page = browser.new_page()
+            try:
+                result = run(page, task, persona, model, logs, seed)
+            finally:
+                page.close()
+            found = audit(result.log_dir)
+            findings += found
+            runs.append(
+                {
+                    "url": entry.url,
+                    "seed": seed,
+                    "run_id": result.run_id,
+                    "status": result.status,
+                    "steps": len(result.steps),
+                    "signals": [f.signal for f in found],
+                }
+            )
     return findings, runs
 
 
@@ -172,7 +180,7 @@ def summary_markdown(findings: list[Finding], runs: list[dict], fail_on: int) ->
     return "\n".join(lines) + "\n"
 
 
-def main(argv: list[str] | None = None) -> int:
+def main(argv: list[str] | None = None, browser=None) -> int:
     parser = argparse.ArgumentParser(prog="simux", description=__doc__.split("\n")[0])
     sub = parser.add_subparsers(dest="command", required=True)
     run_p = sub.add_parser("run", help="audit the pages in .simux.yaml")
@@ -184,7 +192,7 @@ def main(argv: list[str] | None = None) -> int:
 
     config = load_config(args.config)
     logs = args.logs or Path(tempfile.mkdtemp(prefix="simux-"))
-    findings, runs = audit_pages(config, args.config.resolve().parent, logs)
+    findings, runs = audit_pages(config, args.config.resolve().parent, logs, browser)
     failing = [f for f in findings if f.severity >= config.fail_on]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(

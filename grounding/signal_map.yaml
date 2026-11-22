@@ -90,3 +90,71 @@ signals:
     source: keyboard_sweep
     type: deterministic
     criteria: ["WCAG 2.1.1"]
+
+  # P4 Screen-reader user (screen_reader) -- persona catalogue
+  status_not_announced:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 4.1.3", "Nielsen 1"]
+  non_semantic_control:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 4.1.2", "WCAG 2.1.1", "Nielsen 4"]
+  no_structure:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 1.3.1", "WCAG 2.4.1", "Nielsen 8"]
+  unnamed_control:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 4.1.2", "Nielsen 6"]
+  image_only_info:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 1.1.1", "Nielsen 6"]
+
+  # P5 Keyboard-only user (keyboard_only)
+  focus_not_visible:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.4.7", "Nielsen 1"]
+  focus_order_illogical:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.4.3", "Nielsen 4"]
+  keyboard_trap_in_task:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.1.2", "Nielsen 3"]
+  keyboard_unreachable:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.1.1", "Nielsen 7"]
+
+  # P7 Low-vision magnifier user (low_vision_zoom)
+  reflow_failure:
+    source: low_vision_zoom
+    type: deterministic
+    criteria: ["WCAG 1.4.10", "Nielsen 8"]
+  focus_obscured:
+    source: low_vision_zoom
+    type: deterministic
+    criteria: ["WCAG 2.4.11", "Nielsen 1"]
+  text_clipped:
+    source: low_vision_zoom
+    type: deterministic
+    criteria: ["WCAG 1.4.4", "Nielsen 8"]
+
+  # P8 Skimmer (skimmer)
+  key_info_buried:
+    source: skimmer
+    type: deterministic
+    criteria: ["WCAG 2.4.6", "Nielsen 8"]
+  cta_below_fold:
+    source: skimmer
+    type: deterministic
+    criteria: ["Nielsen 8"]
+  headings_not_descriptive:
+    source: skimmer
+    type: deterministic  # rule-based (agent/detectors/extension.py); the catalogue said model-judged
+    criteria: ["WCAG 2.4.6", "Nielsen 8", "Nielsen 2"]

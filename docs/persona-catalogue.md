@@ -254,7 +254,7 @@ task_types: [complete_form]
 | ID | Pages | Bug | Clean version |
 | --- | --- | --- | --- |
 | B20 | `invoice-a/b` | The form is in a fixed 1000 px wide layout; "Pay" is at the far right | Responsive single column |
-| B21 | `profile-a/b` | A fixed cookie banner covers the bottom 40% of the viewport, including the focused field | Banner that doesn't cover content, or can be closed |
+| B21 | `profile-a/b` | A fixed cookie banner covers the bottom 70% of the viewport at 400% zoom, including the focused field | Banner that doesn't cover content, or can be closed |
 | B22 | `notice-a/b` | The instruction box has a fixed height and `overflow: hidden`, so at 200% text the deadline is cut off | Height grows with content |
 
 ---

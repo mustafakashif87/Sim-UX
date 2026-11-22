@@ -87,3 +87,76 @@
   text: Save the phone number 0300 1234567 to your SimShop account.
   goal: {role: heading, name: Phone number saved}
   endpoint: "**/api/phone"
+
+# Extension personas P4, P5, P7 and P8 (B13 to B17, B20 to B25).
+# critical_text is for the P8 detectors only; the model never sees it.
+
+- id: feedback
+  pages: [feedback-a.html, feedback-b.html]
+  text: "Send SimShop this feedback: Fast delivery, thank you."
+  goal: {role: button, name: Send more feedback}
+  endpoint: "**/api/feedback"
+
+- id: size
+  pages: [size-a.html, size-b.html]
+  text: Add the running trainers in size UK 8 to your basket.
+  goal: {role: heading, name: Added to basket}
+  endpoint: "**/api/basket"
+
+- id: policy
+  pages: [policy-a.html, policy-b.html]
+  text: Accept the updated privacy policy.
+  goal: {role: heading, name: Policy accepted}
+  endpoint: "**/api/policy"
+
+- id: filters
+  pages: [filters-a.html, filters-b.html]
+  text: Show the kettles priced from 20 to 50 dollars.
+  goal: {role: heading, name: Filters applied}
+  endpoint: "**/api/filters"
+
+- id: login
+  pages: [login-a.html, login-b.html]
+  text: Log in with the email address sam.khan@example.com and the password Kettle-2026.
+  goal: {role: heading, name: Welcome back}
+  endpoint: "**/api/login"
+
+- id: invoice
+  pages: [invoice-a.html, invoice-b.html]
+  text: Pay invoice INV-2207.
+  goal: {role: heading, name: Invoice paid}
+  endpoint: "**/api/invoice"
+
+- id: profile
+  pages: [profile-a.html, profile-b.html]
+  text: Change your display name to Sam K.
+  goal: {role: heading, name: Profile saved}
+  endpoint: "**/api/profile"
+
+- id: notice
+  pages: [notice-a.html, notice-b.html]
+  text: Renew your parking permit before it ends.
+  goal: {role: heading, name: Renewal requested}
+  endpoint: "**/api/permit"
+
+- id: redeem
+  pages: [redeem-a.html, redeem-b.html]
+  text: >-
+    Redeem your SimShop gift card. Your email gives the code GIFT-7731 and
+    your receipt shows the code RCPT-5520.
+  goal: {role: heading, name: Gift card added}
+  endpoint: "**/api/redeem"
+  critical_text: Use the code from your email, not the one on your receipt.
+
+- id: trial
+  pages: [trial-a.html, trial-b.html]
+  text: Start a free trial of SimShop Plus.
+  goal: {role: heading, name: Trial started}
+  endpoint: "**/api/trial"
+  critical_text: Start free trial
+
+- id: pricing
+  pages: [pricing-a.html, pricing-b.html]
+  text: Choose the Family plan, paid once a year.
+  goal: {role: heading, name: Annual Family plan chosen}
+  endpoint: "**/api/plan"

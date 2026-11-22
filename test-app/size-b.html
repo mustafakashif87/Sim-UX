@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Running trainers – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .size { display: inline-block; min-width: 56px; padding: 10px; margin: 4px;
+            border: 1px solid #888; border-radius: 4px; text-align: center; cursor: pointer; }
+    .size.on { background: #1f5f3f; color: #fff; }
+    .size-row { display: inline-block; min-width: 72px; padding: 10px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Running trainers</h1>
+    <p>Light trainers for road running, $65.00</p>
+    <form id="form" novalidate>
+      <fieldset class="field">
+        <legend>Size</legend>
+        <label class="size-row"><input type="radio" name="size" value="UK 6"> UK 6</label>
+        <label class="size-row"><input type="radio" name="size" value="UK 7"> UK 7</label>
+        <label class="size-row"><input type="radio" name="size" value="UK 8"> UK 8</label>
+        <label class="size-row"><input type="radio" name="size" value="UK 9"> UK 9</label>
+      </fieldset>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Add to basket</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const chosen = document.querySelector('input[name=size]:checked')?.value;
+      if (!chosen) {
+        document.getElementById('error').textContent = 'Choose a size.';
+        return;
+      }
+      submit('api/basket', chosen, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Added to basket</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

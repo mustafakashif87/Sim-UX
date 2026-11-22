@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SimShop Plus plans – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>SimShop Plus plans</h1>
+    <section><h2>Section 1</h2>
+      <p>Pay every month.</p>
+      <button type="button" data-plan="monthly-single">Choose Single, $4 a month</button>
+      <button type="button" data-plan="monthly-family">Choose Family, $7 a month</button>
+    </section>
+    <section><h2>More info</h2>
+      <p>Pay once a year and get two months free.</p>
+      <button type="button" data-plan="annual-single">Choose Single, $40 a year</button>
+      <button type="button" data-plan="annual-family">Choose Family, $70 a year</button>
+    </section>
+    <section><h2>Other</h2>
+      <p>You can end any plan from your account page.</p>
+    </section>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.querySelectorAll('[data-plan]').forEach((b) => b.addEventListener('click', () => {
+      const plan = b.dataset.plan;
+      submit('api/plan', plan, () => {
+        document.querySelectorAll('section').forEach((s) => { s.hidden = true; });
+        document.getElementById('result').innerHTML = plan === 'annual-family'
+          ? '<h2>Annual Family plan chosen</h2>'
+          : '<h2>Plan chosen</h2><p>You chose ' + b.textContent.replace('Choose ', '') + '.</p>';
+      });
+    }));
+  </script>
+</body>
+</html>

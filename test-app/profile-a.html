@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your profile – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .cookies { position: fixed; left: 0; right: 0; bottom: 0; height: 70vh; background: #222; color: #fff; padding: 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Your profile</h1>
+    <p>This name is shown on your reviews and on parcels.</p>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="name">Display name</label>
+        <input type="text" id="name" value="Sam Khan">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Save changes</button>
+    </form>
+    <div id="result"></div>
+  </main>
+    <div class="cookies">We use cookies to keep you signed in and to remember your basket.
+      By using SimShop you agree to this.</div>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      if (!name) {
+        document.getElementById('error').textContent = 'Enter a display name.';
+        return;
+      }
+      submit('api/profile', name, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Profile saved</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

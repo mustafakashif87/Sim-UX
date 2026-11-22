@@ -277,6 +277,99 @@ def error_is_an_internal_code(page: Page, posts: list[str]) -> bool:
     return re.fullmatch(r"[A-Z]+(_[A-Z0-9]+)+", alert_text(page)) is not None
 
 
+# --- B13 to B17, B20 to B25: extension personas P4, P5, P7, P8 ----------------
+
+LIVE = "[role=status], [role=alert], [role=log], [aria-live]"
+
+
+@check("B13")
+def confirmation_not_live(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Your feedback").fill("Fast delivery, thank you")
+    page.get_by_role("button", name="Send feedback").click()
+    message = page.get_by_text("Thanks, your feedback was sent.")
+    message.wait_for()
+    return not message.evaluate(f"el => !!el.closest({LIVE!r})")
+
+
+@check("B14")
+def size_picker_not_semantic(page: Page, posts: list[str]) -> bool:
+    return page.get_by_role("radio").count() == 0 and page.get_by_text("UK 8").count() == 1
+
+
+@check("B15")
+def no_headings_or_landmarks(page: Page, posts: list[str]) -> bool:
+    tree = page.locator("body").aria_snapshot()
+    return re.search(r"- (heading|main|banner|navigation|contentinfo)\b", tree) is None
+
+
+@check("B16")
+def positive_tabindex(page: Page, posts: list[str]) -> bool:
+    return page.evaluate(
+        "() => [...document.querySelectorAll('[tabindex]')].some(e => e.tabIndex > 0)"
+    )
+
+
+@check("B17")
+def focus_has_no_outline(page: Page, posts: list[str]) -> bool:
+    page.keyboard.press("Tab")  # the site link
+    page.keyboard.press("Tab")  # the email field
+    return page.evaluate(
+        """() => { const s = getComputedStyle(document.activeElement);
+                   return s.outlineStyle === 'none' && s.boxShadow === 'none'; }"""
+    )
+
+
+@check("B20")
+def scrolls_sideways_at_320(page: Page, posts: list[str]) -> bool:
+    page.set_viewport_size({"width": 320, "height": 256})
+    return page.evaluate("() => document.documentElement.scrollWidth > innerWidth + 5")
+
+
+@check("B21")
+def banner_covers_focused_field(page: Page, posts: list[str]) -> bool:
+    page.set_viewport_size({"width": 320, "height": 256})
+    field = page.get_by_label("Display name")
+    field.focus()
+    return field.evaluate(
+        """el => { el.scrollIntoView({block: 'end'});
+                   const r = el.getBoundingClientRect();
+                   const x = r.left + r.width / 2, y = r.top + r.height / 2;
+                   const hit = document.elementFromPoint(x, y);
+                   return !!hit && hit !== el && !el.contains(hit); }"""
+    )
+
+
+@check("B22")
+def deadline_clipped_at_200_percent(page: Page, posts: list[str]) -> bool:
+    page.add_style_tag(content="html{font-size:200% !important}body{font-size:32px !important}")
+    return page.evaluate(
+        """() => { const n = document.querySelector('.notice');
+                   return getComputedStyle(n).overflowY === 'hidden'
+                       && n.scrollHeight > n.clientHeight + 2; }"""
+    )
+
+
+@check("B23")
+def instruction_buried_in_paragraph(page: Page, posts: list[str]) -> bool:
+    instruction = "Use the code from your email"
+    paragraph = page.locator("p", has_text=instruction)
+    text = paragraph.first.inner_text() if paragraph.count() else ""
+    return len(text[: text.find(instruction)].split()) >= 8
+
+
+@check("B24")
+def call_to_action_below_fold(page: Page, posts: list[str]) -> bool:
+    page.set_viewport_size({"width": 1280, "height": 720})
+    box = page.get_by_role("button", name="Start free trial").bounding_box()
+    return box is not None and box["y"] >= 720
+
+
+@check("B25")
+def headings_name_no_topic(page: Page, posts: list[str]) -> bool:
+    names = [h.inner_text().strip() for h in page.locator("h2").all()]
+    return sum(n in ("Section 1", "More info", "Other") for n in names) >= 2
+
+
 # --- happy paths: every task in tasks.yaml reaches its goal on both pages ---
 
 
@@ -367,6 +460,74 @@ def end_membership(page: Page, double: bool = False) -> None:
 def save_phone(page: Page, double: bool = False) -> None:
     page.get_by_label("Phone number").fill("03001234567")
     press(page.get_by_role("button", name="Save"), double)
+
+
+@happy("feedback")
+def send_feedback(page: Page, double: bool = False) -> None:
+    page.get_by_label("Your feedback").fill("Fast delivery, thank you")
+    press(page.get_by_role("button", name="Send feedback"), double)
+
+
+@happy("size")
+def add_trainers(page: Page, double: bool = False) -> None:
+    page.get_by_text("UK 8", exact=True).click()  # a div or a radio's label
+    press(page.get_by_role("button", name="Add to basket"), double)
+
+
+@happy("policy")
+def accept_policy(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("link", name="Accept the policy"), double)
+
+
+@happy("filters")
+def filter_kettles(page: Page, double: bool = False) -> None:
+    page.get_by_label("Lowest price").fill("20")
+    page.get_by_label("Highest price").fill("50")
+    press(page.get_by_role("button", name="Apply filters"), double)
+
+
+@happy("login")
+def log_in(page: Page, double: bool = False) -> None:
+    page.get_by_label("Email address").fill("sam.khan@example.com")
+    page.get_by_label("Password").fill("Kettle-2026")
+    press(page.get_by_role("button", name="Log in"), double)
+
+
+@happy("invoice")
+def pay_invoice(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Pay invoice"), double)
+
+
+@happy("profile")
+def save_profile(page: Page, double: bool = False) -> None:
+    field = page.get_by_label("Display name")
+    field.fill("Sam K.")
+    # Enter in the field, as the buggy page's banner may cover the button.
+    field.press("Enter")
+    if double:
+        field.press("Enter")
+
+
+@happy("notice")
+def renew_permit(page: Page, double: bool = False) -> None:
+    page.get_by_label("Renew by date").fill("15 December 2026")
+    press(page.get_by_role("button", name="Request renewal"), double)
+
+
+@happy("redeem")
+def redeem_card(page: Page, double: bool = False) -> None:
+    page.get_by_label("Gift card code").fill("GIFT-7731")
+    press(page.get_by_role("button", name="Redeem"), double)
+
+
+@happy("trial")
+def start_trial(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Start free trial"), double)
+
+
+@happy("pricing")
+def choose_annual_family(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Choose Family, $70 a year"), double)
 
 
 # --- runner ----------------------------------------------------------------

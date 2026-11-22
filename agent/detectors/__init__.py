@@ -44,6 +44,11 @@ class RunLog:
     submissions: list[Submission]
     # The page title at each observation; None where it was not logged.
     titles: list[str | None] = field(default_factory=list)
+    # Extension runs only (Persona.needs_evidence): the unfiltered tree and
+    # page facts (boxes, widths, focus) at each observation, which the persona
+    # never saw. None where not logged.
+    full_trees: list[str | None] = field(default_factory=list)
+    facts: list[dict | None] = field(default_factory=list)
 
 
 def load_run(log_dir: Path) -> RunLog:
@@ -59,6 +64,8 @@ def load_run(log_dir: Path) -> RunLog:
         observations=[Observation.model_validate(e["observation"]) for e in observations],
         submissions=[Submission(**e) for e in lines("network.jsonl")],
         titles=[e.get("title") for e in observations],
+        full_trees=[e.get("full_tree") for e in observations],
+        facts=[e.get("page") for e in observations],
     )
 
 
@@ -121,7 +128,9 @@ def all_detectors() -> dict[str, Detector]:
         instruction_unintelligible,
         system_language,
     ]
-    return {d.__name__: d for d in detectors}
+    from agent.detectors.extension import DETECTORS as EXTENSION
+
+    return {d.__name__: d for d in [*detectors, *EXTENSION]}
 
 
 def detectors_for(persona: str) -> list[Detector]:

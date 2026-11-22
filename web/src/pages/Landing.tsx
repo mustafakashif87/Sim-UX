@@ -2,6 +2,7 @@ import { SiteNav } from "@/components/SiteNav";
 import { Footer } from "@/components/Footer";
 import { Hero } from "@/components/landing/Hero";
 import { GroundedInStandards } from "@/components/landing/GroundedInStandards";
+import { PersonaRoster } from "@/components/landing/PersonaRoster";
 import { PersonaShowcase } from "@/components/landing/PersonaShowcase";
 import { Comparison } from "@/components/landing/Comparison";
 import { PipelineStages } from "@/components/landing/PipelineStages";
@@ -24,6 +25,7 @@ export default function Landing() {
         <Hero />
         <GroundedInStandards />
         <PersonaShowcase />
+        <PersonaRoster />
         <Comparison />
         <PipelineStages />
         <ConcernCloud />

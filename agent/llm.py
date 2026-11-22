@@ -75,7 +75,7 @@ PROVIDERS = {
     "groq": Provider("https://api.groq.com/openai/v1", "openai/gpt-oss-120b"),
     "openrouter": Provider("https://openrouter.ai/api/v1", "meta-llama/llama-3.3-70b-instruct"),
     "gemini": Provider(
-        "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-2.5-flash"
+        "https://generativelanguage.googleapis.com/v1beta/openai", "gemini-3.8-flash"
     ),
     "ollama": Provider("http://localhost:11434/v1", "llama3.1", needs_key=False),
 }

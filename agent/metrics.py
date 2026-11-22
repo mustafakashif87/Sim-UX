@@ -21,6 +21,9 @@ from pathlib import Path
 
 STABLE_SHARE = 0.8
 CONDITIONS = ("persona_buggy", "baseline_buggy", "persona_clean")
+# Optional, never part of attribution: the persona with only the mistake the
+# bug needs made more frequent (agent.evaluate --conditions triggered_buggy).
+TRIGGERED = "triggered_buggy"
 EXCLUDED = {"aborted_provider", "crashed"}  # not evidence about the page; rerun
 
 # Perturbations a signal needs before the page can show it.
@@ -46,6 +49,7 @@ FIELDS = [
     "expected_signal",
     "detected",
     "perturbations",
+    "triggered",
     "quotes_generated",
     "quotes_verified",
     "model_id",
@@ -76,6 +80,11 @@ class BugResult:
     detected_given_trigger: tuple[int, int]
     stable: bool
     attributed: bool
+    # Stable on the buggy page and not on the clean one, whatever the baseline
+    # did: the harness finds it, even if any user would hit it.
+    found: bool = False
+    # The optional triggered condition: detected among its triggered runs.
+    forced: tuple[int, int] = (0, 0)
 
 
 def stable(k: int, n: int) -> bool:
@@ -95,19 +104,36 @@ def per_bug(rows: list[dict]) -> list[BugResult]:
             sub = [r for r in runs if r["condition"] == cond]
             rates[cond] = (sum(signal in _split(r["signals"]) for r in sub), len(sub))
         buggy = [r for r in runs if r["condition"] == "persona_buggy"]
-        needs = TRIGGERS.get(signal)
-        hit = [r for r in buggy if needs is None or needs & set(_split(r["perturbations"]))]
+        hit = [r for r in buggy if _triggered(r)]
         given = (sum(signal in _split(r["signals"]) for r in hit), len(hit))
         is_stable = stable(*rates["persona_buggy"])
-        attributed = (
-            is_stable
-            and not stable(*rates["baseline_buggy"])
-            and not stable(*rates["persona_clean"])
-        )
+        clean_quiet = not stable(*rates["persona_clean"])
+        attributed = is_stable and not stable(*rates["baseline_buggy"]) and clean_quiet
+        forced_runs = [r for r in runs if r["condition"] == TRIGGERED and _triggered(r)]
+        forced = (sum(signal in _split(r["signals"]) for r in forced_runs), len(forced_runs))
         out.append(
-            BugResult(bug, signal, rates, (len(hit), len(buggy)), given, is_stable, attributed)
+            BugResult(
+                bug,
+                signal,
+                rates,
+                (len(hit), len(buggy)),
+                given,
+                is_stable,
+                attributed,
+                found=is_stable and clean_quiet,
+                forced=forced,
+            )
         )
     return out
+
+
+def _triggered(row: dict) -> bool:
+    """From the log-based `triggered` column (agent/triggers.py) when the row
+    has one; older rows fall back to "the needed kind of mistake happened"."""
+    if row.get("triggered") not in (None, ""):
+        return str(row["triggered"]) in ("1", "True", "true")
+    needs = TRIGGERS.get(row["expected_signal"])
+    return needs is None or bool(needs & set(_split(row["perturbations"])))
 
 
 def _bug_order(bug: str) -> tuple:
@@ -120,6 +146,7 @@ class Summary:
     runs: int
     excluded: int
     recall: float | None
+    found_recall: float | None
     precision: float | None
     false_positive_rate: float | None
     citation_validity: float | None
@@ -127,13 +154,14 @@ class Summary:
     mean_seconds: float | None
     stable_bugs: int
     attributed_bugs: int
+    found_bugs: int
     bugs: int
 
 
 def summarise(rows: list[dict]) -> Summary:
     counted = _counted(rows)
     bugs = per_bug(rows)
-    persona_runs = [r for r in counted if r["condition"] != "baseline_buggy"]
+    persona_runs = [r for r in counted if r["condition"] in ("persona_buggy", "persona_clean")]
     findings = correct = 0
     for r in persona_runs:
         signals = _split(r["signals"])
@@ -148,6 +176,7 @@ def summarise(rows: list[dict]) -> Summary:
         runs=len(rows),
         excluded=len(rows) - len(counted),
         recall=_ratio(sum(b.attributed for b in bugs), len(bugs)),
+        found_recall=_ratio(sum(b.found for b in bugs), len(bugs)),
         precision=_ratio(correct, findings),
         false_positive_rate=_ratio(clean_findings, len(clean)),
         citation_validity=_ratio(verified, generated),
@@ -155,6 +184,7 @@ def summarise(rows: list[dict]) -> Summary:
         mean_seconds=_mean([float(r["seconds"]) for r in counted]),
         stable_bugs=sum(b.stable for b in bugs),
         attributed_bugs=sum(b.attributed for b in bugs),
+        found_bugs=sum(b.found for b in bugs),
         bugs=len(bugs),
     )
 
@@ -179,6 +209,7 @@ def markdown(rows: list[dict]) -> str:
         "| Triggered | Detected given trigger | Stable | Attributed |",
         "| --- | --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
+    has_forced = any(r["condition"] == TRIGGERED for r in rows)
     for b in per_bug(rows):
         lines.append(
             f"| {b.bug} | `{b.signal}` | {_kn(b.rates['persona_buggy'])} "
@@ -187,13 +218,21 @@ def markdown(rows: list[dict]) -> str:
             f"| {'yes' if b.stable else 'no'} | {'yes' if b.attributed else 'no'} |"
         )
 
+    if has_forced:
+        lines += ["", "Triggered condition (only the needed mistake made more frequent):", ""]
+        lines += ["| Bug | Detected in triggered runs |", "| --- | --- |"]
+        lines += [f"| {b.bug} | {_kn(b.forced)} |" for b in per_bug(rows) if b.forced[1]]
+
     def fmt(v):
         return "n/a" if v is None else f"{v}"
 
     lines += [
         "",
         f"- Runs: {s.runs} ({s.excluded} excluded: provider or harness failure)",
-        f"- Recall (attributed / bugs): {fmt(s.recall)} ({s.attributed_bugs}/{s.bugs})",
+        f"- Recall, found (stable on buggy, silent on clean): {fmt(s.found_recall)} "
+        f"({s.found_bugs}/{s.bugs})",
+        f"- Recall, attributed to the persona (baseline silent too): {fmt(s.recall)} "
+        f"({s.attributed_bugs}/{s.bugs})",
         f"- Precision (expected signal / all persona findings): {fmt(s.precision)}",
         f"- False-positive rate (findings / clean runs): {fmt(s.false_positive_rate)}",
         f"- Citation validity (verified / generated quotes): {fmt(s.citation_validity)}",

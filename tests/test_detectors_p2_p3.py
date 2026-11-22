@@ -131,3 +131,16 @@ def test_each_persona_runs_only_its_own_detectors():
     p3 = detect(log(observations, [rec(0, persona="low_literacy")], "low_literacy"))
     assert [f.signal for f in p1] == ["error_not_actionable"]
     assert [f.signal for f in p3] == ["system_language"]
+
+
+def test_shared_detectors_follow_the_signal_map():
+    """`also:` in the signal map: P10 reuses P1's duplicate_submission and P6
+    reuses P7's reflow_failure."""
+    from agent.detectors import detectors_for
+
+    def names(persona):
+        return {d.__name__ for d in detectors_for(persona)}
+
+    assert "duplicate_submission" in names("slow_network")
+    assert "reflow_failure" in names("touch_imprecise")
+    assert "duplicate_submission" not in names("memoryless")

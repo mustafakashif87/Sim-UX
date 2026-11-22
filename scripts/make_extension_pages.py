@@ -1,5 +1,6 @@
 # ruff: noqa: E501  (HTML and CSS string lines)
-"""Generate the P4, P5, P7 and P8 seeded page pairs (B13-B17, B20-B25).
+"""Generate the extension personas' seeded page pairs: P4, P5, P7, P8 (B13-B17,
+B20-B25), P6 (B18, B19) and P10 (B28, B29).
 
 Each pair comes from one template with a BUG marker, so the two files
 differ only in the seeded bug. Run from the repo root:
@@ -587,6 +588,197 @@ def pricing(bug):
     return body, script, "", HEADER
 
 
+# B18 cart: a 16 px "Remove item" 4 px from the 16 px "+", removal at once (P6)
+def cart(bug):
+    if bug:
+        style = """    .qty button { min-width: 16px; min-height: 16px; width: 16px; height: 16px; padding: 0; font-size: 12px; }
+    .qty { display: flex; gap: 4px; align-items: center; }
+"""
+        undo = ""
+    else:
+        style = """    .qty button { min-width: 44px; min-height: 44px; }
+    .qty { display: flex; gap: 24px; align-items: center; }
+"""
+        undo = """        document.getElementById('undo').innerHTML =
+          '<p role="status">Kettle removed. <button type="button" id="undo-btn" class="secondary">Undo</button></p>';
+        document.getElementById('undo-btn').addEventListener('click', () => {
+          removed = false; render(); document.getElementById('undo').innerHTML = '';
+        });
+"""
+    body = """  <main>
+    <h1>Your basket</h1>
+    <div id="line">
+      <p>Stainless steel kettle, $39.00 each</p>
+      <div class="qty">
+        <button type="button" id="minus" aria-label="Decrease quantity">-</button>
+        <span id="count">1</span>
+        <button type="button" id="plus" aria-label="Increase quantity">+</button>
+        <button type="button" id="remove" aria-label="Remove item">x</button>
+      </div>
+    </div>
+    <div id="undo"></div>
+    <form id="form"><button type="submit">Go to checkout</button></form>
+    <div id="result"></div>
+  </main>
+"""
+    script = (
+        SUBMIT.format()
+        + f"""    let count = 1, removed = false;
+    function render() {{
+      document.getElementById('line').hidden = removed;
+      document.getElementById('count').textContent = count;
+    }}
+    document.getElementById('plus').addEventListener('click', () => {{ count += 1; render(); }});
+    document.getElementById('minus').addEventListener('click', () => {{ count = Math.max(1, count - 1); render(); }});
+    document.getElementById('remove').addEventListener('click', async () => {{
+      await fetch('api/cart/remove', {{ method: 'POST', body: 'kettle' }});
+      removed = true; render();
+{undo}    }});
+    document.getElementById('form').addEventListener('submit', (e) => {{
+      e.preventDefault();
+      if (removed || count !== 2) {{
+        document.getElementById('undo').innerHTML = '<p role="alert">Your basket needs 2 kettles for this task.</p>';
+        return;
+      }}
+      submit('api/checkout', 'kettle x' + count, () => {{
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Ready to pay</h2>';
+      }});
+    }});
+"""
+    )
+    return body, script, style, HEADER
+
+
+# B19 shipping: 18 px radio rows that touch, and no summary before paying (P6)
+def shipping(bug):
+    if bug:
+        style = """    .opt { display: block; height: 18px; line-height: 18px; margin: 0; font-size: 14px; }
+    .opt input { width: 14px; height: 14px; margin: 2px 4px 0 0; }
+"""
+        summary = ""
+    else:
+        style = """    .opt { display: block; min-height: 48px; padding: 12px 0; margin: 4px 0; }
+    .opt input { width: 24px; height: 24px; }
+"""
+        summary = """        <p role="status" id="summary"></p>
+"""
+    body = f"""  <main>
+    <h1>Delivery</h1>
+    <form id="form" novalidate>
+      <fieldset class="field">
+        <legend>Delivery speed</legend>
+        <label class="opt"><input type="radio" name="speed" value="standard"> Standard (free)</label>
+        <label class="opt"><input type="radio" name="speed" value="express"> Express ($9.99)</label>
+      </fieldset>
+{summary}      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Pay now</button>
+    </form>
+    <div id="result"></div>
+  </main>
+"""
+    summary_js = (
+        ""
+        if bug
+        else """    document.querySelectorAll('input[name=speed]').forEach((r) => r.addEventListener('change', () => {
+      document.getElementById('summary').textContent = 'You chose ' + r.parentElement.textContent.trim() + '.';
+    }));
+"""
+    )
+    script = (
+        SUBMIT.format()
+        + summary_js
+        + """    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const speed = document.querySelector('input[name=speed]:checked');
+      if (!speed) {
+        document.getElementById('error').textContent = 'Choose a delivery speed.';
+        return;
+      }
+      submit('api/shipping', speed.value, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = speed.value === 'standard'
+          ? '<h2>Paid with free delivery</h2>' : '<h2>Paid with express delivery</h2>';
+      });
+    });
+"""
+    )
+    return body, script, style, HEADER
+
+
+# B28 payment: "Pay now" stays enabled and silent while the payment is sent (P10)
+def payment(bug):
+    if bug:
+        start = ""
+    else:
+        start = """      document.getElementById('pay').disabled = true;
+      document.getElementById('busy').textContent = 'Processing payment…';
+"""
+    body = """  <main>
+    <h1>Pay for your order</h1>
+    <p>Total: $44.00, paid with your saved card ending 4242.</p>
+    <form id="form"><button type="submit" id="pay">Pay now</button></form>
+    <p id="busy" role="status"></p>
+    <div id="result"></div>
+  </main>
+"""
+    script = f"""    document.getElementById('form').addEventListener('submit', async (e) => {{
+      e.preventDefault();
+{start}      await fetch('api/payment', {{ method: 'POST', body: 'order-5512' }});
+      document.getElementById('busy').textContent = '';
+      document.getElementById('form').hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Payment received</h2>';
+    }});
+"""
+    return body, script, "", HEADER
+
+
+# B29 upload: a failed submission leaves the page as it was (P10)
+def upload(bug):
+    if bug:
+        failed = "        // the error is ignored\n"
+    else:
+        failed = """        document.getElementById('error').innerHTML =
+          "Couldn't send. Check your connection and try again.";
+        send.disabled = false;
+        send.textContent = 'Try again';
+"""
+    body = """  <main>
+    <h1>Send a meter reading</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="reading">Meter reading</label>
+        <input type="text" id="reading" inputmode="numeric">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit" id="send">Send reading</button>
+    </form>
+    <div id="result"></div>
+  </main>
+"""
+    script = f"""    const send = document.getElementById('send');
+    document.getElementById('form').addEventListener('submit', async (e) => {{
+      e.preventDefault();
+      const reading = document.getElementById('reading').value.trim();
+      if (!/^\\d+$/.test(reading)) {{
+        document.getElementById('error').textContent = 'Enter the numbers on your meter.';
+        return;
+      }}
+      document.getElementById('error').textContent = '';
+      send.disabled = true;
+      try {{
+        const r = await fetch('api/reading', {{ method: 'POST', body: reading }});
+        if (!r.ok) throw new Error(r.status);
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Reading sent</h2>';
+      }} catch (err) {{
+{failed}      }}
+      if (send.textContent !== 'Try again') send.disabled = false;
+    }});
+"""
+    return body, script, "", HEADER
+
+
 for stem, title, make in [
     ("feedback", "Feedback", feedback),
     ("size", "Running trainers", size),
@@ -599,6 +791,10 @@ for stem, title, make in [
     ("redeem", "Gift cards", redeem),
     ("trial", "SimShop Plus", trial),
     ("pricing", "SimShop Plus plans", pricing),
+    ("cart", "Your basket", cart),
+    ("shipping", "Delivery", shipping),
+    ("payment", "Payment", payment),
+    ("upload", "Meter reading", upload),
 ]:
     pair(stem, title, make)
 print("ok")

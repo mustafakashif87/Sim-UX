@@ -49,6 +49,7 @@ class RunLog:
     # never saw. None where not logged.
     full_trees: list[str | None] = field(default_factory=list)
     facts: list[dict | None] = field(default_factory=list)
+    network: list[dict | None] = field(default_factory=list)  # pending, failed, sent
 
 
 def load_run(log_dir: Path) -> RunLog:
@@ -66,6 +67,7 @@ def load_run(log_dir: Path) -> RunLog:
         titles=[e.get("title") for e in observations],
         full_trees=[e.get("full_tree") for e in observations],
         facts=[e.get("page") for e in observations],
+        network=[e.get("network") for e in observations],
     )
 
 
@@ -135,10 +137,14 @@ def all_detectors() -> dict[str, Detector]:
 
 def detectors_for(persona: str) -> list[Detector]:
     """The detectors of the signals this persona owns (`source` in the signal
-    map): each persona reports only its own signals (spec: persona tables)."""
-    return [
-        d for signal, d in all_detectors().items() if signal_map().entry(signal).source == persona
-    ]
+    map) or shares (`also`): each persona reports only its own signals (spec:
+    persona tables); P6, P10 and P14 reuse some of other personas'."""
+
+    def owns(signal: str) -> bool:
+        entry = signal_map().entry(signal)
+        return entry.source == persona or persona in entry.also
+
+    return [d for signal, d in all_detectors().items() if owns(signal)]
 
 
 def detect(run: RunLog) -> list[Finding]:

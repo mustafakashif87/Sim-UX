@@ -1,0 +1,20 @@
+# P10 Slow-connection user. Catalogue: "P10 Slow-connection user".
+# Submissions take 3 s and one in five fails; a press that shows no change
+# while the request waits is pressed again (impatient_retry).
+id: slow_network
+environment:
+  network:
+    latency_ms: 3000
+    fail_rate: 0.2
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 3
+  max_steps: 20
+perturbation:
+  seed: 1234
+  impatient_retry_rate: 0.6
+task_types: [complete_form]

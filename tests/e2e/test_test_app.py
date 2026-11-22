@@ -41,6 +41,17 @@ def findings(browser, task, persona, script):
     return [f.signal for f in detect(load_run(result.log_dir))], result
 
 
+def forced(pid, perturbation=None, network=None):
+    """A persona with its mistake made certain, so the fixture test is
+    deterministic; the evaluation uses the configured rates."""
+    data = load_persona(pid).model_dump()
+    if perturbation is not None:
+        data["perturbation"] = {"seed": 1, **perturbation}
+    if network is not None:
+        data["environment"]["network"] = network
+    return Persona.model_validate(data)
+
+
 # The mistake each bug needs, as P1 would make it, and a script that reaches it.
 SCENARIOS = {
     "B1": (  # a mistyped email: no @
@@ -171,6 +182,24 @@ SCENARIOS = {
     ),
     "B24": (load_persona("skimmer"), [click("Start free trial")]),
     "B25": (load_persona("skimmer"), [click("Choose Family, $7 a month")]),
+    # P6 Mobile touch (B18, B19): every tap is imprecise here
+    "B18": (
+        forced("touch_imprecise", {"mis_tap_base_rate": 1.0, "mis_tap_cap": 1.0}),
+        [click("Increase quantity"), click("Go to checkout")],
+    ),
+    "B19": (
+        forced("touch_imprecise", {"mis_tap_base_rate": 1.0, "mis_tap_cap": 1.0}),
+        [click("Standard (free)", role="radio"), click("Pay now")],
+    ),
+    # P10 Slow connection (B28, B29)
+    "B28": (
+        forced("slow_network", {"impatient_retry_rate": 1.0}, {"latency_ms": 3000}),
+        [click("Pay now")],
+    ),
+    "B29": (
+        forced("slow_network", {}, {"fail_rate": 1.0}),
+        [type_into("Meter reading", "48213"), click("Send reading")],
+    ),
 }
 
 

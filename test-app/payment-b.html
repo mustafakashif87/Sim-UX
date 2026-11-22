@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Payment – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Pay for your order</h1>
+    <p>Total: $44.00, paid with your saved card ending 4242.</p>
+    <form id="form"><button type="submit" id="pay">Pay now</button></form>
+    <p id="busy" role="status"></p>
+    <div id="result"></div>
+  </main>
+  <script>
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      document.getElementById('pay').disabled = true;
+      document.getElementById('busy').textContent = 'Processing payment…';
+      await fetch('api/payment', { method: 'POST', body: 'order-5512' });
+      document.getElementById('busy').textContent = '';
+      document.getElementById('form').hidden = true;
+      document.getElementById('result').innerHTML = '<h2>Payment received</h2>';
+    });
+  </script>
+</body>
+</html>

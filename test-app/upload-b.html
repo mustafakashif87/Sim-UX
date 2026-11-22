@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Meter reading – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Send a meter reading</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="reading">Meter reading</label>
+        <input type="text" id="reading" inputmode="numeric">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit" id="send">Send reading</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const send = document.getElementById('send');
+    document.getElementById('form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const reading = document.getElementById('reading').value.trim();
+      if (!/^\d+$/.test(reading)) {
+        document.getElementById('error').textContent = 'Enter the numbers on your meter.';
+        return;
+      }
+      document.getElementById('error').textContent = '';
+      send.disabled = true;
+      try {
+        const r = await fetch('api/reading', { method: 'POST', body: reading });
+        if (!r.ok) throw new Error(r.status);
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Reading sent</h2>';
+      } catch (err) {
+        document.getElementById('error').innerHTML =
+          "Couldn't send. Check your connection and try again.";
+        send.disabled = false;
+        send.textContent = 'Try again';
+      }
+      if (send.textContent !== 'Try again') send.disabled = false;
+    });
+  </script>
+</body>
+</html>

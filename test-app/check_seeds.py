@@ -3,7 +3,7 @@
 For each row of the Bugs table, the bug must be present on the buggy page and
 absent on the clean page. Every task in tasks.yaml must also reach its goal on
 both pages of its pair when done correctly, so the goal check is known to work.
-On every page but B4's buggy one, a double press on the final button must
+On every page but B4's and B28's buggy ones, a double press on the final button must
 send one submission, so P1's injected double press cannot produce a
 duplicate_submission finding the ground truth does not list.
 Exits 1 on any mismatch, or when a row or task has no check here (or the other
@@ -370,6 +370,45 @@ def headings_name_no_topic(page: Page, posts: list[str]) -> bool:
     return sum(n in ("Section 1", "More info", "Other") for n in names) >= 2
 
 
+@check("B18")
+def remove_is_tiny_and_beside_plus(page: Page, posts: list[str]) -> bool:
+    plus = page.get_by_role("button", name="Increase quantity").bounding_box()
+    remove = page.get_by_role("button", name="Remove item").bounding_box()
+    gap = remove["x"] - (plus["x"] + plus["width"])
+    return min(remove["width"], remove["height"]) < 24 and gap < 12
+
+
+@check("B19")
+def delivery_options_are_tiny(page: Page, posts: list[str]) -> bool:
+    row = page.locator("label", has_text="Standard (free)").bounding_box()
+    return row["height"] < 24
+
+
+@check("B28")
+def pay_button_stays_enabled_and_silent(page: Page, posts: list[str]) -> bool:
+    held = []
+    page.unroute("**/api/**")
+    page.route("**/api/**", lambda route: held.append(route))
+    page.get_by_role("button", name="Pay now").click()
+    page.wait_for_timeout(500)
+    enabled = page.get_by_role("button", name="Pay now").is_enabled()
+    status = page.get_by_role("status").inner_text().strip()
+    for route in held:
+        route.fulfill(status=200, body="ok")
+    return enabled and not status
+
+
+@check("B29")
+def failure_leaves_page_unchanged(page: Page, posts: list[str]) -> bool:
+    page.unroute("**/api/**")
+    page.route("**/api/**", lambda route: route.abort("failed"))
+    page.get_by_label("Meter reading").fill("48213")
+    before = page.locator("body").aria_snapshot()
+    page.get_by_role("button", name="Send reading").click()
+    page.wait_for_timeout(500)
+    return page.locator("body").aria_snapshot() == before
+
+
 # --- happy paths: every task in tasks.yaml reaches its goal on both pages ---
 
 
@@ -530,6 +569,29 @@ def choose_annual_family(page: Page, double: bool = False) -> None:
     press(page.get_by_role("button", name="Choose Family, $70 a year"), double)
 
 
+@happy("cart")
+def two_kettles(page: Page, double: bool = False) -> None:
+    page.get_by_role("button", name="Increase quantity").click()
+    press(page.get_by_role("button", name="Go to checkout"), double)
+
+
+@happy("shipping")
+def free_delivery(page: Page, double: bool = False) -> None:
+    page.get_by_label("Standard (free)").check()
+    press(page.get_by_role("button", name="Pay now"), double)
+
+
+@happy("payment")
+def pay(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Pay now"), double)
+
+
+@happy("upload")
+def send_reading(page: Page, double: bool = False) -> None:
+    page.get_by_label("Meter reading").fill("48213")
+    press(page.get_by_role("button", name="Send reading"), double)
+
+
 # --- runner ----------------------------------------------------------------
 
 
@@ -654,9 +716,10 @@ def main() -> int:
                 if not done:
                     problems.append(f"task {task['id']}: goal not reached on {name}")
 
-        # Only B4's buggy page may send twice; anywhere else a double press
+        # Only B4's and B28's buggy pages may send twice (B28's bug is a button
+        # that stays enabled while it waits); anywhere else a double press
         # would be a duplicate_submission finding missing from the ground truth.
-        allowed = {buggy for bug, buggy, _ in rows if bug == "B4"}
+        allowed = {buggy for bug, buggy, _ in rows if bug in ("B4", "B28")}
         print(f"\n{'task':<10} {'page':<20} submissions on a double press")
         for task in tasks:
             if task["id"] not in HAPPY:

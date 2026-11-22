@@ -186,3 +186,66 @@
   text: Send the meter reading 48213.
   goal: {role: heading, name: Reading sent}
   endpoint: "**/api/reading"
+
+# Extension personas P9 and P11 to P14 (B26, B27, B30 to B36).
+# optimal_steps (P13 only) is the clean page's happy path in agent actions.
+
+- id: application
+  pages: [application-a.html, application-b.html]
+  text: Apply for a parking permit as Sam Khan, national ID number 35202-1234567-1.
+  goal: {role: heading, name: Application sent}
+  endpoint: "**/api/application"
+
+- id: survey
+  pages: [survey-a.html, survey-b.html]
+  text: >-
+    Answer the customer survey: you shop every week, pay by card, your last
+    delivery was good, and you would recommend SimShop.
+  goal: {role: heading, name: Thanks for your answers}
+  endpoint: "**/api/survey"
+
+- id: claim
+  pages: [claim-a.html, claim-b.html]
+  text: >-
+    Make a claim on your phone insurance: the screen broke when you dropped it.
+    Your policy letter shows the number 1234567.
+  goal: {role: heading, name: Claim received}
+  endpoint: "**/api/claim"
+
+- id: support
+  pages: [support-a.html, support-b.html]
+  text: Change the delivery of parcel SP-48213 to Saturday.
+  goal: {role: heading, name: Delivery changed}
+  endpoint: "**/api/delivery"
+
+- id: settings
+  pages: [settings-a.html, settings-b.html]
+  text: On each of the three settings pages, tick the option and save it.
+  goal: {role: heading, name: All settings saved}
+  endpoint: "**/api/settings**"
+
+- id: store
+  pages: [store-a.html, store-b.html]
+  text: Look at the toasters, then go to your basket and check out.
+  goal: {role: heading, name: Checkout started}
+  endpoint: "**/api/store"
+
+- id: quickadd
+  pages: [quickadd-a.html, quickadd-b.html]
+  text: Add 3 kettles to the stock list.
+  goal: {role: heading, name: Item added}
+  endpoint: "**/api/stock"
+  optimal_steps: 3
+
+- id: bulk
+  pages: [bulk-a.html, bulk-b.html]
+  text: Archive all 10 open tickets.
+  goal: {role: heading, name: All tickets archived}
+  endpoint: "**/api/tickets"
+  optimal_steps: 3
+
+- id: appointment
+  pages: [appointment-a.html, appointment-b.html]
+  text: Book a branch appointment for Sam Khan, phone 03001234567, on 2 December.
+  goal: {role: heading, name: Appointment booked}
+  endpoint: "**/api/appointment"

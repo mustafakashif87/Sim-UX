@@ -1,0 +1,17 @@
+# P11 Help-seeker. Catalogue: "P11 Help-seeker".
+# Once stuck (the page unchanged for 3 steps, or an error after two submits)
+# only help, contact or FAQ controls, back and scroll are accepted, until
+# help is used; then 6 more steps. Lexicon: grounding/help_lexicon.yaml.
+id: help_seeker
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+  escalation:
+    stuck_after: 3
+    after_help_steps: 6
+memory:
+  history_turns: 3
+  max_steps: 25
+task_types: [complete_form, find_help]

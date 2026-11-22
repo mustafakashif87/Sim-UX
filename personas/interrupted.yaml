@@ -1,0 +1,18 @@
+# P9 Interrupted user. Catalogue: "P9 Interrupted user".
+# Fifteen idle minutes before step 4 and a reload before step 8, on the page
+# clock (no real waiting); after each, the next step runs with no history.
+id: interrupted
+environment:
+  interruptions:
+    - {at_step: 4, kind: idle, seconds: 900}
+    - {at_step: 8, kind: reload}
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 3
+  max_steps: 25
+  reset_after_interruption: true
+task_types: [multi_step_form]

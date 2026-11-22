@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Book an appointment – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    #more { min-height: 48px; }
+    #prompt { position: fixed; top: 16px; right: 16px; background: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Book a branch appointment</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name">
+      </div>
+      <div class="field">
+        <label for="phone">Phone number</label>
+        <input type="text" id="phone">
+      </div>
+      <div class="field">
+        <label for="date">Preferred date</label>
+        <input type="text" id="date" placeholder="for example 2 December">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Book appointment</button>
+    </form>
+    <div id="prompt"></div>
+    <div id="ended"></div>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    let timer, promptTimer, hideTimer;
+    function arm() {
+      clearTimeout(timer); clearTimeout(promptTimer); clearTimeout(hideTimer);
+      promptTimer = setTimeout(() => {
+        document.getElementById('prompt').innerHTML =
+          '<div role="alertdialog" aria-label="Need more time?"><p>Need more time?</p>' +
+          '<button type="button" id="more">Yes, more time</button></div>';
+        document.getElementById('more').addEventListener('click', () => {
+          document.getElementById('prompt').innerHTML = ''; arm();
+        });
+      }, 1080000);
+      timer = setTimeout(() => {
+        document.getElementById('prompt').innerHTML = '';
+        document.getElementById('form').reset();
+        document.getElementById('ended').innerHTML =
+          '<p role="alert">Your session has ended. Please start again.</p>';
+        arm();
+      }, 1200000);
+    }
+    arm();
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const ok = ['name', 'phone', 'date'].every((id) => document.getElementById(id).value.trim());
+      if (!ok) { document.getElementById('error').textContent = 'Fill in every field.'; return; }
+      submit('api/appointment', document.getElementById('date').value, () => {
+        clearTimeout(timer); clearTimeout(promptTimer); clearTimeout(hideTimer);
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Appointment booked</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

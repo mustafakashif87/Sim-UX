@@ -74,3 +74,11 @@
     of information in an interface competes with the relevant units of information and diminishes their
     relative visibility.
   key_quote: Interfaces should not contain information that is irrelevant or rarely needed.
+# #10 added 2026-11-22 for P11, from the same page.
+- id: Nielsen 10
+  source: Nielsen
+  title: Help and Documentation
+  url: https://www.nngroup.com/articles/ten-usability-heuristics/
+  text: However, it may be necessary to provide documentation to help users understand how to complete
+    their tasks. Help and documentation content should be easy to search and focused on the user's task.
+  key_quote: Help and documentation content should be easy to search and focused on the user's task.

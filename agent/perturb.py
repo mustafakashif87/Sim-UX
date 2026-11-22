@@ -14,6 +14,7 @@ Mistakes follow Reason's error taxonomy (spec: P1 Error-prone user):
 | double_submit | slip  | click on a button | the click is executed twice             |
 | back_press    | slip  | any but back      | a back press happens instead            |
 | mis_tap       | slip  | click, with boxes | lands on the nearest neighbour, or misses |
+| capture       | slip  | click, with habit | goes to the control at the habitual spot  |
 
 `mis_tap` (P6) needs the targets' bounding boxes, which the loop passes for
 extension personas. Its chance grows as the target shrinks:
@@ -39,6 +40,7 @@ SKIP_FIELD = "skip_field"
 DOUBLE_SUBMIT = "double_submit"
 BACK_PRESS = "back_press"
 MIS_TAP = "mis_tap"
+CAPTURE = "capture"
 IMPATIENT_RETRY = "impatient_retry"
 GUIDELINE_PX = 44
 
@@ -66,15 +68,23 @@ class Perturber:
         self.seed = config.seed if seed is None else seed
         self._rng = random.Random(self.seed)
 
-    def apply(self, action: Action, refs: RefMap, boxes: dict | None = None) -> Perturbed:
-        """`boxes` maps refs to [x, y, width, height] (extension runs only)."""
+    def apply(
+        self, action: Action, refs: RefMap, boxes: dict | None = None, habit: dict | None = None
+    ) -> Perturbed:
+        """`boxes` maps refs to [x, y, width, height] (extension runs only);
+        `habit` is P12's learned control: {"name", "center": [x, y]}."""
         if action.action == "give_up":
             return Perturbed(action)
         draw = self._rng.random()
-        for name, rate in self._candidates(action, refs, boxes):
+        for name, rate in self._candidates(action, refs, boxes, habit):
             if draw < rate:
                 if name == MIS_TAP:
                     return self._mis_tap(action, refs, boxes)
+                if name == CAPTURE:
+                    return Perturbed(
+                        action.model_copy(update={"ref": _at_habit(action, refs, boxes, habit)}),
+                        CAPTURE,
+                    )
                 return self._inject(name, action)
             draw -= rate
         return Perturbed(action)
@@ -108,7 +118,7 @@ class Perturber:
         return Perturbed(action.model_copy(update={"ref": best[2]}), MIS_TAP)
 
     def _candidates(
-        self, action: Action, refs: RefMap, boxes: dict | None = None
+        self, action: Action, refs: RefMap, boxes: dict | None = None, habit: dict | None = None
     ) -> list[tuple[str, float]]:
         """The mistakes that apply to this action, in a fixed order."""
         c = self.config
@@ -122,6 +132,8 @@ class Perturber:
             out.append((DOUBLE_SUBMIT, c.double_submit_rate))
         if action.action == "click":
             out.append((MIS_TAP, self._mis_tap_rate(action, boxes)))
+            if _at_habit(action, refs, boxes, habit):
+                out.append((CAPTURE, c.capture_rate))
         return out
 
     def _inject(self, name: str, action: Action) -> Perturbed:
@@ -138,6 +150,24 @@ class Perturber:
                     return Perturbed(action)  # nothing to swap, e.g. "a" or "aa"
                 return Perturbed(action.model_copy(update={"text": typed}), TYPO)
         raise ValueError(f"unknown perturbation: {name}")
+
+
+def _at_habit(action: Action, refs: RefMap, boxes: dict | None, habit: dict | None) -> str | None:
+    """The operable control, other than the target, whose box holds the
+    habitual position; None when there is none (no capture possible)."""
+    from agent.actions import INTERACTIVE_ROLES
+
+    if not habit or not boxes or action.ref is None or action.ref not in refs:
+        return None
+    if refs[action.ref].role != habit.get("role", refs[action.ref].role):
+        return None  # a habit for pressing buttons does not capture a checkbox tick
+    hx, hy = habit["center"]
+    for ref, (x, y, w, h) in sorted(boxes.items()):
+        if ref == action.ref or ref not in refs or refs[ref].role not in INTERACTIVE_ROLES:
+            continue
+        if x <= hx <= x + w and y <= hy <= y + h:
+            return ref
+    return None
 
 
 def swap_adjacent(text: str, rng: random.Random) -> str:

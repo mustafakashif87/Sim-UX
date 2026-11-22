@@ -66,6 +66,15 @@ class Perception(Config):
         return filters
 
 
+class Escalation(Config):
+    """P11: once stuck, only help-seeking actions are accepted (help lexicon:
+    grounding/help_lexicon.yaml) until a help control has been used; then
+    normal actions return for `after_help_steps` more steps."""
+
+    stuck_after: int = Field(default=3, ge=2)
+    after_help_steps: int = Field(default=6, ge=1)
+
+
 class Actions(Config):
     allowed: list[ActionKind] = Field(min_length=1)
     keys: list[str] = []
@@ -74,6 +83,7 @@ class Actions(Config):
     interactive_roles_only: bool = False
     # P5: `type` only into the focused element (a keyboard user types where focus is).
     type_focused_only: bool = False
+    escalation: Escalation | None = None  # P11
 
     @model_validator(mode="after")
     def _valid_actions_and_keys(self) -> Self:
@@ -91,6 +101,14 @@ class Actions(Config):
 class Memory(Config):
     history_turns: int = Field(ge=0)
     max_steps: int = Field(ge=1)
+    # P9: the step after an interruption runs with no history (back "cold").
+    reset_after_interruption: bool = False
+    # P12: what the persona learned on the flow's first screen (the control it
+    # used to submit, and where) is shown as a note on later screens.
+    prior_knowledge: Literal["familiarise_first_screen"] | None = None
+    # P13: step cap = ceil(the task's optimal_steps x this); max_steps when a
+    # task has no optimal_steps.
+    max_steps_factor: float | None = Field(default=None, ge=1.0)
 
 
 Rate = Field(default=0.0, ge=0.0, le=1.0)
@@ -109,6 +127,9 @@ class Perturbation(Config):
     mis_tap_base_rate: float = Rate
     mis_tap_cap: float = Rate
     mis_tap_reach_px: int = Field(default=12, ge=0)
+    # P12 capture slip (Norman): a click meant for one control goes to the
+    # control at the habitual position, at this rate.
+    capture_rate: float = Rate
     # P10: when a click that sent a request leaves the page unchanged, click
     # again (the slip of a user who thinks the first press did not register).
     impatient_retry_rate: float = Rate
@@ -118,7 +139,9 @@ class Perturbation(Config):
         # At most one mistake per step (agent/perturb.py), so the rates that
         # can hit the same action must fit in one draw.
         typing = self.back_press_rate + self.skip_field_rate + self.typo_rate
-        clicking = self.back_press_rate + self.double_submit_rate + self.mis_tap_cap
+        clicking = (
+            self.back_press_rate + self.double_submit_rate + self.mis_tap_cap + self.capture_rate
+        )
         if max(typing, clicking) > 1 + 1e-9:  # tolerance: 0.33 + 0.56 + 0.11 > 1 in floats
             raise ValueError("rates that apply to the same action add up to more than 1")
         return self
@@ -136,6 +159,14 @@ class Network(Config):
     fail_rate: float = Rate  # chance a submission fails (network error)
 
 
+class Interruption(Config):
+    """P9: before step `at_step` the world interrupts the user."""
+
+    at_step: int = Field(ge=1)
+    kind: Literal["idle", "reload", "tab_away"]
+    seconds: int = Field(default=0, ge=0, le=86_400)  # idle: page clock moves this far
+
+
 class Environment(Config):
     """The fifth axis: what the world does to the user (persona catalogue,
     Framework changes). Enforced in browser.py and loop.py. The baseline keeps
@@ -145,6 +176,13 @@ class Environment(Config):
     viewport: Viewport | None = None
     text_scale: float = Field(default=1.0, ge=1.0, le=4.0)
     network: Network = Network()
+    # P9, P14: the page clock (Playwright clock, no real waiting).
+    think_time_s: float = Field(default=0.0, ge=0.0, le=3600.0)  # per step
+    interruptions: list[Interruption] = []
+
+    @property
+    def needs_clock(self) -> bool:
+        return bool(self.think_time_s) or any(i.kind == "idle" for i in self.interruptions)
 
     @field_validator("device")
     @classmethod
@@ -188,6 +226,10 @@ class Persona(Config):
             or self.environment != Environment()
             or p.mis_tap_base_rate
             or p.impatient_retry_rate
+            or p.capture_rate
+            or self.actions.escalation is not None
+            or self.memory.prior_knowledge is not None
+            or self.memory.max_steps_factor is not None
         )
 
     @property

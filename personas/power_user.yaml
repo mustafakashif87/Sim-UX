@@ -1,0 +1,14 @@
+# P13 Expert power user. Catalogue: "P13 Expert power user".
+# Step cap = ceil(optimal_steps x 1.5) for tasks with optimal_steps in
+# tasks.yaml (max_steps otherwise); every run also gets a KLM time estimate.
+id: power_user
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Shift+Tab, Enter, Escape, Space]
+memory:
+  history_turns: 6
+  max_steps: 20
+  max_steps_factor: 1.5
+task_types: [complete_form, bulk_task]

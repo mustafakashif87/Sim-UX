@@ -1,0 +1,17 @@
+# P12 Habitual returning user. Catalogue: "P12 Habitual returning user".
+# Learns the control it used to go on from the flow's first screen and where
+# it was; later clicks can be captured by whatever sits at that spot.
+id: habitual
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 3
+  max_steps: 20
+  prior_knowledge: familiarise_first_screen
+perturbation:
+  seed: 1234
+  capture_rate: 0.3
+task_types: [repeat_task]

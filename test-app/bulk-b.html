@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Open tickets – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Open tickets</h1>
+    <label><input type="checkbox" id="all"> Select all</label>
+    <button type="button" id="archive-selected">Archive selected</button>
+    <ul id="list">
+      <li id="t1">Ticket 1: delivery question <label><input type="checkbox" class="pick" value="1"> Select ticket 1</label></li>
+      <li id="t2">Ticket 2: delivery question <label><input type="checkbox" class="pick" value="2"> Select ticket 2</label></li>
+      <li id="t3">Ticket 3: delivery question <label><input type="checkbox" class="pick" value="3"> Select ticket 3</label></li>
+      <li id="t4">Ticket 4: delivery question <label><input type="checkbox" class="pick" value="4"> Select ticket 4</label></li>
+      <li id="t5">Ticket 5: delivery question <label><input type="checkbox" class="pick" value="5"> Select ticket 5</label></li>
+      <li id="t6">Ticket 6: delivery question <label><input type="checkbox" class="pick" value="6"> Select ticket 6</label></li>
+      <li id="t7">Ticket 7: delivery question <label><input type="checkbox" class="pick" value="7"> Select ticket 7</label></li>
+      <li id="t8">Ticket 8: delivery question <label><input type="checkbox" class="pick" value="8"> Select ticket 8</label></li>
+      <li id="t9">Ticket 9: delivery question <label><input type="checkbox" class="pick" value="9"> Select ticket 9</label></li>
+      <li id="t10">Ticket 10: delivery question <label><input type="checkbox" class="pick" value="10"> Select ticket 10</label></li>
+    </ul>
+    <dialog id="confirm"><p>Archive these tickets?</p>
+      <button type="button" id="yes">Yes, archive</button>
+      <button type="button" class="secondary" id="no">Cancel</button></dialog>
+    <div id="result"></div>
+  </main>
+  <script>
+    const dialog = document.getElementById('confirm');
+    const archived = new Set();
+    let pending = [];
+    document.getElementById('all').addEventListener('change', (e) => {
+      document.querySelectorAll('.pick').forEach((c) => { c.checked = e.target.checked; });
+    });
+    document.getElementById('archive-selected').addEventListener('click', () => {
+      pending = [...document.querySelectorAll('.pick:checked')].map((c) => c.value);
+      if (pending.length) dialog.showModal();
+    });
+    document.getElementById('no').addEventListener('click', () => dialog.close());
+    document.getElementById('yes').addEventListener('click', () => {
+      dialog.close();
+      if (!pending.length) return;
+      fetch('api/tickets', { method: 'POST', body: pending.join(',') });  // not awaited
+      pending.forEach((id) => { archived.add(id); document.getElementById('t' + id).remove(); });
+      pending = [];
+      if (archived.size === 10) document.getElementById('result').innerHTML = '<h2>All tickets archived</h2>';
+    });
+  </script>
+</body>
+</html>

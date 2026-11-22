@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Insurance claim – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Make an insurance claim</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="policy">Policy number</label>
+        <input type="text" id="policy">
+        <p><a href="#policy-help" id="help-link">Where do I find my policy number?</a></p>
+        <p id="policy-help" class="hint" hidden>Your policy number is on your policy letter. It starts with POL-, for example POL-1234567.</p>
+      </div>
+      <div class="field">
+        <label for="what">What happened</label>
+        <textarea id="what"></textarea>
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Make a claim</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('help-link').addEventListener('click', (e) => {
+      e.preventDefault();
+      document.getElementById('policy-help').hidden = false;
+    });
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const policy = document.getElementById('policy').value.trim().toUpperCase();
+      const what = document.getElementById('what').value.trim();
+      if (!/^POL-\d{7}$/.test(policy) || !what) {
+        document.getElementById('error').textContent = 'That policy number is not valid.';
+        return;
+      }
+      submit('api/claim', policy, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Claim received</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

@@ -21,6 +21,7 @@ import http.server
 import re
 import sys
 import threading
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 
@@ -409,6 +410,84 @@ def failure_leaves_page_unchanged(page: Page, posts: list[str]) -> bool:
     return page.locator("body").aria_snapshot() == before
 
 
+def with_clock(page: Page) -> None:
+    """Restart the page on Playwright's fake clock, so its timers can be run."""
+    page.clock.install()
+    page.reload()
+
+
+@check("B26")
+def session_ends_without_warning(page: Page, posts: list[str]) -> bool:
+    with_clock(page)
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.clock.run_for(9 * 60 * 1000)  # past the clean page's 8-minute warning
+    return page.get_by_role("alertdialog").count() == 0
+
+
+@check("B27")
+def reload_restarts_survey(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Every week").check()
+    page.get_by_role("button", name="Next").click()
+    page.get_by_label("Card").wait_for()
+    page.reload()
+    return page.get_by_label("Every week").is_visible()
+
+
+@check("B30")
+def no_help_on_claim_form(page: Page, posts: list[str]) -> bool:
+    help_words = re.compile(r"help|where do i|contact|faq", re.IGNORECASE)
+    return page.get_by_role("link", name=help_words).count() == 0
+
+
+@check("B31")
+def contact_link_moves_and_goes(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Tracking number").fill("SP-48213")
+    page.get_by_role("button", name="Next").click()
+    page.get_by_label("Saturday").check()
+    page.get_by_role("button", name="Next").click()
+    page.get_by_role("button", name="Confirm change").wait_for()
+    return page.get_by_role("link", name="Contact us").count() == 0
+
+
+@check("B32")
+def save_button_renamed(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Send me email receipts").check()
+    page.get_by_role("button", name="Save").click()
+    return page.get_by_role("button", name="Apply").is_visible()
+
+
+@check("B33")
+def navigation_reorders(page: Page, posts: list[str]) -> bool:
+    nav = page.get_by_role("navigation", name="Shop")
+    before = nav.inner_text()
+    nav.get_by_role("link", name="Toasters").click()
+    return nav.inner_text() != before
+
+
+@check("B34")
+def enter_does_not_submit(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Item name").fill("Kettle")
+    page.get_by_label("Quantity").fill("3")
+    page.get_by_label("Quantity").press("Enter")
+    page.wait_for_timeout(500)
+    return not posts
+
+
+@check("B35")
+def no_select_all(page: Page, posts: list[str]) -> bool:
+    return page.get_by_label("Select all").count() == 0
+
+
+@check("B36")
+def short_limit_and_tiny_prompt(page: Page, posts: list[str]) -> bool:
+    with_clock(page)
+    page.clock.run_for(45 * 1000)
+    more = page.get_by_role("button", name="Yes, more time")
+    if not more.count():
+        return False
+    return more.bounding_box()["height"] < 24
+
+
 # --- happy paths: every task in tasks.yaml reaches its goal on both pages ---
 
 
@@ -592,6 +671,91 @@ def send_reading(page: Page, double: bool = False) -> None:
     press(page.get_by_role("button", name="Send reading"), double)
 
 
+@happy("application")
+def apply_for_permit(page: Page, double: bool = False) -> None:
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.get_by_label("National ID number").fill("35202-1234567-1")
+    press(page.get_by_role("button", name="Submit application"), double)
+
+
+@happy("survey")
+def answer_survey(page: Page, double: bool = False) -> None:
+    for answer in ("Every week", "Card", "Good"):
+        page.get_by_label(answer, exact=True).check()
+        page.get_by_role("button", name="Next").click()
+    page.get_by_label("Yes", exact=True).check()
+    press(page.get_by_role("button", name="Finish"), double)
+
+
+@happy("claim")
+def make_claim(page: Page, double: bool = False) -> None:
+    page.get_by_label("Policy number").fill("POL-1234567")
+    page.get_by_label("What happened").fill("I dropped my phone and the screen broke.")
+    press(page.get_by_role("button", name="Make a claim"), double)
+
+
+@happy("support")
+def change_delivery(page: Page, double: bool = False) -> None:
+    page.get_by_label("Tracking number").fill("SP-48213")
+    page.get_by_role("button", name="Next").click()
+    page.get_by_label("Saturday").check()
+    page.get_by_role("button", name="Next").click()
+    press(page.get_by_role("button", name="Confirm change"), double)
+
+
+@happy("settings")
+def save_all_settings(page: Page, double: bool = False) -> None:
+    save = re.compile(r"^(Save|Apply|Update)$")
+    for i, option in enumerate(
+        [
+            "Send me email receipts",
+            "Hide my reviews from other shoppers",
+            "Tell me about offers by email",
+        ]
+    ):
+        page.get_by_label(option).check()
+        button = page.get_by_role("button", name=save)
+        if i < 2:
+            button.click()
+        else:
+            press(button, double)
+
+
+@happy("store")
+def check_out_toaster(page: Page, double: bool = False) -> None:
+    nav = page.get_by_role("navigation", name="Shop")
+    nav.get_by_role("link", name="Toasters").click()
+    nav.get_by_role("link", name="Basket").click()
+    press(page.get_by_role("button", name="Check out"), double)
+
+
+@happy("quickadd")
+def add_stock(page: Page, double: bool = False) -> None:
+    page.get_by_label("Item name").fill("Kettle")
+    page.get_by_label("Quantity").fill("3")
+    press(page.get_by_role("button", name="Add item"), double)
+
+
+@happy("bulk")
+def archive_all(page: Page, double: bool = False) -> None:
+    if page.get_by_label("Select all").count():
+        page.get_by_label("Select all").check()
+        page.get_by_role("button", name="Archive selected").click()
+        press(page.get_by_role("button", name="Yes, archive"), double)
+        return
+    for i in range(1, 11):
+        page.get_by_role("button", name=f"Archive ticket {i}", exact=True).click()
+        press(page.get_by_role("button", name="Yes, archive"), double and i == 10)
+
+
+@happy("appointment")
+def book_appointment(page: Page, double: bool = False) -> None:
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.get_by_label("Phone number").fill("03001234567")
+    page.get_by_label("Preferred date").fill("2 December")
+    press(page.get_by_role("button", name="Book appointment"), double)
+
+
 # --- runner ----------------------------------------------------------------
 
 
@@ -651,10 +815,12 @@ def _completes(browser: Browser, base: str, name: str, task: dict) -> bool:
 
 
 def _submissions_on_double_press(browser: Browser, base: str, name: str, task: dict) -> int:
-    """Submissions sent when the final press is doubled. Every POST is held
-    unanswered until both presses are done, as a slow server would, so a page
-    that hides its form once answered still shows whether it guards the
-    second press. Without the hold the result depends on timing."""
+    """The most times one request (same URL and body) is sent when the final
+    press is doubled: two means a duplicate submission. Flows that send
+    several different requests (a save per screen) still count 1. Every POST
+    is held unanswered until both presses are done, as a slow server would,
+    so a page that hides its form once answered still shows whether it guards
+    the second press. Without the hold the result depends on timing."""
     page = browser.new_page()
     held = []
 
@@ -672,7 +838,8 @@ def _submissions_on_double_press(browser: Browser, base: str, name: str, task: d
         for route in held:
             route.fulfill(status=200, body="ok")
         reached_goal(page, task["goal"]["role"], task["goal"]["name"])
-        return len(held)
+        sent = Counter((r.request.url, r.request.post_data) for r in held)
+        return max(sent.values(), default=0)
     finally:
         page.close()
 

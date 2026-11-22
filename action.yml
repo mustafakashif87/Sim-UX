@@ -1,0 +1,76 @@
+name: SimUX audit
+description: >-
+  Run SimUX persona agents on your pages and fail the job when a finding
+  reaches the configured severity. Findings are written to findings.json and
+  shown in the job summary.
+branding:
+  icon: user-check
+  color: green
+
+inputs:
+  config:
+    description: Path to the .simux.yaml file
+    default: .simux.yaml
+  out:
+    description: Where to write findings.json
+    default: findings.json
+  llm-provider:
+    description: groq, openrouter, gemini or ollama
+    default: groq
+  llm-api-key:
+    description: API key for the provider (pass a secret)
+    default: ""
+  llm-model:
+    description: Model name (default is the provider's default in agent/llm.py)
+    default: ""
+  upload:
+    description: Upload findings.json and the run logs as an artifact
+    default: "true"
+
+outputs:
+  failed:
+    description: "'true' when a finding reached fail_on"
+    value: ${{ steps.audit.outputs.failed }}
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-python@v7
+      with:
+        python-version: "3.12"
+    # Editable, so personas/ and grounding/ are read from the action's checkout.
+    - shell: bash
+      run: pip install -e "${{ github.action_path }}[browser]"
+    - shell: bash
+      run: playwright install --with-deps --only-shell chromium
+    - id: audit
+      shell: bash
+      env:
+        LLM_PROVIDER: ${{ inputs.llm-provider }}
+        LLM_API_KEY: ${{ inputs.llm-api-key }}
+        LLM_MODEL: ${{ inputs.llm-model }}
+        CONFIG: ${{ inputs.config }}
+        OUT: ${{ inputs.out }}
+      run: |
+        [ -n "$LLM_MODEL" ] || unset LLM_MODEL
+        set +e
+        simux run --config "$CONFIG" --out "$OUT" --logs "$RUNNER_TEMP/simux-logs" \
+          --summary "$GITHUB_STEP_SUMMARY"
+        code=$?
+        set -e
+        if [ "$code" = 1 ]; then echo "failed=true" >> "$GITHUB_OUTPUT"; else echo "failed=false" >> "$GITHUB_OUTPUT"; fi
+        echo "code=$code" >> "$GITHUB_OUTPUT"
+    - if: inputs.upload == 'true' && always()
+      uses: actions/upload-artifact@v7
+      with:
+        name: simux-findings-${{ github.job }}-${{ strategy.job-index || 0 }}
+        path: |
+          ${{ inputs.out }}
+          ${{ runner.temp }}/simux-logs/
+        retention-days: 30
+    - shell: bash
+      env:
+        CODE: ${{ steps.audit.outputs.code }}
+      run: |
+        if [ "$CODE" = 1 ]; then echo "::error::SimUX findings reached fail_on; see the job summary"; exit 1; fi
+        if [ "$CODE" != 0 ]; then echo "::error::SimUX could not complete any run (exit $CODE)"; exit "$CODE"; fi

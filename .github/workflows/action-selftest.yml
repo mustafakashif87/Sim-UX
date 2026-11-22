@@ -1,0 +1,44 @@
+name: Action self-test
+
+# Proves the SimUX GitHub Action (action.yml) gates a pull request: it must
+# fail on the seeded double-submit page (order-a) and pass on its clean twin
+# (order-b). Scripted model, so no API key is needed.
+
+on:
+  pull_request:
+    paths: [action.yml, agent/**, grounding/**, personas/**, examples/action-fixture/**, .github/workflows/action-selftest.yml]
+  push:
+    branches: [main]
+    paths: [action.yml, agent/**, grounding/**, personas/**, examples/action-fixture/**]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  selftest:
+    name: Action fails on order-a, passes on order-b
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - id: buggy
+        uses: ./
+        continue-on-error: true
+        with:
+          config: examples/action-fixture/order-a.simux.yaml
+          out: out/order-a.json
+      - id: clean
+        uses: ./
+        with:
+          config: examples/action-fixture/order-b.simux.yaml
+          out: out/order-b.json
+      - name: Check the outcomes
+        env:
+          BUGGY: ${{ steps.buggy.outcome }}
+          FAILED: ${{ steps.buggy.outputs.failed }}
+        run: |
+          echo "order-a: $BUGGY (failed=$FAILED)"
+          [ "$BUGGY" = failure ] && [ "$FAILED" = true ] || { echo "::error::the Action did not fail on order-a"; exit 1; }
+          grep -q duplicate_submission out/order-a.json
+          ! grep -q '"signal"' out/order-b.json

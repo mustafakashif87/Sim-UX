@@ -51,7 +51,25 @@ SCENARIOS = {
             click("Create account"),
         ],
     ),
+    "B2": (  # a mistyped email: no @
+        p1(),
+        [type_into("Email address", "sam.khan.example.com"), click("Subscribe")],
+    ),
     "B4": (p1(double_submit_rate=1.0), [click("Place order")]),  # a double press
+    "B5": (p1(), [click("Delete account"), click("Yes, delete my account")]),
+    "B6": (  # the persona types what each step asks for, as the task gives it
+        p1(),
+        [
+            type_into("Full name", "Sam Khan"),
+            type_into("Street address", "12 Canal Road"),
+            type_into("City", "Lahore"),
+            click("Continue"),
+            click("Continue"),
+            type_into("Billing street address", "12 Canal Road"),
+            type_into("Billing city", "Lahore"),
+            click("Place order"),
+        ],
+    ),
 }
 
 

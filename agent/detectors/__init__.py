@@ -93,9 +93,20 @@ def detect(run: RunLog) -> list[Finding]:
     if run.meta.get("status") == "aborted_provider":
         return []
     from agent.detectors.data_loss import data_loss_on_error
+    from agent.detectors.destructive import destructive_without_confirm
     from agent.detectors.duplicate_submission import duplicate_submission
+    from agent.detectors.error_not_identified import error_not_identified
+    from agent.detectors.no_way_back import no_way_back
+    from agent.detectors.redundant_entry import redundant_entry
 
-    detectors: list[Detector] = [data_loss_on_error, duplicate_submission]
+    detectors: list[Detector] = [
+        data_loss_on_error,
+        error_not_identified,
+        duplicate_submission,
+        destructive_without_confirm,
+        no_way_back,
+        redundant_entry,
+    ]
     return [f for d in detectors if (f := d(run)) is not None]
 
 

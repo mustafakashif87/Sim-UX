@@ -19,7 +19,7 @@ there, or CI fails.
 | B3 | `callback-a.html` | `callback-b.html` | P1 Error-prone | `error_not_actionable` | #9 | 3.3.3 Error Suggestion | Every error says only "Invalid input." (the alert and `aria-invalid` are still there); it never names the field or the fix |
 | B4 | `order-a.html` | `order-b.html` | P1 Error-prone | `duplicate_submission` | #5 | 3.3.4 Error Prevention | "Place order" is not disabled after the first press, so a double press sends two orders |
 | B5 | `account-a.html` | `account-b.html` | P1 Error-prone | `destructive_without_confirm` | #5, #3 | 3.3.4 Error Prevention | "Delete account" deletes at once; the clean page asks in a dialog first |
-| B6 | `checkout-a.html` | `checkout-b.html` | P1 Error-prone | none yet (see note) | open | 3.3.7 Redundant Entry | Step 3 asks for the billing address with empty fields; the clean page pre-fills it from step 1 |
+| B6 | `checkout-a.html` | `checkout-b.html` | P1 Error-prone | `redundant_entry` | #6 | 3.3.7 Redundant Entry | Step 3 asks for the billing address with empty fields; the clean page pre-fills it from step 1 |
 | B7 | `returns-a.html` | `returns-b.html` | P2 Memoryless | `recall_required` | #6 | 3.3.2 Labels or Instructions | The return reference shown on step 1 must be typed on step 3, which does not show it again; the clean page repeats it beside the field |
 | B8 | `renew-a.html` | `renew-b.html` | P2 Memoryless | `lost_location` | #1 | 2.4.2 Page Titled | All three steps of the wizard keep one `<title>` ("SimShop Plus – SimShop"); the clean page names the step in the title |
 | B9 | `upgrade-a.html` | `upgrade-b.html` | P2 Memoryless | `no_progress_indicator` | #1 | 2.4.6 Headings and Labels | Every step of the wizard has the heading "Change your plan" and no "Step N of 3"; the clean page's headings name each step and its number |
@@ -49,13 +49,10 @@ which the harness answers (`Task.endpoint`). **Serve the pages over HTTP**
 give-up. Checked with the real loop and the fake model: over HTTP, correct runs
 succeed on every page with no findings.
 
-**Open: B6 has no P1 signal yet.** The spec lists B6 among P1's seeded bugs,
-but none of the six P1 signals covers it: `data_loss_on_error` needs an error
-response, and here the fields are simply empty on a new step. A candidate is a
-deterministic `redundant_entry` signal: a value the persona typed on an
-earlier step must be typed again later in the same flow (WCAG 3.3.7). To
-decide with Person B before the evaluation runs; until then B6 counts only
-toward the persona's step cost, not recall.
+**B6 uses `redundant_entry`** (decided 22 Nov 2026): a value the persona
+typed on an earlier step is typed again into an empty field with a different
+name later in the same flow (WCAG 3.3.7). It is deterministic and reads the
+intended `type` actions, so a typo does not hide the repeat.
 
 ## What each bug looks like to the harness
 

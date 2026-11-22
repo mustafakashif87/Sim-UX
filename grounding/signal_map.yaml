@@ -36,6 +36,10 @@ signals:
     source: error_prone
     type: deterministic
     criteria: ["Nielsen 3"]
+  redundant_entry:
+    source: error_prone
+    type: deterministic
+    criteria: ["WCAG 3.3.7", "Nielsen 6"]
 
   # P2 Memoryless first-time user (memoryless) -- config and seeded bugs only
   recall_required:

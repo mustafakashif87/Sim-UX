@@ -28,11 +28,13 @@ jobs:
         with:
           config: examples/action-fixture/order-a.simux.yaml
           out: out/order-a.json
+          artifact-name: simux-order-a
       - id: clean
         uses: ./
         with:
           config: examples/action-fixture/order-b.simux.yaml
           out: out/order-b.json
+          artifact-name: simux-order-b
       - name: Check the outcomes
         env:
           BUGGY: ${{ steps.buggy.outcome }}

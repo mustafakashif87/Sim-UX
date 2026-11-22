@@ -15,6 +15,10 @@ P7 low_vision_zoom: reflow_failure (B20), focus_obscured (B21),
 text_clipped (B22).
 P8 skimmer: key_info_buried (B23), cta_below_fold (B24),
 headings_not_descriptive (B25; rule-based, see below).
+P6 touch_imprecise: target_too_small (B19), mis_tap_consequence (B18); it
+also uses P7's reflow_failure.
+P10 slow_network: no_loading_feedback (B28), network_failure_silent (B29); it
+also uses P1's duplicate_submission.
 """
 
 import re
@@ -270,6 +274,78 @@ def headings_not_descriptive(run: RunLog) -> Finding | None:
     return make_finding(run, "headings_not_descriptive", [0]) if len(vague) >= 2 else None
 
 
+# --- P6 mobile touch -------------------------------------------------------------
+
+MIN_TARGET_PX = 24  # WCAG 2.5.8
+
+
+def target_too_small(run: RunLog) -> Finding | None:
+    """A mis-tap happened on a target smaller than 24 CSS px on a side
+    (WCAG 2.5.8)."""
+    evidence = []
+    for step in run.steps:
+        k = step.step
+        facts = run.facts[k] if k < len(run.facts) else None
+        if step.perturbation != "mis_tap" or not facts:
+            continue
+        box = facts["boxes"].get(step.intended_action.ref)
+        if box and min(box[2], box[3]) < MIN_TARGET_PX:
+            evidence.append(k)
+    return make_finding(run, "target_too_small", evidence) if evidence else None
+
+
+def mis_tap_consequence(run: RunLog) -> Finding | None:
+    """A mis-tap landed on another control and sent a request or changed a
+    selection, with nothing asked first (WCAG 3.3.4)."""
+    sent = {s.step for s in run.submissions}
+    for step in run.steps:
+        ex = step.executed_action
+        if step.perturbation != "mis_tap" or ex is None or ex.ref == step.intended_action.ref:
+            continue
+        roles = {n.ref: n.role for n in walk(_tree(run, step.step)) if n.ref}
+        if step.step in sent or roles.get(ex.ref) in ("radio", "checkbox", "option"):
+            return make_finding(run, "mis_tap_consequence", [step.step])
+    return None
+
+
+# --- P10 slow connection ---------------------------------------------------------
+
+
+def _network(run: RunLog, i: int) -> dict:
+    return (run.network[i] if i < len(run.network) else None) or {}
+
+
+def no_loading_feedback(run: RunLog) -> Finding | None:
+    """After a click, the request was still waiting and the page showed no
+    change at all: no busy state, status or disabled button (WCAG 4.1.3).
+    The loop checks this right after each click (`silent_waits`); a look at
+    a later step that finds the request pending and the page unchanged also
+    counts."""
+    for i in range(1, len(run.observations)):
+        if _network(run, i).get("silent_waits", 0) > _network(run, i - 1).get("silent_waits", 0):
+            return make_finding(run, "no_loading_feedback", [i - 1])
+    for k in sorted({s.step for s in run.submissions}):
+        if not _network(run, k + 1).get("pending"):
+            continue
+        before = run.full_trees[k] if k < len(run.full_trees) else None
+        after = run.full_trees[k + 1] if k + 1 < len(run.full_trees) else None
+        if before is not None and before == after:
+            return make_finding(run, "no_loading_feedback", [k])
+    return None
+
+
+def network_failure_silent(run: RunLog) -> Finding | None:
+    """A submission failed and the page looks exactly as it did before the
+    press: nothing says it did not go through (WCAG 4.1.3)."""
+    for i in range(1, len(run.observations)):
+        if _network(run, i).get("failed", 0) > _network(run, i - 1).get("failed", 0):
+            before = run.full_trees[i - 1] if i - 1 < len(run.full_trees) else None
+            after = run.full_trees[i] if i < len(run.full_trees) else None
+            if before is not None and before == after:
+                return make_finding(run, "network_failure_silent", [i - 1])
+    return None
+
+
 DETECTORS = [
     status_not_announced,
     non_semantic_control,
@@ -286,4 +362,8 @@ DETECTORS = [
     key_info_buried,
     cta_below_fold,
     headings_not_descriptive,
+    target_too_small,
+    mis_tap_consequence,
+    no_loading_feedback,
+    network_failure_silent,
 ]

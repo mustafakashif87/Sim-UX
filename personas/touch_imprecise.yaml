@@ -1,0 +1,19 @@
+# P6 Mobile touch user. Catalogue: "P6 Mobile touch user".
+# A phone (iPhone 13 viewport, touch, mobile user agent); taps on small
+# targets can land on a neighbour or miss (mis_tap, Fitts's law).
+id: touch_imprecise
+environment:
+  device: "iPhone 13"
+perception:
+  filters: [full_tree]
+actions:
+  allowed: [click, type, scroll, back]
+memory:
+  history_turns: 3
+  max_steps: 20
+perturbation:
+  seed: 1234
+  mis_tap_base_rate: 0.05
+  mis_tap_cap: 0.40
+  mis_tap_reach_px: 12
+task_types: [complete_form]

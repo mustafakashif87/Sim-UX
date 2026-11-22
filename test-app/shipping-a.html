@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delivery – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .opt { display: block; height: 18px; line-height: 18px; margin: 0; font-size: 14px; }
+    .opt input { width: 14px; height: 14px; margin: 2px 4px 0 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Delivery</h1>
+    <form id="form" novalidate>
+      <fieldset class="field">
+        <legend>Delivery speed</legend>
+        <label class="opt"><input type="radio" name="speed" value="standard"> Standard (free)</label>
+        <label class="opt"><input type="radio" name="speed" value="express"> Express ($9.99)</label>
+      </fieldset>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Pay now</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const speed = document.querySelector('input[name=speed]:checked');
+      if (!speed) {
+        document.getElementById('error').textContent = 'Choose a delivery speed.';
+        return;
+      }
+      submit('api/shipping', speed.value, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = speed.value === 'standard'
+          ? '<h2>Paid with free delivery</h2>' : '<h2>Paid with express delivery</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

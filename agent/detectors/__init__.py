@@ -49,6 +49,7 @@ class RunLog:
     # never saw. None where not logged.
     full_trees: list[str | None] = field(default_factory=list)
     facts: list[dict | None] = field(default_factory=list)
+    network: list[dict | None] = field(default_factory=list)  # pending, failed, sent
 
 
 def load_run(log_dir: Path) -> RunLog:
@@ -66,6 +67,7 @@ def load_run(log_dir: Path) -> RunLog:
         titles=[e.get("title") for e in observations],
         full_trees=[e.get("full_tree") for e in observations],
         facts=[e.get("page") for e in observations],
+        network=[e.get("network") for e in observations],
     )
 
 

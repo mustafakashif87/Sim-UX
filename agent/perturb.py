@@ -13,6 +13,13 @@ Mistakes follow Reason's error taxonomy (spec: P1 Error-prone user):
 | skip_field    | lapse | type              | the action is dropped; field left as is |
 | double_submit | slip  | click on a button | the click is executed twice             |
 | back_press    | slip  | any but back      | a back press happens instead            |
+| mis_tap       | slip  | click, with boxes | lands on the nearest neighbour, or misses |
+
+`mis_tap` (P6) needs the targets' bounding boxes, which the loop passes for
+extension personas. Its chance grows as the target shrinks:
+p = min(cap, base_rate * 44 / smaller side in CSS px) (Fitts's law; 44 px is
+the platform guideline size). `impatient_retry` (P10) depends on what the
+page did after the click, so the loop applies it (agent/loop.py).
 
 At most one mistake per step, because a StepRecord has one `perturbation`.
 One uniform draw per step is split into bands, one per mistake that applies,
@@ -31,6 +38,9 @@ TYPO = "typo"
 SKIP_FIELD = "skip_field"
 DOUBLE_SUBMIT = "double_submit"
 BACK_PRESS = "back_press"
+MIS_TAP = "mis_tap"
+IMPATIENT_RETRY = "impatient_retry"
+GUIDELINE_PX = 44
 
 
 @dataclass(frozen=True)
@@ -56,17 +66,50 @@ class Perturber:
         self.seed = config.seed if seed is None else seed
         self._rng = random.Random(self.seed)
 
-    def apply(self, action: Action, refs: RefMap) -> Perturbed:
+    def apply(self, action: Action, refs: RefMap, boxes: dict | None = None) -> Perturbed:
+        """`boxes` maps refs to [x, y, width, height] (extension runs only)."""
         if action.action == "give_up":
             return Perturbed(action)
         draw = self._rng.random()
-        for name, rate in self._candidates(action, refs):
+        for name, rate in self._candidates(action, refs, boxes):
             if draw < rate:
+                if name == MIS_TAP:
+                    return self._mis_tap(action, refs, boxes)
                 return self._inject(name, action)
             draw -= rate
         return Perturbed(action)
 
-    def _candidates(self, action: Action, refs: RefMap) -> list[tuple[str, float]]:
+    def _mis_tap_rate(self, action: Action, boxes: dict | None) -> float:
+        c = self.config
+        box = (boxes or {}).get(action.ref)
+        if not c.mis_tap_base_rate or not box or min(box[2], box[3]) <= 0:
+            return 0.0
+        return min(c.mis_tap_cap, c.mis_tap_base_rate * GUIDELINE_PX / min(box[2], box[3]))
+
+    def _mis_tap(self, action: Action, refs: RefMap, boxes: dict) -> Perturbed:
+        """The tap lands on the nearest other operable element within reach,
+        or on empty space (nothing happens)."""
+        from agent.actions import INTERACTIVE_ROLES
+
+        x, y, w, h = boxes[action.ref]
+        cx, cy = x + w / 2, y + h / 2
+        reach = self.config.mis_tap_reach_px
+        best = None
+        for ref, (bx, by, bw, bh) in boxes.items():
+            if ref == action.ref or ref not in refs or refs[ref].role not in INTERACTIVE_ROLES:
+                continue
+            gap = max(bx - (x + w), x - (bx + bw), by - (y + h), y - (by + bh), 0)
+            # nearest edge first, then nearest centre: where a thumb lands
+            centre = ((bx + bw / 2 - cx) ** 2 + (by + bh / 2 - cy) ** 2) ** 0.5
+            if gap <= reach and (best is None or (gap, centre, ref) < best):
+                best = (gap, centre, ref)
+        if best is None:
+            return Perturbed(None, MIS_TAP, times=0)  # tapped empty space
+        return Perturbed(action.model_copy(update={"ref": best[2]}), MIS_TAP)
+
+    def _candidates(
+        self, action: Action, refs: RefMap, boxes: dict | None = None
+    ) -> list[tuple[str, float]]:
         """The mistakes that apply to this action, in a fixed order."""
         c = self.config
         out = []
@@ -77,6 +120,8 @@ class Perturber:
         target = refs.get(action.ref) if action.ref else None
         if action.action == "click" and target is not None and target.role == "button":
             out.append((DOUBLE_SUBMIT, c.double_submit_rate))
+        if action.action == "click":
+            out.append((MIS_TAP, self._mis_tap_rate(action, boxes)))
         return out
 
     def _inject(self, name: str, action: Action) -> Perturbed:

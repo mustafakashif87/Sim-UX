@@ -116,3 +116,45 @@ class TestSchema:
         data["environment"]["device"] = "Nokia 3310"
         with pytest.raises(ValidationError, match="unknown device"):
             Persona.model_validate(data)
+
+
+class TestMisTap:
+    refs = {
+        "e1": RefTarget("button", "Increase quantity", 0, 0),
+        "e2": RefTarget("button", "Remove item", 0, 0),
+        "e3": RefTarget("button", "Go to checkout", 0, 0),
+        "e4": RefTarget("paragraph", None, 0, 0),
+    }
+    click_plus = Action(thought="", action="click", ref="e1")
+
+    def perturber(self, base=1.0, cap=1.0):
+        from agent.persona import Perturbation
+        from agent.perturb import Perturber
+
+        config = Perturbation(mis_tap_base_rate=base, mis_tap_cap=cap, mis_tap_reach_px=12)
+        return Perturber(config, seed=1)
+
+    def test_lands_on_the_nearest_neighbour(self):
+        # "+" at 58..74, "Remove" 4 px to its right, checkout 4 px below but farther off-centre
+        boxes = {"e1": [58, 208, 16, 16], "e2": [78, 208, 16, 16], "e3": [25, 228, 150, 44]}
+        out = self.perturber().apply(self.click_plus, self.refs, boxes)
+        assert out.perturbation == "mis_tap" and out.executed.ref == "e2"
+
+    def test_misses_when_nothing_is_in_reach(self):
+        boxes = {"e1": [0, 0, 44, 44], "e2": [100, 0, 44, 44]}
+        out = self.perturber().apply(self.click_plus, self.refs, boxes)
+        assert out.perturbation == "mis_tap" and out.executed is None and out.times == 0
+
+    def test_ignores_non_interactive_neighbours(self):
+        boxes = {"e1": [0, 0, 16, 16], "e4": [18, 0, 16, 16]}
+        assert self.perturber().apply(self.click_plus, self.refs, boxes).executed is None
+
+    def test_rate_grows_as_targets_shrink(self):
+        p = self.perturber(base=0.05, cap=0.4)
+        assert p._mis_tap_rate(self.click_plus, {"e1": [0, 0, 44, 44]}) == pytest.approx(0.05)
+        assert p._mis_tap_rate(self.click_plus, {"e1": [0, 0, 11, 44]}) == pytest.approx(0.2)
+        assert p._mis_tap_rate(self.click_plus, {"e1": [0, 0, 2, 2]}) == 0.4  # the cap
+
+    def test_no_boxes_no_mis_tap(self):
+        out = self.perturber().apply(self.click_plus, self.refs, None)
+        assert out.perturbation is None

@@ -32,7 +32,7 @@ from agent.ids import new_run_id
 from agent.llm import ProviderError
 from agent.perception import RefMap
 from agent.persona import Persona
-from agent.perturb import SKIP_FIELD, Perturbed, Perturber
+from agent.perturb import IMPATIENT_RETRY, SKIP_FIELD, Perturbed, Perturber
 from agent.tasks import Goal, Task  # noqa: F401  (Goal re-exported for callers)
 
 RunStatus = Literal["succeeded", "gave_up", "step_cap", "aborted_provider", "crashed"]
@@ -174,8 +174,12 @@ def _run(
 
     page.on("request", on_request)
     server = Server(persona.environment.network, perturber.seed)
+    # Its own stream, so P1 to P3 runs draw exactly as before.
+    retry_rng = random.Random(f"impatient-{perturber.seed}")
     if task.endpoint:
         page.route(task.endpoint, server.answer)
+        if persona.environment.network.latency_ms:
+            server.watch(page)
 
     try:
         page.goto(task.url)
@@ -198,6 +202,8 @@ def _run(
                 obs, refs = observe(
                     page, step, persona.perception.filters, notes, persona.perception, evidence
                 )
+                if evidence is not None:
+                    evidence["network"] = server.state()
                 obs_hash = observation_hash(obs)
                 content = _content_hash(obs)
                 last = steps[-1] if steps else None
@@ -234,8 +240,11 @@ def _run(
                     result = "invalid"
                     notes = [f"That action was not possible: {reason}."]
                 else:
-                    perturbed = perturber.apply(action, refs)
+                    boxes = (evidence or {}).get("page", {}).get("boxes")
+                    perturbed = perturber.apply(action, refs, boxes)
+                    server.before_click()
                     result = _execute(page, perturbed, refs)
+                    perturbed = _impatient_retry(page, perturbed, refs, server, retry_rng, persona)
                     notes = ["That action did not work."] if result == "error" else []
 
                 reached = goal_reached(page, task.goal.role, task.goal.name)
@@ -264,6 +273,8 @@ def _run(
                 final, _ = observe(
                     page, len(steps), persona.perception.filters, None, persona.perception, evidence
                 )
+                if evidence is not None:
+                    evidence["network"] = server.state()
                 entry = {
                     "step": len(steps),
                     "observation": final.model_dump(),
@@ -291,6 +302,23 @@ def _run(
         (log_dir / "run.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
 
     return RunResult(run_id, status, steps, log_dir, meta)
+
+
+def _impatient_retry(page: Page, perturbed: Perturbed, refs: RefMap, server, rng, persona):
+    """P10's slip: a click sent a request that is still waiting and the page
+    shows no change, so the user presses again, at `impatient_retry_rate`.
+    Applied after the click, because it depends on what the page did."""
+    rate = persona.perturbation.impatient_retry_rate
+    action = perturbed.executed
+    if perturbed.times != 1 or action is None or action.action != "click":
+        return perturbed
+    if not server.waiting() or not server.unchanged_since_click(page):
+        return perturbed
+    server.silent_waits += 1  # evidence for no_loading_feedback, retry or not
+    if not rate or rng.random() >= rate:
+        return perturbed
+    act(page, action, refs, timeout_ms=SECOND_CLICK_TIMEOUT_MS)
+    return Perturbed(action, IMPATIENT_RETRY, times=2)
 
 
 def _execute(page: Page, perturbed: Perturbed, refs: RefMap) -> Literal["ok", "error"]:
@@ -349,14 +377,47 @@ class Server:
         self.fail_rate = network.fail_rate
         self._rng = random.Random(f"network-{seed}")
         self._held: list[tuple[float, object]] = []
+        self.failed = 0
+        self.sent = 0
+        # Clicks after which a request waited and the page showed no change.
+        self.silent_waits = 0
+        self._tree_before_click: str | None = None
+        self._page = None
 
     def answer(self, route) -> None:
+        self.sent += 1
         if self.fail_rate and self._rng.random() < self.fail_rate:
+            self.failed += 1
             route.abort("failed")
         elif self.latency_s:
             self._held.append((time.monotonic() + self.latency_s, route))
         else:
             _fulfill(route)
+
+    def watch(self, page) -> None:
+        """Remember the page, so the tree before each click can be kept."""
+        self._page = page
+
+    def before_click(self) -> None:
+        if self._page is not None:
+            self._tree_before_click = _tree_now(self._page)
+
+    def waiting(self) -> bool:
+        return bool(self._held)
+
+    def unchanged_since_click(self, page) -> bool:
+        """The page looks as it did before the click that sent the request."""
+        before = self._tree_before_click
+        return before is not None and _tree_now(page) == before
+
+    def state(self) -> dict:
+        """Logged with each observation for the P10 detectors."""
+        return {
+            "pending": len(self._held),
+            "failed": self.failed,
+            "sent": self.sent,
+            "silent_waits": self.silent_waits,
+        }
 
     def release_due(self) -> bool:
         """Answer every held request that has fallen due; True if any."""
@@ -371,6 +432,13 @@ class Server:
         held, self._held = self._held, []
         for _, route in held:
             _fulfill(route)
+
+
+def _tree_now(page) -> str | None:
+    try:
+        return page.locator("body").aria_snapshot(timeout=1000)
+    except PlaywrightError:
+        return None
 
 
 def _fulfill(route) -> None:

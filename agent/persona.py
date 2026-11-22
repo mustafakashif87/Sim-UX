@@ -109,7 +109,8 @@ class Perturbation(Config):
     mis_tap_base_rate: float = Rate
     mis_tap_cap: float = Rate
     mis_tap_reach_px: int = Field(default=12, ge=0)
-    # P10: after a click that sends a request, click again while it is pending.
+    # P10: when a click that sent a request leaves the page unchanged, click
+    # again (the slip of a user who thinks the first press did not register).
     impatient_retry_rate: float = Rate
 
     @model_validator(mode="after")
@@ -117,7 +118,7 @@ class Perturbation(Config):
         # At most one mistake per step (agent/perturb.py), so the rates that
         # can hit the same action must fit in one draw.
         typing = self.back_press_rate + self.skip_field_rate + self.typo_rate
-        clicking = self.back_press_rate + self.double_submit_rate
+        clicking = self.back_press_rate + self.double_submit_rate + self.mis_tap_cap
         if max(typing, clicking) > 1 + 1e-9:  # tolerance: 0.33 + 0.56 + 0.11 > 1 in floats
             raise ValueError("rates that apply to the same action add up to more than 1")
         return self

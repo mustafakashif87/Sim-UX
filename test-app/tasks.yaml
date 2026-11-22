@@ -160,3 +160,29 @@
   text: Choose the Family plan, paid once a year.
   goal: {role: heading, name: Annual Family plan chosen}
   endpoint: "**/api/plan"
+
+# Extension personas P6 and P10 (B18, B19, B28, B29).
+
+- id: cart
+  pages: [cart-a.html, cart-b.html]
+  text: Change the number of kettles in your basket to 2, then go to checkout.
+  goal: {role: heading, name: Ready to pay}
+  endpoint: "**/api/checkout"
+
+- id: shipping
+  pages: [shipping-a.html, shipping-b.html]
+  text: Choose free standard delivery and pay.
+  goal: {role: heading, name: Paid with free delivery}
+  endpoint: "**/api/shipping"
+
+- id: payment
+  pages: [payment-a.html, payment-b.html]
+  text: Pay for your order once.
+  goal: {role: heading, name: Payment received}
+  endpoint: "**/api/payment"
+
+- id: upload
+  pages: [upload-a.html, upload-b.html]
+  text: Send the meter reading 48213.
+  goal: {role: heading, name: Reading sent}
+  endpoint: "**/api/reading"

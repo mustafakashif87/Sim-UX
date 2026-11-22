@@ -20,7 +20,7 @@ dev = [
     "httpx>=0.28.1",  # FastAPI's TestClient, for tests/test_api.py
     "lefthook>=2.2.2",
     "pytest>=9.2.0",
-    "ruff>=0.17.4",
+    "ruff>=0.17.5",
 ]
 browser = [
     # Capped: perception parses Playwright's accessibility snapshot, whose format

@@ -137,10 +137,14 @@ def all_detectors() -> dict[str, Detector]:
 
 def detectors_for(persona: str) -> list[Detector]:
     """The detectors of the signals this persona owns (`source` in the signal
-    map): each persona reports only its own signals (spec: persona tables)."""
-    return [
-        d for signal, d in all_detectors().items() if signal_map().entry(signal).source == persona
-    ]
+    map) or shares (`also`): each persona reports only its own signals (spec:
+    persona tables); P6, P10 and P14 reuse some of other personas'."""
+
+    def owns(signal: str) -> bool:
+        entry = signal_map().entry(signal)
+        return entry.source == persona or persona in entry.also
+
+    return [d for signal, d in all_detectors().items() if owns(signal)]
 
 
 def detect(run: RunLog) -> list[Finding]:

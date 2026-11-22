@@ -5,7 +5,7 @@
 # The base image ships Chromium and its system libraries for one Playwright
 # release. Keep its tag equal to the Playwright version pinned below (and
 # inside the cap in pyproject.toml), or the browser and the driver disagree.
-FROM mcr.microsoft.com/playwright/python:v1.63.0-noble
+FROM mcr.microsoft.com/playwright/python:v1.65.2-noble
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
@@ -23,7 +23,7 @@ COPY grounding/ grounding/
 COPY api/ api/
 COPY personas/ personas/
 COPY test-app/ test-app/
-RUN pip install -e ".[browser,api]" "playwright==1.63.0" \
+RUN pip install -e ".[browser,api]" "playwright==1.65.2" \
     && mkdir -p /data/logs \
     && chown -R pwuser /data /app
 

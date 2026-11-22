@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy policy – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .title { font-size: 1.6rem; font-weight: 700; margin: 16px 0; }
+    .page, .top { max-width: 640px; margin: 0 auto; padding: 0 16px; }
+    .skip { position: absolute; left: -999px; }
+    .skip:focus { left: 8px; top: 8px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <a class="skip" href="#form">Skip to accepting the policy</a>
+  <main>
+    <h1>Privacy policy</h1>
+    <section>
+      <h2>What we collect</h2>
+      <p>We collect the details you give us when you order, such as your name and address.</p>
+      <p>We use your address only to deliver orders and to send invoices you ask for.</p>
+      <p>We keep order records for six years, as the law on accounts requires.</p>
+      <p>We do not sell your details to anyone.</p>
+      <p>Payment details are handled by our payment provider and never stored by us.</p>
+      <p>You can ask for a copy of the details we hold about you at any time.</p>
+      <p>You can ask us to correct details that are wrong.</p>
+      <h2>How we use it</h2>
+      <p>You can ask us to delete your account; order records stay for six years.</p>
+      <p>We use cookies to keep you signed in and to remember your basket.</p>
+      <p>We do not use cookies for advertising.</p>
+      <p>We may email you about your orders; we email offers only if you agree.</p>
+      <p>You can stop offer emails with the link at the end of each email.</p>
+      <p>Our staff can see your details only when they need them to help you.</p>
+      <p>We check who can see your details every three months.</p>
+      <h2>Your rights</h2>
+      <p>If we lose any of your details, we will tell you within three days.</p>
+      <p>We store your details on servers in Pakistan.</p>
+      <p>We send details abroad only to deliver an order you asked to send abroad.</p>
+      <p>Children under thirteen may not open an account.</p>
+      <p>We change this policy when the law or our service changes.</p>
+      <p>We tell you about every change by email before it starts.</p>
+      <p>We collect the details you give us when you order, such as your name and address.</p>
+      <h2>Cookies and email</h2>
+      <p>We use your address only to deliver orders and to send invoices you ask for.</p>
+      <p>We keep order records for six years, as the law on accounts requires.</p>
+      <p>We do not sell your details to anyone.</p>
+      <p>Payment details are handled by our payment provider and never stored by us.</p>
+      <p>You can ask for a copy of the details we hold about you at any time.</p>
+      <p>You can ask us to correct details that are wrong.</p>
+      <p>You can ask us to delete your account; order records stay for six years.</p>
+      <h2>Security</h2>
+      <p>We use cookies to keep you signed in and to remember your basket.</p>
+      <p>We do not use cookies for advertising.</p>
+      <p>We may email you about your orders; we email offers only if you agree.</p>
+      <p>You can stop offer emails with the link at the end of each email.</p>
+      <p>Our staff can see your details only when they need them to help you.</p>
+      <p>We check who can see your details every three months.</p>
+      <p>If we lose any of your details, we will tell you within three days.</p>
+      <h2>Changes</h2>
+      <p>We store your details on servers in Pakistan.</p>
+      <p>We send details abroad only to deliver an order you asked to send abroad.</p>
+      <p>Children under thirteen may not open an account.</p>
+      <p>We change this policy when the law or our service changes.</p>
+      <p>We tell you about every change by email before it starts.</p>
+    </section>
+    <form id="form"><a href="#" id="accept">Accept the policy</a></form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('accept').addEventListener('click', (e) => {
+      e.preventDefault();
+      submit('api/policy', 'accepted', () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Policy accepted</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

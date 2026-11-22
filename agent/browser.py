@@ -133,14 +133,53 @@ def _focus_visible(page: Page) -> bool | None:
         return None
 
 
+# Page-wide facts for the extension detectors, read in one pass:
+# - scroll and client width (reflow_failure)
+# - focus_obscured: every probe point of the focused element hits something
+#   that is not it, its ancestor or its descendant (focus_obscured)
+# - clipped: text cut off by overflow hidden (text_clipped)
+# - pointer_only: visible, pointer-styled elements that no key can reach and
+#   that have no interactive role, nor a focusable ancestor (non-semantic
+#   controls; the keyboard sweep confirms click listeners over CDP)
+_FACTS_JS = """() => {
+  const de = document.documentElement;
+  const out = {scroll_width: de.scrollWidth, client_width: de.clientWidth,
+               scroll_y: Math.round(scrollY), focus_obscured: null, clipped: [], pointer_only: []};
+  const el = document.activeElement;
+  if (el && el !== document.body) {
+    const r = el.getBoundingClientRect();
+    const pts = [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 2, r.top + 2],
+                 [r.right - 2, r.bottom - 2]];
+    const inView = pts.filter(([x, y]) => x >= 0 && y >= 0 && x < innerWidth && y < innerHeight);
+    if (inView.length) {
+      out.focus_obscured = inView.every(([x, y]) => {
+        const hit = document.elementFromPoint(x, y);
+        return hit && hit !== el && !el.contains(hit) && !hit.contains(el);
+      });
+    }
+  }
+  const visible = (e) => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden';
+  for (const e of document.querySelectorAll('body *')) {
+    if (!visible(e)) continue;
+    const s = getComputedStyle(e);
+    if (s.overflowY === 'hidden' && e.scrollHeight > e.clientHeight + 2 && e.innerText.trim()) {
+      out.clipped.push(e.innerText.trim().slice(0, 120));
+    }
+    const role = e.getAttribute('role');
+    const operable = e.closest('a,button,label,input,select,textarea,[tabindex]');
+    if (s.cursor === 'pointer' && e.tabIndex < 0 && !role && !operable) {
+      const name = e.innerText || e.getAttribute('aria-label') || '';
+      out.pointer_only.push(name.trim().slice(0, 40));
+    }
+  }
+  return out;
+}"""
+
+
 def _page_facts(page: Page, nodes: list[Node], view: View | None) -> dict:
     """Facts detectors need about the page as a whole, logged per step."""
     try:
-        metrics = page.evaluate(
-            """() => ({scroll_width: document.documentElement.scrollWidth,
-                       client_width: document.documentElement.clientWidth,
-                       scroll_y: Math.round(scrollY)})"""
-        )
+        metrics = page.evaluate(_FACTS_JS)
     except PlaywrightError:
         metrics = {}
     boxes = {}

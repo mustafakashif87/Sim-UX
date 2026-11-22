@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Feedback – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Send us feedback</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="text">Your feedback</label>
+        <textarea id="text"></textarea>
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Send feedback</button>
+    </form>
+    <p id="msg" class="ok"></p>
+    <div id="again"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    const form = document.getElementById('form');
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const text = document.getElementById('text').value.trim();
+      if (!text) {
+        document.getElementById('error').textContent = 'Write your feedback first.';
+        return;
+      }
+      submit('api/feedback', text, () => {
+        form.hidden = true;
+        document.getElementById('msg').textContent = 'Thanks, your feedback was sent.';
+        document.getElementById('again').innerHTML =
+          '<button type="button" class="secondary">Send more feedback</button>';
+      });
+    });
+  </script>
+</body>
+</html>

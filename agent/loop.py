@@ -144,6 +144,7 @@ def _run(
         "condition": condition,
         "config_hash": persona.config_hash,
         "task": task.id,
+        "critical_text": task.critical_text,
         "page": page_name,
         "seed": perturber.seed,
         "model_id": model.model_id,

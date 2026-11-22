@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parking permit – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .notice { min-height: 72px; border: 1px solid #888; padding: 8px; line-height: 1.5; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Parking permit</h1>
+    <div class="notice">Your parking permit for Canal Road ends soon.
+      To keep parking there, renew it online.
+      Renew by 15 December 2026, or the permit stops.</div>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="date">Renew by date</label>
+        <input type="text" id="date" placeholder="for example 1 January 2027">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Request renewal</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const date = document.getElementById('date').value.trim().toLowerCase();
+      if (date !== '15 december 2026') {
+        document.getElementById('error').textContent = 'Enter the renew-by date from the notice.';
+        return;
+      }
+      submit('api/permit', date, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Renewal requested</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

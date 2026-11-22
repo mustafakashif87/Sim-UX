@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 from agent.detectors import detect, load_run
-from agent.fake_model import FakeModel, click, type_into
+from agent.fake_model import FakeModel, click, press, type_into
 from agent.loop import run
 from agent.persona import Persona, load_persona
 from agent.tasks import load_seeded_bugs, load_tasks, serve
@@ -125,6 +125,52 @@ SCENARIOS = {
         load_persona("low_literacy"),
         [type_into("Phone number", "0300 1234567"), click("Save")],
     ),
+    # P4 Screen-reader (B13 to B15)
+    "B13": (
+        load_persona("screen_reader"),
+        [type_into("Your feedback", "Fast delivery, thank you"), click("Send feedback")],
+    ),
+    "B14": (
+        load_persona("screen_reader"),
+        [click("UK 8", role="radio"), click("Add to basket")],
+    ),
+    "B15": (load_persona("screen_reader"), [click("Accept the policy", role="link")]),
+    # P5 Keyboard-only (B16, B17): Tab, then type where focus is
+    "B16": (
+        load_persona("keyboard_only"),
+        [
+            press("Tab"),
+            type_into("Lowest price", "20"),
+            press("Tab"),
+            press("Tab"),
+            type_into("Highest price", "50"),
+            press("Tab"),
+            press("Enter"),
+        ],
+    ),
+    "B17": (
+        load_persona("keyboard_only"),
+        [
+            press("Tab"),
+            press("Tab"),
+            type_into("Email address", "sam.khan@example.com"),
+            press("Tab"),
+            type_into("Password", "Kettle-2026"),
+            press("Tab"),
+            press("Enter"),
+        ],
+    ),
+    # P7 Low-vision (B20 to B22)
+    "B20": (load_persona("low_vision_zoom"), [click("Pay invoice")]),
+    "B21": (load_persona("low_vision_zoom"), [press("Tab"), press("Tab"), press("Tab")]),
+    "B22": (load_persona("low_vision_zoom"), []),
+    # P8 Skimmer (B23 to B25)
+    "B23": (
+        load_persona("skimmer"),
+        [type_into("Gift card code", "RCPT-5520"), click("Redeem")],
+    ),
+    "B24": (load_persona("skimmer"), [click("Start free trial")]),
+    "B25": (load_persona("skimmer"), [click("Choose Family, $7 a month")]),
 }
 
 

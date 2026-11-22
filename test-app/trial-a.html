@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SimShop Plus – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .carousel { height: 320px; background: #ddd; display: grid; place-items: center; margin: 16px 0; }
+    .promo { min-height: 260px; border: 1px solid #ccc; padding: 16px; margin: 16px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <section class="hero"><h1>SimShop Plus</h1>
+      <p>Free next-day delivery and early access to sales, free for 30 days.</p>
+    </section>
+    <div class="carousel">Photos of SimShop Plus members</div>
+    <section class="promo"><h2>Kettles for every kitchen</h2><p>From $25, with free delivery on orders over $50.</p></section>
+    <section class="promo"><h2>New: smart toasters</h2><p>Brown your bread the same way every morning.</p></section>
+    <section class="promo"><h2>Spring sale</h2><p>Up to 30% off cookware this week.</p></section>
+    <form id="form"><button type="submit">Start free trial</button></form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      submit('api/trial', 'plus', () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Trial started</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

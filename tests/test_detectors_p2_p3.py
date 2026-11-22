@@ -134,8 +134,8 @@ def test_each_persona_runs_only_its_own_detectors():
 
 
 def test_shared_detectors_follow_the_signal_map():
-    """`also:` in the signal map: P10 reuses P1's duplicate_submission and P6
-    reuses P7's reflow_failure."""
+    """`also:` in the signal map: P10 reuses P1's duplicate_submission, P6
+    reuses P7's reflow_failure, P14 reuses P9's and P6's detectors."""
     from agent.detectors import detectors_for
 
     def names(persona):
@@ -143,4 +143,5 @@ def test_shared_detectors_follow_the_signal_map():
 
     assert "duplicate_submission" in names("slow_network")
     assert "reflow_failure" in names("touch_imprecise")
+    assert {"data_lost_on_timeout", "target_too_small"} <= names("older_adult")
     assert "duplicate_submission" not in names("memoryless")

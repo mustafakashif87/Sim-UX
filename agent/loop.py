@@ -25,6 +25,7 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
 
 from agent.actions import validate
+from agent.behaviour import Escalation, Habit, World, klm_seconds, step_cap
 from agent.browser import act, goal_reached, observe, settle
 from agent.contracts import Action, Observation, StepRecord
 from agent.environment import environment_page
@@ -145,6 +146,7 @@ def _run(
         "config_hash": persona.config_hash,
         "task": task.id,
         "critical_text": task.critical_text,
+        "optimal_steps": task.optimal_steps,
         "page": page_name,
         "seed": perturber.seed,
         "model_id": model.model_id,
@@ -180,8 +182,14 @@ def _run(
         page.route(task.endpoint, server.answer)
         if persona.environment.network.latency_ms:
             server.watch(page)
+    world = World(persona.environment)
+    escalation = Escalation(persona.actions.escalation)
+    habit = Habit(persona.memory.prior_knowledge)
+    cap = step_cap(persona, task)
+    meta["step_cap"] = cap
 
     try:
+        world.install_clock(page)
         page.goto(task.url)
         settle(page)
         with (
@@ -189,8 +197,14 @@ def _run(
             open(log_dir / "observations.jsonl", "a", encoding="utf-8") as obs_log,
             open(log_dir / "network.jsonl", "a", encoding="utf-8") as net_log,
         ):
-            for step in range(persona.memory.max_steps):
+            for step in range(cap):
                 current["step"] = step
+                if escalation.out_of_budget(step):
+                    status = "step_cap"  # P11: the steps allowed after help ran out
+                    break
+                happened = world.before_step(page, step)
+                if happened:
+                    settle(page)
                 if server.release_due():
                     # A held response arrived while the persona waited: the
                     # page may now show the goal with no further action.
@@ -204,9 +218,16 @@ def _run(
                 )
                 if evidence is not None:
                     evidence["network"] = server.state()
+                    evidence |= happened or {}
+                note = habit.note((evidence or {}).get("page", {}).get("viewport"))
+                if note:
+                    obs = obs.model_copy(update={"persona_notes": [*obs.persona_notes, note]})
                 obs_hash = observation_hash(obs)
                 content = _content_hash(obs)
                 last = steps[-1] if steps else None
+                escalation.update(content, obs.tree, last)
+                if evidence is not None and escalation.config is not None:
+                    evidence["help"] = escalation.evidence(refs)
                 if last and last.result == "ok" and content == last_content:
                     # A fact the persona would notice, except after a skipped
                     # field: a user who forgot a field expects no change, and
@@ -222,6 +243,8 @@ def _run(
                 _append(obs_log, entry | (evidence or {}))
 
                 window = persona.memory.history_turns
+                if world.cold and persona.memory.reset_after_interruption:
+                    window = 0  # back "cold" after an interruption (P9)
                 action = model.next_action(task.text, obs, history[-window:] if window else [])
 
                 if action.action == "give_up":
@@ -234,18 +257,24 @@ def _run(
                     status = "gave_up"
                     break
 
-                reason = validate(action, policy, refs, obs.focused.ref if obs.focused else None)
+                focused_ref = obs.focused.ref if obs.focused else None
+                reason = validate(action, policy, refs, focused_ref) or escalation.validate(
+                    action, refs
+                )
                 if reason:
                     perturbed = Perturbed(None, times=0)
                     result = "invalid"
                     notes = [f"That action was not possible: {reason}."]
                 else:
                     boxes = (evidence or {}).get("page", {}).get("boxes")
-                    perturbed = perturber.apply(action, refs, boxes)
+                    perturbed = perturber.apply(action, refs, boxes, habit.learned)
                     server.before_click()
                     result = _execute(page, perturbed, refs)
                     perturbed = _impatient_retry(page, perturbed, refs, server, retry_rng, persona)
                     notes = ["That action did not work."] if result == "error" else []
+                    escalation.after(step, perturbed.executed, refs, result)
+                    sent = any(sub["step"] == step for sub in submissions)
+                    habit.learn(perturbed.executed, refs, boxes, sent)
 
                 reached = goal_reached(page, task.goal.role, task.goal.name)
                 for sub in submissions:
@@ -297,6 +326,7 @@ def _run(
         meta |= {
             "status": status,
             "steps": len(steps),
+            "klm_seconds": klm_seconds(steps),
             "finished_at": datetime.now(UTC).isoformat(),
         }
         (log_dir / "run.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")

@@ -280,3 +280,85 @@
   intent: The intent of this success criterion is to help ensure targets can be easily activated without
     accidentally activating an adjacent target.
   key_quote: The size of the target for pointer inputs is at least 24 by 24 CSS pixels
+# Added for P9 and P11 to P14; retrieved 2026-11-22 from the same pages.
+- id: WCAG 2.2.1
+  source: WCAG
+  title: Timing Adjustable
+  level: A
+  url: https://www.w3.org/WAI/WCAG22/Understanding/timing-adjustable.html
+  text: 'For each time limit that is set by the content, at least one of the following is true: Turn
+    off The user is allowed to turn off the time limit before encountering it; or Adjust The user is allowed
+    to adjust the time limit before encountering it over a wide range that is at least ten times the length
+    of the default setting; or Extend The user is warned before time expires and given at least 20 seconds
+    to extend the time limit with a simple action (for example, "press the space bar"), and the user is
+    allowed to extend the time limit at least ten times; or Real-time Exception The time limit is a required
+    part of a real-time event (for example, an auction), and no alternative to the time limit is possible;
+    or Essential Exception The time limit is essential and extending it would invalidate the activity; or
+    20 Hour Exception The time limit is longer than 20 hours.'
+  intent: The intent of this success criterion is to ensure that users with disabilities are given adequate
+    time to interact with web content whenever possible.
+  key_quote: The user is warned before time expires and given at least 20 seconds to extend the time limit
+    with a simple action
+- id: WCAG 2.2.5
+  source: WCAG
+  title: Re-authenticating
+  level: AAA
+  url: https://www.w3.org/WAI/WCAG22/Understanding/re-authenticating.html
+  text: When an authenticated session expires, the user can continue the activity without loss of data
+    after re-authenticating.
+  intent: The intent of this success criterion is to allow all users to complete authenticated transactions
+    that have inactivity time limits or other circumstances that would cause a user to be logged out while
+    in the midst of completing the transaction.
+  key_quote: When an authenticated session expires, the user can continue the activity without loss of
+    data after re-authenticating.
+- id: WCAG 2.2.6
+  source: WCAG
+  title: Timeouts
+  level: AAA
+  url: https://www.w3.org/WAI/WCAG22/Understanding/timeouts.html
+  text: Users are warned of the duration of any user inactivity that could cause data loss, unless the
+    data is preserved for more than 20 hours when the user does not take any actions.
+  intent: The intent of this success criterion is to ensure that when a timeout is used, users know what
+    duration of inactivity will cause the page to time out and result in lost data.
+  key_quote: Users are warned of the duration of any user inactivity that could cause data loss
+- id: WCAG 3.3.5
+  source: WCAG
+  title: Help
+  level: AAA
+  url: https://www.w3.org/WAI/WCAG22/Understanding/help.html
+  text: Context-sensitive help is available.
+  intent: The intent of this success criterion is to help users avoid making mistakes.
+  key_quote: Context-sensitive help is available.
+- id: WCAG 3.2.6
+  source: WCAG
+  title: Consistent Help
+  level: A
+  url: https://www.w3.org/WAI/WCAG22/Understanding/consistent-help.html
+  text: 'If a web page contains any of the following help mechanisms, and those mechanisms are repeated
+    on multiple web pages within a set of web pages, they occur in the same order relative to other page
+    content, unless a change is initiated by the user: Human contact details; Human contact mechanism; Self-help
+    option; A fully automated contact mechanism.'
+  intent: The intent of this success criterion is to ensure users can find help for completing tasks on
+    a website, when it is available.
+  key_quote: they occur in the same order relative to other page content, unless a change is initiated
+    by the user
+- id: WCAG 3.2.4
+  source: WCAG
+  title: Consistent Identification
+  level: AA
+  url: https://www.w3.org/WAI/WCAG22/Understanding/consistent-identification.html
+  text: Components that have the same functionality within a set of web pages are identified consistently.
+  intent: The intent of this success criterion is to help users recognize components that perform the
+    same functionality whenever they appear within a set of web pages.
+  key_quote: Components that have the same functionality within a set of web pages are identified consistently.
+- id: WCAG 3.2.3
+  source: WCAG
+  title: Consistent Navigation
+  level: AA
+  url: https://www.w3.org/WAI/WCAG22/Understanding/consistent-navigation.html
+  text: Navigational mechanisms that are repeated on multiple web pages within a set of web pages occur
+    in the same relative order each time they are repeated, unless a change is initiated by the user.
+  intent: The intent of this success criterion is to encourage the use of consistent visual layout and
+    source order for users who interact with repeated content within a set of web pages and need to locate
+    specific information or functionality more than once.
+  key_quote: occur in the same relative order each time they are repeated

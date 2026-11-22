@@ -1,0 +1,25 @@
+# P14 Older adult (composite). Catalogue: "P14 Older adult".
+# Existing axes together: 20 s of thinking per step on the page clock, text
+# at 150%, the visible viewport only, some typos and imprecise taps. Every
+# rate must be traced to Czaja et al. (2019) or Hawthorn (2000), or labelled
+# as our assumption in the report.
+id: older_adult
+environment:
+  viewport: {width: 1280, height: 720}
+  text_scale: 1.5
+  think_time_s: 20
+perception:
+  filters: [viewport_only]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 2
+  max_steps: 25
+perturbation:
+  seed: 1234
+  typo_rate: 0.10
+  mis_tap_base_rate: 0.05
+  mis_tap_cap: 0.25
+  mis_tap_reach_px: 8
+task_types: [complete_form, multi_step_form]

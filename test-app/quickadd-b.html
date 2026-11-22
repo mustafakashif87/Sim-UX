@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock list – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Stock list</h1>
+    <form id="form" novalidate>
+        <div class="field">
+          <label for="item">Item name</label>
+          <input type="text" id="item">
+        </div>
+        <div class="field">
+          <label for="qty">Quantity</label>
+          <input type="text" id="qty" inputmode="numeric">
+        </div>
+        <p id="error" class="error" role="alert"></p>
+        <button type="submit" id="add">Add item</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    function add() {
+      const item = document.getElementById('item').value.trim();
+      const qty = Number(document.getElementById('qty').value);
+      if (!item || !qty) {
+        document.getElementById('error').textContent = 'Enter an item and a quantity.'; return;
+      }
+      submit('api/stock', item + ' x' + qty, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Item added</h2>';
+      });
+    }
+    document.getElementById('form').addEventListener('submit', (e) => { e.preventDefault(); add(); });
+  </script>
+</body>
+</html>

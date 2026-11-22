@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Customer survey – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .opt { display: block; padding: 8px 0; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Customer survey</h1>
+    <form id="form" novalidate>
+      <fieldset class="step field" id="s1" hidden>
+        <legend>Question 1 of 4: How often do you shop with us?</legend>
+          <label class="opt"><input type="radio" name="q1" value="Every week"> Every week</label>
+          <label class="opt"><input type="radio" name="q1" value="Every month"> Every month</label>
+        <button type="button" class="next">Next</button>
+      </fieldset>
+      <fieldset class="step field" id="s2" hidden>
+        <legend>Question 2 of 4: How do you usually pay?</legend>
+          <label class="opt"><input type="radio" name="q2" value="Card"> Card</label>
+          <label class="opt"><input type="radio" name="q2" value="Cash on delivery"> Cash on delivery</label>
+        <button type="button" class="next">Next</button>
+      </fieldset>
+      <fieldset class="step field" id="s3" hidden>
+        <legend>Question 3 of 4: How was your last delivery?</legend>
+          <label class="opt"><input type="radio" name="q3" value="Good"> Good</label>
+          <label class="opt"><input type="radio" name="q3" value="Poor"> Poor</label>
+        <button type="button" class="next">Next</button>
+      </fieldset>
+      <fieldset class="step field" id="s4" hidden>
+        <legend>Question 4 of 4: Would you recommend SimShop?</legend>
+          <label class="opt"><input type="radio" name="q4" value="Yes"> Yes</label>
+          <label class="opt"><input type="radio" name="q4" value="No"> No</label>
+        <button type="button" class="next">Finish</button>
+      </fieldset>
+      <p id="error" class="error" role="alert"></p>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    let step = Number(sessionStorage.getItem('survey-step') || 1);
+    const answers = JSON.parse(sessionStorage.getItem('survey-answers') || '{}');
+    function show() {
+      document.querySelectorAll('.step').forEach((s) => { s.hidden = s.id !== 's' + step; });
+    }
+    document.querySelectorAll('.next').forEach((b) => b.addEventListener('click', () => {
+      const chosen = document.querySelector(`input[name=q${step}]:checked`);
+      if (!chosen) {
+        document.getElementById('error').textContent = 'Choose an answer.';
+        return;
+      }
+      document.getElementById('error').textContent = '';
+      answers['q' + step] = chosen.value;
+      if (step < 4) {
+        step += 1;
+      sessionStorage.setItem('survey-step', step);
+      sessionStorage.setItem('survey-answers', JSON.stringify(answers));
+        show();
+        return;
+      }
+      submit('api/survey', JSON.stringify(answers), () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Thanks for your answers</h2>';
+      });
+    }));
+    show();
+  </script>
+</body>
+</html>

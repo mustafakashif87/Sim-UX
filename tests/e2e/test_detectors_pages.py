@@ -5,6 +5,7 @@ Fixture pairs differ only in the seeded bug; which file is buggy is recorded
 here, not in the file name:
   signup-a.html buggy, signup-b.html clean  (B1, data_loss_on_error)
   order-a.html  buggy, order-b.html  clean  (B4, duplicate_submission)
+  wizard-a.html buggy, wizard-b.html clean  (no_way_back: going back wipes step 1)
 """
 
 from pathlib import Path
@@ -12,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from agent.detectors import detect, load_run
-from agent.fake_model import FakeModel, click, type_into
+from agent.fake_model import FakeModel, back, click, type_into
 from agent.loop import Goal, Task, run
 from agent.persona import Persona, load_persona
 
@@ -85,6 +86,26 @@ class TestB4DuplicateSubmission:
         t = task(page, "Order placed", "**/api/orders")
         found, _ = signals(browser, tmp_path, t, p1(), [click("Place order")])
         assert found == []
+
+
+WIZARD = ["wizard-a.html", "wizard-b.html"]
+
+
+class TestNoWayBack:
+    # The persona goes back from step 2 (a change of mind), then tries to return.
+    script = [
+        type_into("Full name", "Sam Khan"),
+        click("Continue"),
+        back(),
+        click("Continue"),
+        click("Confirm"),
+    ]
+
+    @pytest.mark.parametrize("page, fires", [(WIZARD[0], True), (WIZARD[1], False)])
+    def test_fires_on_buggy_only(self, browser, tmp_path, page, fires):
+        t = task(page, "Details saved", "**/api/none")
+        found, _ = signals(browser, tmp_path, t, p1(), self.script)
+        assert ("no_way_back" in found) == fires, found
 
 
 def test_logs_hold_the_evidence(browser, tmp_path):

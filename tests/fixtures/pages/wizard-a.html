@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Details</title>
+</head>
+<body>
+  <main>
+    <form id="step1" novalidate>
+      <h2>Your details</h2>
+      <label for="name">Full name</label>
+      <input type="text" id="name">
+      <p id="error" role="alert"></p>
+      <button type="submit">Continue</button>
+    </form>
+    <form id="step2" hidden>
+      <h2>Check your details</h2>
+      <button type="submit">Confirm</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    const $ = (id) => document.getElementById(id);
+    function show(step) {
+      $('step1').hidden = step !== 1;
+      $('step2').hidden = step !== 2;
+    }
+    $('step1').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (!$('name').value.trim()) {
+        $('error').textContent = 'Enter your full name.';
+        return;
+      }
+      $('error').textContent = '';
+      history.pushState({ step: 2 }, '', '#step2');
+      show(2);
+    });
+    $('step2').addEventListener('submit', (e) => {
+      e.preventDefault();
+      $('step2').hidden = true;
+      $('result').innerHTML = '<h2>Details saved</h2>';
+    });
+    window.addEventListener('popstate', (e) => {
+      $('step1').reset();
+      show(e.state ? e.state.step : 1);
+    });
+  </script>
+</body>
+</html>

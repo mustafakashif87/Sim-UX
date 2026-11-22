@@ -39,6 +39,7 @@ from pathlib import Path
 
 from agent import metrics
 from agent.detectors import detect, load_run
+from agent.keypool import KeyPool, clients_from_env, is_quota_error
 from agent.loop import Model, run
 from agent.persona import for_condition, load_persona
 from agent.tasks import SeededBug, load_seeded_bugs, load_tasks, serve
@@ -114,9 +115,15 @@ def evaluate(
     base: str | None = None,
     browser=None,
     log: Callable[[str], None] = print,
+    on_quota: Callable[[], bool] | None = None,
+    on_counted: Callable[[str], None] | None = None,
 ) -> list[dict]:
     """Run every missing job, append each to runs.csv as it finishes, then
-    write summary.md and metrics.json. Returns all rows."""
+    write summary.md and metrics.json. Returns all rows.
+
+    When a run ends on a spent quota, `on_quota()` may switch to another key
+    (agent/keypool.py) and return True; the job is then run again. Each run
+    that counts is reported to `on_counted(model_id)`, which pins the model."""
     out.mkdir(parents=True, exist_ok=True)
     csv_path = out / "runs.csv"
     rows = metrics.read_runs(csv_path) if csv_path.exists() else []
@@ -141,18 +148,26 @@ def evaluate(
     with serve() if base is None else nullcontext(base) as url:
         tasks = {t.url.rsplit("/", 1)[-1]: t for t in load_tasks(url)}
         with _browser(browser) as b:
-            for n, job in enumerate(todo, 1):
+            n = 0
+            while n < len(todo):
+                job = todo[n]
                 row = _run_job(job, tasks, persona, model_factory(), out, b)
                 rows.append(row)
                 _append(csv_path, row)
                 log(
-                    f"[{n}/{len(todo)}] {job.bug.id} {job.condition} seed {job.seed}: "
+                    f"[{n + 1}/{len(todo)}] {job.bug.id} {job.condition} seed {job.seed}: "
                     f"{row['status']}, {row['steps']} steps, "
-                    f"signals: {row['signals'] or '-'}"
+                    f"signals: {row['signals'] or '-'} ({row['model_id']})"
                 )
-                if "quota spent" in row["error"]:
+                if is_quota_error(row["error"]):
+                    if on_quota is not None and on_quota():
+                        log("Key spent; switching to the next key for this model and retrying.")
+                        continue
                     log("Provider quota spent; stopping. Rerun the same command to continue.")
                     break
+                if on_counted is not None and row["status"] not in metrics.EXCLUDED:
+                    on_counted(row["model_id"])
+                n += 1
 
     _write_outputs(persona_id, out, rows)
     return rows
@@ -256,6 +271,21 @@ def _browser(browser):
     return launched()
 
 
+def _pinned_model(out: Path) -> str | None:
+    """The model an evaluation folder already uses; it never mixes models."""
+    path = out / "runs.csv"
+    if not path.exists():
+        return None
+    used = {
+        r["model_id"]
+        for r in metrics.read_runs(path)
+        if r["status"] not in metrics.EXCLUDED and r["model_id"]
+    }
+    if len(used) > 1:
+        raise SystemExit(f"{out} mixes models {sorted(used)}; split it before going on")
+    return used.pop() if used else None
+
+
 def _write_all(path: Path, rows: list[dict]) -> None:
     with open(path, "w", newline="", encoding="utf-8") as f:
         writer = csv.DictWriter(f, fieldnames=metrics.FIELDS)
@@ -301,17 +331,20 @@ def main(argv: list[str] | None = None) -> int:
     if conditions and set(conditions) - set(CONDITIONS):
         parser.error(f"unknown condition; choose from {', '.join(CONDITIONS)}")
 
-    from agent.llm import LLMClient
-
-    model = LLMClient.from_env(cache_dir=args.out / "llm-cache", replay=args.replay)
+    pool = KeyPool(
+        clients_from_env(cache_dir=args.out / "llm-cache", replay=args.replay),
+        pinned_model=_pinned_model(args.out),
+    )
     rows = evaluate(
         args.persona,
         args.seeds,
         args.out,
-        lambda: model,
+        pool.current,
         only=args.bugs.split(",") if args.bugs else None,
         conditions=conditions,
         base=args.base,
+        on_quota=pool.spent,
+        on_counted=pool.pin,
     )
     print()
     print(metrics.markdown(rows))

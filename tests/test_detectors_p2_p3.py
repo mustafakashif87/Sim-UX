@@ -145,3 +145,22 @@ def test_shared_detectors_follow_the_signal_map():
     assert "reflow_failure" in names("touch_imprecise")
     assert {"data_lost_on_timeout", "target_too_small"} <= names("older_adult")
     assert "duplicate_submission" not in names("memoryless")
+
+
+def test_skipped_field_counts_as_input_for_error_not_identified():
+    """B2 with P1's lapse: the email was skipped, the empty form was rejected
+    with no message. An untouched empty form is still not judged."""
+    from agent.detectors.error_not_identified import error_not_identified
+
+    empty = "\n".join(['- textbox "Email address" [ref=e2]', '- button "Subscribe" [ref=e3]'])
+    typing = Action(thought="", action="type", ref="e2", text="a@b.c")
+    skipped = StepRecord(
+        run_id="r", persona="error_prone", page="p.html", step=0, observation_hash="h",
+        intended_action=typing, executed_action=None, perturbation="skip_field",
+        result="ok", goal_reached=False,
+    )  # fmt: skip
+    click = Action(thought="", action="click", ref="e3")
+    run = log([obs(empty), obs(empty, 1), obs(empty, 2)], [skipped, rec(1, click)])
+    assert error_not_identified(run).evidence_steps == [1]
+    untouched = log([obs(empty), obs(empty, 1)], [rec(0, click)])
+    assert error_not_identified(untouched) is None

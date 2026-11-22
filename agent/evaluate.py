@@ -42,12 +42,26 @@ from agent.detectors import detect, load_run
 from agent.loop import Model, run
 from agent.persona import for_condition, load_persona
 from agent.tasks import SeededBug, load_seeded_bugs, load_tasks, serve
+from agent.triggers import triggered
 from grounding.ground import default_signal_map, ground_all
 
 CONDITIONS = {
     "persona_buggy": ("persona", "buggy"),
     "baseline_buggy": ("baseline", "buggy"),
     "persona_clean": ("persona", "clean"),
+}
+DEFAULT_CONDITIONS = list(CONDITIONS)
+# Optional (--conditions triggered_buggy): the persona with only the mistake
+# the bug needs raised to these rates, every other rate 0. It measures how
+# the page handles the mistake when it happens; it is labelled apart and
+# never used for attribution.
+CONDITIONS["triggered_buggy"] = ("persona", "buggy")
+TRIGGER_RATES = {
+    "data_loss_on_error": {"typo_rate": 0.5},
+    "error_not_identified": {"typo_rate": 0.5},
+    "error_not_actionable": {"typo_rate": 0.5},
+    "duplicate_submission": {"double_submit_rate": 1.0},
+    "no_way_back": {"back_press_rate": 0.3},
 }
 
 
@@ -115,7 +129,12 @@ def evaluate(
     bugs = bugs_for(persona_id, only)
     if not bugs:
         raise SystemExit(f"no seeded bugs with a {persona_id} signal")
-    todo = [j for j in jobs(bugs, seeds, conditions or list(CONDITIONS)) if j.key not in done]
+    wanted = conditions or DEFAULT_CONDITIONS
+    todo = [
+        j
+        for j in jobs(bugs, seeds, wanted)
+        if j.key not in done and (j.condition != "triggered_buggy" or j.bug.signal in TRIGGER_RATES)
+    ]
     log(f"{persona_id}: {len(bugs)} bugs, {len(done)} runs kept, {len(todo)} to run")
 
     persona = load_persona(persona_id)
@@ -141,12 +160,14 @@ def evaluate(
 
 def score(row: dict, log_dir: Path) -> dict:
     """The detector columns of one row, from its run's log."""
-    found = detect(load_run(log_dir))
+    log = load_run(log_dir)
+    found = detect(log)
     grounded = ground_all(found)
     signals = [f.signal for f in found]
     return {
         "signals": ";".join(signals),
         "detected": int(row["expected_signal"] in signals),
+        "triggered": int(triggered(row["expected_signal"], log)),
         "quotes_generated": sum(len(f.candidate_criteria) for f in found),
         "quotes_verified": sum(len(r.finding.citations) for r in grounded),
     }
@@ -173,6 +194,8 @@ def _write_outputs(persona_id: str, out: Path, rows: list[dict]) -> None:
 def _run_job(job: Job, tasks: dict, persona, model: Model, out: Path, browser) -> dict:
     condition, _ = CONDITIONS[job.condition]
     task = tasks[job.page]
+    if job.condition == "triggered_buggy":
+        persona = _with_rates(persona, TRIGGER_RATES[job.bug.signal])
     started = time.monotonic()
     row = {f: "" for f in metrics.FIELDS}
     row |= {
@@ -203,6 +226,14 @@ def _run_job(job: Job, tasks: dict, persona, model: Model, out: Path, browser) -
         page.close()
     row["seconds"] = round(time.monotonic() - started, 1)
     return row
+
+
+def _with_rates(persona, rates: dict):
+    from agent.persona import Persona
+
+    data = persona.model_dump()
+    data["perturbation"] = {"seed": data["perturbation"]["seed"], **rates}
+    return Persona.model_validate(data)
 
 
 def _browser(browser):

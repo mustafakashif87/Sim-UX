@@ -88,7 +88,7 @@ def test_health(tmp_path):
 def test_options_list_personas_pages_and_conditions(tmp_path):
     body = client(tmp_path).get("/options").json()
     built = {p["id"]: p["built"] for p in body["personas"]}
-    assert built["error_prone"] is True and built["low_literacy"] is False
+    assert built["error_prone"] is True and built["low_literacy"] is True
     pages = {p["page"]: p for p in body["pages"]}
     assert {"order-a", "order-b", "signup-a"} <= set(pages)
     assert pages["order-a"]["task"] == pages["order-b"]["task"]
@@ -139,12 +139,25 @@ def test_clean_run_has_no_findings(tmp_path):
         ({"page": "order-a", "persona": "keyboard"}, "unknown persona"),
         ({"page": "order-a", "persona": "../secrets"}, "unknown persona"),
         ({"page": "no-such-page"}, "no task for page"),
-        ({"page": "order-a", "persona": "low_literacy"}, "cannot run yet"),
     ],
 )
 def test_rejected_requests_say_why(tmp_path, payload, message):
     response = client(tmp_path).post("/runs", json=payload)
     assert response.status_code == 422 and message in response.json()["detail"]
+
+
+@pytest.fixture
+def unbuilt_vocab_filter(monkeypatch):
+    """As if P3's filter were still a stub, like the extension personas' filters."""
+    from agent import perception
+
+    stub = perception._not_built("vocab_filter", "test stub")
+    monkeypatch.setitem(perception.FILTERS, "vocab_filter", stub)
+
+
+def test_unbuilt_persona_is_rejected(tmp_path, unbuilt_vocab_filter):
+    response = client(tmp_path).post("/runs", json={"page": "order-a", "persona": "low_literacy"})
+    assert response.status_code == 422 and "cannot run yet" in response.json()["detail"]
 
 
 @pytest.mark.parametrize(
@@ -160,8 +173,8 @@ def test_malformed_requests(tmp_path, payload):
     assert client(tmp_path).post("/runs", json=payload).status_code == 422
 
 
-def test_unbuilt_persona_runs_as_baseline(tmp_path):
-    # The baseline uses the full tree, so P3's missing filter does not apply.
+def test_unbuilt_persona_runs_as_baseline(tmp_path, unbuilt_vocab_filter):
+    # The baseline uses the full tree, so a missing filter does not apply.
     c = client(tmp_path)
     response = c.post(
         "/runs", json={"page": "order-a", "persona": "low_literacy", "condition": "baseline"}

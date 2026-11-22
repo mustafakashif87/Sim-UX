@@ -106,7 +106,8 @@ def run(
 
     Writes to `<log_root>/<run_id>/`, each line as it happens:
     - `steps.jsonl`: one StepRecord per step
-    - `observations.jsonl`: what the persona saw at each step, then the final page
+    - `observations.jsonl`: what the persona saw at each step, then the final
+      page, each with the page's `<title>` (not shown to the persona)
     - `network.jsonl`: every non-GET request, with the step that caused it
     and at the end `run.json`, with what is needed to replay the run.
     Detectors read these files, never what the model said happened.
@@ -178,7 +179,10 @@ def run(
                             update={"persona_notes": [*notes, "Nothing visibly changed."]}
                         )
 
-                _append(obs_log, {"step": step, "observation": obs.model_dump()})
+                # The title is not in the tree the persona sees; it is logged for
+                # detectors (lost_location: steps that share one title).
+                entry = {"step": step, "observation": obs.model_dump(), "title": _title(page)}
+                _append(obs_log, entry)
 
                 window = persona.memory.history_turns
                 action = model.next_action(task.text, obs, history[-window:] if window else [])
@@ -224,7 +228,12 @@ def run(
             # must not crash it; detectors cope with the entry missing.
             try:
                 final, _ = observe(page, len(steps), persona.perception.filters)
-                entry = {"step": len(steps), "observation": final.model_dump(), "final": True}
+                entry = {
+                    "step": len(steps),
+                    "observation": final.model_dump(),
+                    "title": _title(page),
+                    "final": True,
+                }
                 _append(obs_log, entry)
             except PlaywrightError:
                 pass
@@ -282,6 +291,13 @@ def _record(
         result=result,
         goal_reached=goal_reached,
     )
+
+
+def _title(page: Page) -> str | None:
+    try:
+        return page.title()
+    except PlaywrightError:
+        return None
 
 
 def _answer_submission(route) -> None:

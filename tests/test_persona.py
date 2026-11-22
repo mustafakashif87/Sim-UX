@@ -160,10 +160,10 @@ class TestP2AndP3Configs:
         assert p3.perception.filters != p1.perception.filters  # P3: perception
 
     def test_unbuilt_filter_fails_loudly(self):
-        from agent.perception import apply_filters
+        from agent.perception import _not_built
 
         with pytest.raises(NotImplementedError, match="not built yet"):
-            apply_filters([], ["vocab_filter"])
+            _not_built("some_filter", "a test")([])
 
 
 class TestBaseline:

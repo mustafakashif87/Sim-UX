@@ -1,0 +1,45 @@
+# P3 UI allowlist: words people meet on almost every website, kept by the
+# vocabulary filter even when outside the NGSL (Jakob's Law: users spend most
+# of their time on other sites). Reviewed by the team; keep it short.
+# Every clean test-app page must survive the filter (tests/test_vocab.py).
+simshop
+email
+e-mail
+password
+login
+logout
+username
+signup
+checkout
+basket
+cart
+wishlist
+menu
+settings
+profile
+account
+subscribe
+unsubscribe
+newsletter
+promo
+delivery
+billing
+ok
+online
+website
+app
+upload
+download
+faq
+contact
+privacy
+cookies
+click
+tap
+submit
+confirm
+confirmation
+delete
+cancel
+wallet
+digit

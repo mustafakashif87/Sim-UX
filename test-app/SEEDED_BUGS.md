@@ -76,9 +76,8 @@ intended `type` actions, so a typo does not hide the repeat.
   needs it. With no memory (P2) the persona cannot know it; the baseline,
   with full memory, can.
 - **B8** is not in the accessibility tree at all: only `document.title`
-  stays the same across the steps. `lost_location` needs the page title
-  logged with each observation, which the harness does not do yet (to build
-  with the P2 detectors).
+  stays the same across the steps. The harness logs the page title with each
+  observation (not shown to the persona), and `lost_location` reads it.
 - **B9** shows in the tree: the step heading is "Change your plan" on all
   three steps and no text says "Step N of 3".
 - **B10** to **B12** show only through P3's vocabulary filter: the button

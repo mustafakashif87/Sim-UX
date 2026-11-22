@@ -55,6 +55,14 @@ SCENARIOS = {
         p1(),
         [type_into("Email address", "sam.khan.example.com"), click("Subscribe")],
     ),
+    "B3": (  # a phone number one digit short
+        p1(),
+        [
+            type_into("Your name", "Sam Khan"),
+            type_into("Phone number", "0300123456"),
+            click("Request callback"),
+        ],
+    ),
     "B4": (p1(double_submit_rate=1.0), [click("Place order")]),  # a double press
     "B5": (p1(), [click("Delete account"), click("Yes, delete my account")]),
     "B6": (  # the persona types what each step asks for, as the task gives it
@@ -69,6 +77,53 @@ SCENARIOS = {
             type_into("Billing city", "Lahore"),
             click("Place order"),
         ],
+    ),
+    # P2 Memoryless: the script stops where a user without memory is stuck.
+    "B7": (
+        load_persona("memoryless"),
+        [
+            click("Stainless steel kettle", role="radio"),
+            click("Continue"),
+            click("It arrived damaged", role="radio"),
+            click("Continue"),
+        ],
+    ),
+    "B8": (  # stuck on step 1 three times, then on to step 2
+        load_persona("memoryless"),
+        [
+            click("Continue"),
+            click("Continue"),
+            click("Continue"),
+            click("Monthly, $4 a month", role="radio"),
+            click("Continue"),
+        ],
+    ),
+    "B9": (
+        load_persona("memoryless"),
+        [
+            click("Family, $7 a month for up to five people", role="radio"),
+            click("Continue"),
+            click("Every month", role="radio"),
+            click("Continue"),
+            click("Confirm change"),
+        ],
+    ),
+    # P3 Low-literacy: names as the vocabulary filter leaves them.
+    "B10": (
+        load_persona("low_literacy"),
+        [
+            type_into("Account number", "12345678"),
+            type_into("Amount in rupees", "500"),
+            click("Send money"),  # not on the buggy page: the persona is stuck
+        ],
+    ),
+    "B11": (
+        load_persona("low_literacy"),
+        [type_into("Confirmation", "STOP"), click("Submit")],
+    ),
+    "B12": (
+        load_persona("low_literacy"),
+        [type_into("Phone number", "0300 1234567"), click("Save")],
     ),
 }
 

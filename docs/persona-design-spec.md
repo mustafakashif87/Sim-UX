@@ -102,10 +102,11 @@ Each persona has a constraint config, a realism basis, failure signals with a na
 | --- | --- | --- | --- | --- |
 | `data_loss_on_error` | Field values before submit vs after the error response; valid fields now empty | Deterministic | #9 | 3.3.7 Redundant Entry |
 | `error_not_identified` | Invalid input submitted, but no new `alert` role, `aria-invalid` or text near the field | Deterministic | #9 | 3.3.1 Error Identification |
-| `error_not_actionable` | Error text exists but does not name the field or the fix | Model-judged | #9 | 3.3.3 Error Suggestion |
+| `error_not_actionable` | Error text exists but shares no word with the name of an invalid field and gives no example (rule-based since 22 Nov 2026) | Deterministic | #9 | 3.3.3 Error Suggestion |
 | `duplicate_submission` | Double submit produces two submissions (network log or page counter) | Deterministic | #5 | 3.3.4 Error Prevention |
 | `destructive_without_confirm` | A destructive action completes with no confirmation step in between | Deterministic | #5, #3 | 3.3.4 Error Prevention |
 | `no_way_back` | After an injected back press or change of mind, the prior state cannot be restored within 3 steps | Deterministic | #3 | none (Nielsen only) |
+| `redundant_entry` | A value already typed into one field is typed again into an empty field with another name (added 22 Nov 2026 for B6) | Deterministic | #6 | 3.3.7 Redundant Entry |
 
 **Seeded bugs:** (B1) form clears every field on a validation error; (B2) invalid email rejected silently; (B3) error says only "Invalid input"; (B4) submit not disabled after first press, creating two orders; (B5) "Delete account" with no confirmation; (B6) checkout step 3 asks again for the address entered on step 1.
 
@@ -125,7 +126,7 @@ Each persona has a constraint config, a realism basis, failure signals with a na
 
 ### P3 Low-literacy or non-native reader
 
-**Constraint:** before the model sees the tree, every word outside a fixed common-word list becomes `[unknown]`. The list is about the top 3,000 English words (candidate: the New General Service List, about 2,800 words). Numbers, the site name and a short UI allowlist are kept. Full tree otherwise, 15 steps.
+**Constraint:** before the model sees the tree, every word outside a fixed common-word list becomes `[unknown]`. The list is the New General Service List 1.2 (2,809 headwords and their regular inflections; chosen 22 Nov 2026, `personas/vocab/ngsl.txt`). Numbers, the site name and a short UI allowlist are kept. Full tree otherwise, 15 steps.
 
 **UI allowlist:** a version-controlled list of about 30 to 50 words people see on almost every website (for example email, password, login, username, checkout, submit), justified by Jakob's Law. It stops the filter from failing clean pages on standard interface words. A unit test checks that every word on the clean pages survives the filter and that the seeded jargon (such as "effectuate" and "remittance") does not.
 
@@ -135,7 +136,7 @@ Each persona has a constraint config, a realism basis, failure signals with a na
 | --- | --- | --- | --- | --- |
 | `label_unintelligible` | A control on the goal path has half or more of its name `[unknown]`, and the agent fails or picks wrong; baseline succeeds | Deterministic | #2 | 3.3.2 Labels or Instructions |
 | `instruction_unintelligible` | Required instruction text is mostly `[unknown]` | Deterministic | #2 | 3.1.5 Reading Level (AAA, advisory) |
-| `system_language` | An error or label contains an internal code or jargon instead of the user's words | Model-judged | #2 | none (Nielsen only) |
+| `system_language` | An alert contains an internal code (an underscore-joined identifier, or capitals with digits) instead of words (rule-based since 22 Nov 2026) | Deterministic | #2 | none (Nielsen only) |
 
 **Seeded bugs:** (B10) submit button labelled "Effectuate remittance"; (B11) instructions written in legal jargon; (B12) error message showing "ERR_VALIDATION_422".
 

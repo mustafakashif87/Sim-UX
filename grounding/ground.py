@@ -89,6 +89,9 @@ class SignalEntry:
     source: str
     type: str
     criteria: list[str]
+    # Other personas whose runs also use this detector (P10 reuses P1's
+    # duplicate_submission; P6 reuses P7's reflow_failure).
+    also: tuple[str, ...] = ()
 
 
 class SignalMap:
@@ -112,7 +115,12 @@ class SignalMap:
     def load(cls, path=SIGNAL_MAP_PATH) -> "SignalMap":
         raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))["signals"]
         return cls(
-            {k: SignalEntry(v["source"], v["type"], list(v["criteria"])) for k, v in raw.items()}
+            {
+                k: SignalEntry(
+                    v["source"], v["type"], list(v["criteria"]), tuple(v.get("also", ()))
+                )
+                for k, v in raw.items()
+            }
         )
 
     def check_against(self, corpus: Corpus) -> list[str]:

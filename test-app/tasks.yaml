@@ -87,3 +87,165 @@
   text: Save the phone number 0300 1234567 to your SimShop account.
   goal: {role: heading, name: Phone number saved}
   endpoint: "**/api/phone"
+
+# Extension personas P4, P5, P7 and P8 (B13 to B17, B20 to B25).
+# critical_text is for the P8 detectors only; the model never sees it.
+
+- id: feedback
+  pages: [feedback-a.html, feedback-b.html]
+  text: "Send SimShop this feedback: Fast delivery, thank you."
+  goal: {role: button, name: Send more feedback}
+  endpoint: "**/api/feedback"
+
+- id: size
+  pages: [size-a.html, size-b.html]
+  text: Add the running trainers in size UK 8 to your basket.
+  goal: {role: heading, name: Added to basket}
+  endpoint: "**/api/basket"
+
+- id: policy
+  pages: [policy-a.html, policy-b.html]
+  text: Accept the updated privacy policy.
+  goal: {role: heading, name: Policy accepted}
+  endpoint: "**/api/policy"
+
+- id: filters
+  pages: [filters-a.html, filters-b.html]
+  text: Show the kettles priced from 20 to 50 dollars.
+  goal: {role: heading, name: Filters applied}
+  endpoint: "**/api/filters"
+
+- id: login
+  pages: [login-a.html, login-b.html]
+  text: Log in with the email address sam.khan@example.com and the password Kettle-2026.
+  goal: {role: heading, name: Welcome back}
+  endpoint: "**/api/login"
+
+- id: invoice
+  pages: [invoice-a.html, invoice-b.html]
+  text: Pay invoice INV-2207.
+  goal: {role: heading, name: Invoice paid}
+  endpoint: "**/api/invoice"
+
+- id: profile
+  pages: [profile-a.html, profile-b.html]
+  text: Change your display name to Sam K.
+  goal: {role: heading, name: Profile saved}
+  endpoint: "**/api/profile"
+
+- id: notice
+  pages: [notice-a.html, notice-b.html]
+  text: Renew your parking permit before it ends.
+  goal: {role: heading, name: Renewal requested}
+  endpoint: "**/api/permit"
+
+- id: redeem
+  pages: [redeem-a.html, redeem-b.html]
+  text: >-
+    Redeem your SimShop gift card. Your email gives the code GIFT-7731 and
+    your receipt shows the code RCPT-5520.
+  goal: {role: heading, name: Gift card added}
+  endpoint: "**/api/redeem"
+  critical_text: Use the code from your email, not the one on your receipt.
+
+- id: trial
+  pages: [trial-a.html, trial-b.html]
+  text: Start a free trial of SimShop Plus.
+  goal: {role: heading, name: Trial started}
+  endpoint: "**/api/trial"
+  critical_text: Start free trial
+
+- id: pricing
+  pages: [pricing-a.html, pricing-b.html]
+  text: Choose the Family plan, paid once a year.
+  goal: {role: heading, name: Annual Family plan chosen}
+  endpoint: "**/api/plan"
+
+# Extension personas P6 and P10 (B18, B19, B28, B29).
+
+- id: cart
+  pages: [cart-a.html, cart-b.html]
+  text: Change the number of kettles in your basket to 2, then go to checkout.
+  goal: {role: heading, name: Ready to pay}
+  endpoint: "**/api/checkout"
+
+- id: shipping
+  pages: [shipping-a.html, shipping-b.html]
+  text: Choose free standard delivery and pay.
+  goal: {role: heading, name: Paid with free delivery}
+  endpoint: "**/api/shipping"
+
+- id: payment
+  pages: [payment-a.html, payment-b.html]
+  text: Pay for your order once.
+  goal: {role: heading, name: Payment received}
+  endpoint: "**/api/payment"
+
+- id: upload
+  pages: [upload-a.html, upload-b.html]
+  text: Send the meter reading 48213.
+  goal: {role: heading, name: Reading sent}
+  endpoint: "**/api/reading"
+
+# Extension personas P9 and P11 to P14 (B26, B27, B30 to B36).
+# optimal_steps (P13 only) is the clean page's happy path in agent actions.
+
+- id: application
+  pages: [application-a.html, application-b.html]
+  text: Apply for a parking permit as Sam Khan, national ID number 35202-1234567-1.
+  goal: {role: heading, name: Application sent}
+  endpoint: "**/api/application"
+
+- id: survey
+  pages: [survey-a.html, survey-b.html]
+  text: >-
+    Answer the customer survey: you shop every week, pay by card, your last
+    delivery was good, and you would recommend SimShop.
+  goal: {role: heading, name: Thanks for your answers}
+  endpoint: "**/api/survey"
+
+- id: claim
+  pages: [claim-a.html, claim-b.html]
+  text: >-
+    Make a claim on your phone insurance: the screen broke when you dropped it.
+    Your policy letter shows the number 1234567.
+  goal: {role: heading, name: Claim received}
+  endpoint: "**/api/claim"
+
+- id: support
+  pages: [support-a.html, support-b.html]
+  text: Change the delivery of parcel SP-48213 to Saturday.
+  goal: {role: heading, name: Delivery changed}
+  endpoint: "**/api/delivery"
+
+- id: settings
+  pages: [settings-a.html, settings-b.html]
+  text: On each of the three settings pages, tick the option and save it.
+  goal: {role: heading, name: All settings saved}
+  endpoint: "**/api/settings**"
+
+- id: store
+  pages: [store-a.html, store-b.html]
+  text: Look at the toasters, then go to your basket and check out.
+  goal: {role: heading, name: Checkout started}
+  endpoint: "**/api/store"
+
+- id: quickadd
+  pages: [quickadd-a.html, quickadd-b.html]
+  text: Add 3 kettles to the stock list.
+  goal: {role: heading, name: Item added}
+  endpoint: "**/api/stock"
+  optimal_steps: 3
+
+- id: bulk
+  pages: [bulk-a.html, bulk-b.html]
+  text: Archive all 10 open tickets.
+  goal: {role: heading, name: All tickets archived}
+  endpoint: "**/api/tickets"
+  optimal_steps: 3
+
+- id: appointment
+  pages: [appointment-a.html, appointment-b.html]
+  text: Book a branch appointment for Sam Khan, phone 03001234567, on 2 December.
+  goal: {role: heading, name: Appointment booked}
+  endpoint: "**/api/appointment"

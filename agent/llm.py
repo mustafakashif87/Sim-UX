@@ -235,6 +235,11 @@ class LLMClient:
                 ]
         raise ProviderError(f"no valid action after {self._max_invalid + 1} replies")
 
+    def complete(self, messages: list[dict]) -> str:
+        """One JSON reply to any chat, recorded and replayed like an action
+        reply. Used by the single-prompt comparison baseline."""
+        return self._complete(messages)
+
     def _complete(self, messages: list[dict]) -> str:
         """One reply's text. Live, it always comes from the API and is recorded;
         a recording is read only in replay mode, so a live run can never be a

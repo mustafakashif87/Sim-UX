@@ -1,0 +1,16 @@
+# P8 Skimmer (satisficer). Catalogue: "P8 Skimmer".
+# Above the fold only until it scrolls, text cut after 8 words (headings and
+# control names whole), and a tight budget.
+id: skimmer
+environment:
+  viewport: {width: 1280, height: 720}
+perception:
+  filters: [viewport_only, skim_text]
+  skim_max_words: 8
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 2
+  max_steps: 10
+task_types: [complete_form, navigate_to_info]

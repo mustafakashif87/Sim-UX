@@ -1,0 +1,15 @@
+# P5 Keyboard-only user. Catalogue: "P5 Keyboard-only user".
+# Keys only, no clicks; text goes into the focused element. Sighted: when the
+# focused element shows no focus indicator, the persona does not know where
+# focus is.
+id: keyboard_only
+perception:
+  filters: [full_tree, visible_focus_only]
+actions:
+  allowed: [press, type]
+  keys: [Tab, Shift+Tab, Enter, Space, Escape, ArrowDown, ArrowUp, ArrowLeft, ArrowRight]
+  type_focused_only: true
+memory:
+  history_turns: 3
+  max_steps: 30
+task_types: [complete_form]

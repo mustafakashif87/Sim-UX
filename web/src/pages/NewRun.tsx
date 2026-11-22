@@ -9,7 +9,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useOptions } from "@/hooks/useRun";
-import { API_URL, PERSONAS, startRun, type Condition, type PersonaId } from "@/lib/api";
+import {
+  API_URL,
+  PERSONA_ORDER,
+  PERSONAS,
+  startRun,
+  type Condition,
+  type PersonaId,
+} from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { containerVariantsSlow, itemVariants, transition } from "@/lib/motion";
 
@@ -25,8 +32,8 @@ import { containerVariantsSlow, itemVariants, transition } from "@/lib/motion";
  */
 
 const SEEDS = [1, 2, 3, 4, 5];
-// Spec order: P1, P2, P3 (the API lists them by file name).
-const ORDER: PersonaId[] = ["error_prone", "memoryless", "low_literacy"];
+// Catalogue order: P1 to P14 (the API lists them by file name).
+const ORDER: PersonaId[] = PERSONA_ORDER;
 
 export default function NewRun() {
   const navigate = useNavigate();
@@ -219,7 +226,7 @@ export default function NewRun() {
 }
 
 function PersonaCard({ id, reason }: { id: PersonaId; reason: string | null }) {
-  const info = PERSONAS[id];
+  const info = PERSONAS[id] ?? { code: "", name: id, axis: "", restriction: "", core: false };
   return (
     <div
       className={cn(
@@ -234,7 +241,10 @@ function PersonaCard({ id, reason }: { id: PersonaId; reason: string | null }) {
       >
         <Check className="h-3.5 w-3.5" strokeWidth={3} />
       </span>
-      <h3 className="pr-8 font-display text-lg font-bold tracking-tight text-ink">{info.name}</h3>
+      <p className="font-mono text-[0.75rem] uppercase tracking-wide text-ink-3">
+        {info.code} · {info.axis}
+      </p>
+      <h3 className="mt-1 pr-8 font-display text-lg font-bold tracking-tight text-ink">{info.name}</h3>
       <p className="mt-3 text-[0.9375rem] leading-relaxed text-ink-2">{info.restriction}</p>
       {reason && <p className="mt-3 text-xs text-ink-3">Not runnable yet: {reason}.</p>}
     </div>

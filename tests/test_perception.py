@@ -103,7 +103,7 @@ class TestFilters:
 
     def test_unknown_filter_rejected(self, nodes):
         with pytest.raises(ValueError, match="unknown perception filter"):
-            apply_filters(nodes, ["viewport_only"])
+            apply_filters(nodes, ["x_ray_vision"])
 
 
 def shape(nodes):

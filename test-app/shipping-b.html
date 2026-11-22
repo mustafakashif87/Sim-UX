@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Delivery – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .opt { display: block; min-height: 48px; padding: 12px 0; margin: 4px 0; }
+    .opt input { width: 24px; height: 24px; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Delivery</h1>
+    <form id="form" novalidate>
+      <fieldset class="field">
+        <legend>Delivery speed</legend>
+        <label class="opt"><input type="radio" name="speed" value="standard"> Standard (free)</label>
+        <label class="opt"><input type="radio" name="speed" value="express"> Express ($9.99)</label>
+      </fieldset>
+        <p role="status" id="summary"></p>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Pay now</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.querySelectorAll('input[name=speed]').forEach((r) => r.addEventListener('change', () => {
+      document.getElementById('summary').textContent = 'You chose ' + r.parentElement.textContent.trim() + '.';
+    }));
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const speed = document.querySelector('input[name=speed]:checked');
+      if (!speed) {
+        document.getElementById('error').textContent = 'Choose a delivery speed.';
+        return;
+      }
+      submit('api/shipping', speed.value, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = speed.value === 'standard'
+          ? '<h2>Paid with free delivery</h2>' : '<h2>Paid with express delivery</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

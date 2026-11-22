@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Your basket – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .qty button { min-width: 44px; min-height: 44px; }
+    .qty { display: flex; gap: 24px; align-items: center; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Your basket</h1>
+    <div id="line">
+      <p>Stainless steel kettle, $39.00 each</p>
+      <div class="qty">
+        <button type="button" id="minus" aria-label="Decrease quantity">-</button>
+        <span id="count">1</span>
+        <button type="button" id="plus" aria-label="Increase quantity">+</button>
+        <button type="button" id="remove" aria-label="Remove item">x</button>
+      </div>
+    </div>
+    <div id="undo"></div>
+    <form id="form"><button type="submit">Go to checkout</button></form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    let count = 1, removed = false;
+    function render() {
+      document.getElementById('line').hidden = removed;
+      document.getElementById('count').textContent = count;
+    }
+    document.getElementById('plus').addEventListener('click', () => { count += 1; render(); });
+    document.getElementById('minus').addEventListener('click', () => { count = Math.max(1, count - 1); render(); });
+    document.getElementById('remove').addEventListener('click', async () => {
+      await fetch('api/cart/remove', { method: 'POST', body: 'kettle' });
+      removed = true; render();
+        document.getElementById('undo').innerHTML =
+          '<p role="status">Kettle removed. <button type="button" id="undo-btn" class="secondary">Undo</button></p>';
+        document.getElementById('undo-btn').addEventListener('click', () => {
+          removed = false; render(); document.getElementById('undo').innerHTML = '';
+        });
+    });
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      if (removed || count !== 2) {
+        document.getElementById('undo').innerHTML = '<p role="alert">Your basket needs 2 kettles for this task.</p>';
+        return;
+      }
+      submit('api/checkout', 'kettle x' + count, () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Ready to pay</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

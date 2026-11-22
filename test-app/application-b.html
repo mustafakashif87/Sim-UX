@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parking permit application – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Apply for a parking permit</h1>
+    <form id="form" novalidate>
+      <div class="field">
+        <label for="name">Full name</label>
+        <input type="text" id="name">
+      </div>
+      <div class="field">
+        <label for="nid">National ID number</label>
+        <input type="text" id="nid">
+      </div>
+      <p id="error" class="error" role="alert"></p>
+      <button type="submit">Submit application</button>
+    </form>
+    <div id="warn"></div>
+    <div id="ended"></div>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    let timer, warnTimer;
+    function arm() {
+      clearTimeout(timer); clearTimeout(warnTimer);
+      warnTimer = setTimeout(() => {
+        document.getElementById('warn').innerHTML =
+          '<div role="alertdialog" aria-label="Session ending"><p>Your session will end in 2 minutes.</p>' +
+          '<button type="button" id="stay">Stay signed in</button></div>';
+        document.getElementById('stay').addEventListener('click', () => {
+          document.getElementById('warn').innerHTML = ''; arm();
+        });
+      }, 8 * 60 * 1000);
+      timer = setTimeout(endSession, 10 * 60 * 1000);
+    }
+    function endSession() {
+      document.getElementById('warn').innerHTML = '';
+      document.getElementById('form').hidden = true;
+      document.getElementById('ended').innerHTML =
+        '<div role="alert"><h2>Your session has ended</h2><p>Your answers are saved.</p></div>' +
+        '<button type="button" id="again">Sign in again</button>';
+      document.getElementById('again').addEventListener('click', () => {
+        document.getElementById('ended').innerHTML = '';
+        document.getElementById('form').reset();
+      for (const id of ['name', 'nid']) {
+        document.getElementById(id).value = sessionStorage.getItem('app-' + id) || '';
+      }
+        document.getElementById('form').hidden = false;
+        arm();
+      });
+    }
+    document.getElementById('form').addEventListener('input', (e) => {
+        sessionStorage.setItem('app-' + e.target.id, e.target.value);
+        arm();
+    });
+    arm();
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = document.getElementById('name').value.trim();
+      const nid = document.getElementById('nid').value.trim();
+      if (!name || !nid) {
+        document.getElementById('error').textContent = 'Enter your full name and national ID number.';
+        return;
+      }
+      submit('api/application', name + ' ' + nid, () => {
+        clearTimeout(timer); clearTimeout(warnTimer);
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Application sent</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

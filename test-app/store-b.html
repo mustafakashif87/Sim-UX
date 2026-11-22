@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Shop – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <nav aria-label="Shop" id="shopnav"></nav>
+    <div id="view"></div>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    const orders = [['Home', 'Kettles', 'Toasters', 'Basket'], ['Home', 'Kettles', 'Toasters', 'Basket'], ['Home', 'Kettles', 'Toasters', 'Basket']];
+    const content = {'Home': '<h2>Welcome to SimShop</h2><p>Kitchen goods delivered to your door.</p>', 'Kettles': '<h2>Kettles</h2><p>Stainless steel kettle, $39.00</p>', 'Toasters': '<h2>Toasters</h2><p>Two-slice toaster, $29.00, in your basket.</p>', 'Basket': '<h2>Your basket</h2><p>Two-slice toaster, $29.00</p><button type="button" id="checkout">Check out</button>'};
+    let visits = 0;
+    function open(name) {
+      const order = orders[Math.min(visits, orders.length - 1)];
+      visits += 1;
+      document.getElementById('shopnav').innerHTML =
+        order.map((n) => `<a href="#" data-go="${n}">${n}</a>`).join(' · ');
+      document.querySelectorAll('[data-go]').forEach((a) => a.addEventListener('click', (e) => {
+        e.preventDefault(); open(a.dataset.go);
+      }));
+      document.getElementById('view').innerHTML = content[name];
+      const checkout = document.getElementById('checkout');
+      if (checkout) checkout.addEventListener('click', () => submit('api/store', 'toaster', () => {
+        document.getElementById('view').innerHTML = '';
+        document.getElementById('result').innerHTML = '<h2>Checkout started</h2>';
+      }));
+    }
+    open('Home');
+  </script>
+</body>
+</html>

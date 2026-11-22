@@ -1,0 +1,18 @@
+# Self-test for the SimUX GitHub Action (.github/workflows/action-selftest.yml).
+# The scripted model and the forced double press make the run deterministic,
+# so no API key is needed: order-a must fail the job and order-b must pass it.
+# A real project leaves out model and perturbation.
+persona: error_prone
+seeds: [1]
+fail_on: 2
+serve: ../../test-app
+pages:
+  - url: order-a.html
+    task: Place the order for the kettle in your basket.
+    goal: {role: heading, name: Order placed}
+    endpoint: "**/api/orders"
+model:
+  script:
+    - click: Place order
+perturbation:
+  double_submit_rate: 1.0

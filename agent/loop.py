@@ -13,6 +13,8 @@ in the prompt.
 import hashlib
 import importlib.metadata
 import json
+import random
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -23,13 +25,15 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Page
 
 from agent.actions import validate
+from agent.behaviour import Escalation, Habit, World, klm_seconds, step_cap
 from agent.browser import act, goal_reached, observe, settle
 from agent.contracts import Action, Observation, StepRecord
+from agent.environment import environment_page
 from agent.ids import new_run_id
 from agent.llm import ProviderError
 from agent.perception import RefMap
 from agent.persona import Persona
-from agent.perturb import SKIP_FIELD, Perturbed, Perturber
+from agent.perturb import IMPATIENT_RETRY, SKIP_FIELD, Perturbed, Perturber
 from agent.tasks import Goal, Task  # noqa: F401  (Goal re-exported for callers)
 
 RunStatus = Literal["succeeded", "gave_up", "step_cap", "aborted_provider", "crashed"]
@@ -98,6 +102,22 @@ def run(
     condition: str = "persona",
     run_id: str | None = None,
 ) -> RunResult:
+    """See `_run`. With an Environment (device, viewport, text scale) the run
+    uses its own page in its own browser context, closed afterwards."""
+    with environment_page(page, persona.environment) as own:
+        return _run(own, task, persona, model, log_root, seed, condition, run_id)
+
+
+def _run(
+    page: Page,
+    task: Task,
+    persona: Persona,
+    model: Model,
+    log_root: Path,
+    seed: int | None = None,
+    condition: str = "persona",
+    run_id: str | None = None,
+) -> RunResult:
     """Run one task to success, give-up or the step cap, logging every step.
     A ProviderError from the model ends it as `aborted_provider`. `condition`
     is only logged: the caller passes the persona already set for it
@@ -106,7 +126,8 @@ def run(
 
     Writes to `<log_root>/<run_id>/`, each line as it happens:
     - `steps.jsonl`: one StepRecord per step
-    - `observations.jsonl`: what the persona saw at each step, then the final page
+    - `observations.jsonl`: what the persona saw at each step, then the final
+      page, each with the page's `<title>` (not shown to the persona)
     - `network.jsonl`: every non-GET request, with the step that caused it
     and at the end `run.json`, with what is needed to replay the run.
     Detectors read these files, never what the model said happened.
@@ -124,6 +145,8 @@ def run(
         "condition": condition,
         "config_hash": persona.config_hash,
         "task": task.id,
+        "critical_text": task.critical_text,
+        "optimal_steps": task.optimal_steps,
         "page": page_name,
         "seed": perturber.seed,
         "model_id": model.model_id,
@@ -152,10 +175,21 @@ def run(
         )
 
     page.on("request", on_request)
+    server = Server(persona.environment.network, perturber.seed)
+    # Its own stream, so P1 to P3 runs draw exactly as before.
+    retry_rng = random.Random(f"impatient-{perturber.seed}")
     if task.endpoint:
-        page.route(task.endpoint, _answer_submission)
+        page.route(task.endpoint, server.answer)
+        if persona.environment.network.latency_ms:
+            server.watch(page)
+    world = World(persona.environment)
+    escalation = Escalation(persona.actions.escalation)
+    habit = Habit(persona.memory.prior_knowledge)
+    cap = step_cap(persona, task)
+    meta["step_cap"] = cap
 
     try:
+        world.install_clock(page)
         page.goto(task.url)
         settle(page)
         with (
@@ -163,12 +197,37 @@ def run(
             open(log_dir / "observations.jsonl", "a", encoding="utf-8") as obs_log,
             open(log_dir / "network.jsonl", "a", encoding="utf-8") as net_log,
         ):
-            for step in range(persona.memory.max_steps):
+            for step in range(cap):
                 current["step"] = step
-                obs, refs = observe(page, step, persona.perception.filters, notes)
+                if escalation.out_of_budget(step):
+                    status = "step_cap"  # P11: the steps allowed after help ran out
+                    break
+                happened = world.before_step(page, step)
+                if happened:
+                    settle(page)
+                if server.release_due():
+                    # A held response arrived while the persona waited: the
+                    # page may now show the goal with no further action.
+                    settle(page)
+                    if goal_reached(page, task.goal.role, task.goal.name):
+                        status = "succeeded"
+                        break
+                evidence: dict | None = {} if persona.needs_evidence else None
+                obs, refs = observe(
+                    page, step, persona.perception.filters, notes, persona.perception, evidence
+                )
+                if evidence is not None:
+                    evidence["network"] = server.state()
+                    evidence |= happened or {}
+                note = habit.note((evidence or {}).get("page", {}).get("viewport"))
+                if note:
+                    obs = obs.model_copy(update={"persona_notes": [*obs.persona_notes, note]})
                 obs_hash = observation_hash(obs)
                 content = _content_hash(obs)
                 last = steps[-1] if steps else None
+                escalation.update(content, obs.tree, last)
+                if evidence is not None and escalation.config is not None:
+                    evidence["help"] = escalation.evidence(refs)
                 if last and last.result == "ok" and content == last_content:
                     # A fact the persona would notice, except after a skipped
                     # field: a user who forgot a field expects no change, and
@@ -178,9 +237,14 @@ def run(
                             update={"persona_notes": [*notes, "Nothing visibly changed."]}
                         )
 
-                _append(obs_log, {"step": step, "observation": obs.model_dump()})
+                # The title is not in the tree the persona sees; it is logged for
+                # detectors (lost_location: steps that share one title).
+                entry = {"step": step, "observation": obs.model_dump(), "title": _title(page)}
+                _append(obs_log, entry | (evidence or {}))
 
                 window = persona.memory.history_turns
+                if world.cold and persona.memory.reset_after_interruption:
+                    window = 0  # back "cold" after an interruption (P9)
                 action = model.next_action(task.text, obs, history[-window:] if window else [])
 
                 if action.action == "give_up":
@@ -193,15 +257,24 @@ def run(
                     status = "gave_up"
                     break
 
-                reason = validate(action, policy, refs)
+                focused_ref = obs.focused.ref if obs.focused else None
+                reason = validate(action, policy, refs, focused_ref) or escalation.validate(
+                    action, refs
+                )
                 if reason:
                     perturbed = Perturbed(None, times=0)
                     result = "invalid"
                     notes = [f"That action was not possible: {reason}."]
                 else:
-                    perturbed = perturber.apply(action, refs)
+                    boxes = (evidence or {}).get("page", {}).get("boxes")
+                    perturbed = perturber.apply(action, refs, boxes, habit.learned)
+                    server.before_click()
                     result = _execute(page, perturbed, refs)
+                    perturbed = _impatient_retry(page, perturbed, refs, server, retry_rng, persona)
                     notes = ["That action did not work."] if result == "error" else []
+                    escalation.after(step, perturbed.executed, refs, result)
+                    sent = any(sub["step"] == step for sub in submissions)
+                    habit.learn(perturbed.executed, refs, boxes, sent)
 
                 reached = goal_reached(page, task.goal.role, task.goal.name)
                 for sub in submissions:
@@ -223,9 +296,21 @@ def run(
             # step. The run is already decided, so a page mid-navigation here
             # must not crash it; detectors cope with the entry missing.
             try:
-                final, _ = observe(page, len(steps), persona.perception.filters)
-                entry = {"step": len(steps), "observation": final.model_dump(), "final": True}
-                _append(obs_log, entry)
+                server.release_all()
+                settle(page)
+                evidence = {} if persona.needs_evidence else None
+                final, _ = observe(
+                    page, len(steps), persona.perception.filters, None, persona.perception, evidence
+                )
+                if evidence is not None:
+                    evidence["network"] = server.state()
+                entry = {
+                    "step": len(steps),
+                    "observation": final.model_dump(),
+                    "title": _title(page),
+                    "final": True,
+                }
+                _append(obs_log, entry | (evidence or {}))
             except PlaywrightError:
                 pass
     except ProviderError as e:
@@ -236,15 +321,34 @@ def run(
     finally:
         page.remove_listener("request", on_request)
         if task.endpoint:
-            page.unroute(task.endpoint, _answer_submission)
+            server.release_all()
+            page.unroute(task.endpoint, server.answer)
         meta |= {
             "status": status,
             "steps": len(steps),
+            "klm_seconds": klm_seconds(steps),
             "finished_at": datetime.now(UTC).isoformat(),
         }
         (log_dir / "run.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
 
     return RunResult(run_id, status, steps, log_dir, meta)
+
+
+def _impatient_retry(page: Page, perturbed: Perturbed, refs: RefMap, server, rng, persona):
+    """P10's slip: a click sent a request that is still waiting and the page
+    shows no change, so the user presses again, at `impatient_retry_rate`.
+    Applied after the click, because it depends on what the page did."""
+    rate = persona.perturbation.impatient_retry_rate
+    action = perturbed.executed
+    if perturbed.times != 1 or action is None or action.action != "click":
+        return perturbed
+    if not server.waiting() or not server.unchanged_since_click(page):
+        return perturbed
+    server.silent_waits += 1  # evidence for no_loading_feedback, retry or not
+    if not rate or rng.random() >= rate:
+        return perturbed
+    act(page, action, refs, timeout_ms=SECOND_CLICK_TIMEOUT_MS)
+    return Perturbed(action, IMPATIENT_RETRY, times=2)
 
 
 def _execute(page: Page, perturbed: Perturbed, refs: RefMap) -> Literal["ok", "error"]:
@@ -284,8 +388,94 @@ def _record(
     )
 
 
-def _answer_submission(route) -> None:
-    route.fulfill(status=200, body="ok", headers={"Access-Control-Allow-Origin": "*"})
+def _title(page: Page) -> str | None:
+    try:
+        return page.title()
+    except PlaywrightError:
+        return None
+
+
+class Server:
+    """Answers the task's submission endpoint as the Environment's network
+    would: at once by default; after `latency_ms` (held, so the persona sees
+    the page while it waits); or not at all, failing at `fail_rate` from a
+    seeded draw. Held requests are answered at the start of the first step
+    after they fall due, and all of them when the run ends."""
+
+    def __init__(self, network, seed: int):
+        self.latency_s = network.latency_ms / 1000
+        self.fail_rate = network.fail_rate
+        self._rng = random.Random(f"network-{seed}")
+        self._held: list[tuple[float, object]] = []
+        self.failed = 0
+        self.sent = 0
+        # Clicks after which a request waited and the page showed no change.
+        self.silent_waits = 0
+        self._tree_before_click: str | None = None
+        self._page = None
+
+    def answer(self, route) -> None:
+        self.sent += 1
+        if self.fail_rate and self._rng.random() < self.fail_rate:
+            self.failed += 1
+            route.abort("failed")
+        elif self.latency_s:
+            self._held.append((time.monotonic() + self.latency_s, route))
+        else:
+            _fulfill(route)
+
+    def watch(self, page) -> None:
+        """Remember the page, so the tree before each click can be kept."""
+        self._page = page
+
+    def before_click(self) -> None:
+        if self._page is not None:
+            self._tree_before_click = _tree_now(self._page)
+
+    def waiting(self) -> bool:
+        return bool(self._held)
+
+    def unchanged_since_click(self, page) -> bool:
+        """The page looks as it did before the click that sent the request."""
+        before = self._tree_before_click
+        return before is not None and _tree_now(page) == before
+
+    def state(self) -> dict:
+        """Logged with each observation for the P10 detectors."""
+        return {
+            "pending": len(self._held),
+            "failed": self.failed,
+            "sent": self.sent,
+            "silent_waits": self.silent_waits,
+        }
+
+    def release_due(self) -> bool:
+        """Answer every held request that has fallen due; True if any."""
+        now = time.monotonic()
+        due = [r for t, r in self._held if t <= now]
+        self._held = [(t, r) for t, r in self._held if t > now]
+        for route in due:
+            _fulfill(route)
+        return bool(due)
+
+    def release_all(self) -> None:
+        held, self._held = self._held, []
+        for _, route in held:
+            _fulfill(route)
+
+
+def _tree_now(page) -> str | None:
+    try:
+        return page.locator("body").aria_snapshot(timeout=1000)
+    except PlaywrightError:
+        return None
+
+
+def _fulfill(route) -> None:
+    try:
+        route.fulfill(status=200, body="ok", headers={"Access-Control-Allow-Origin": "*"})
+    except PlaywrightError:  # the page went away while the request was held
+        pass
 
 
 def _append(log, entry: dict) -> None:

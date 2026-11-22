@@ -47,6 +47,12 @@ class Task:
     # harness answers it with 200, so a run does not depend on where the page
     # is hosted (GitHub Pages rejects POSTs). Submissions are logged either way.
     endpoint: str | None = None
+    # Text the task depends on (P8: an instruction, or the call to action's
+    # name), for key_info_buried and cta_below_fold. Never shown to the model.
+    critical_text: str | None = None
+    # P13: the fewest steps that complete the task on the clean page,
+    # measured once by the scripted happy path (check_seeds.py).
+    optimal_steps: int | None = None
 
 
 class _Goal(Contract):
@@ -64,6 +70,8 @@ class TaskEntry(Contract):
     text: str = Field(min_length=1)
     goal: _Goal
     endpoint: str | None = None
+    critical_text: str | None = None
+    optimal_steps: int | None = Field(default=None, ge=1)
 
 
 def load_entries(path: Path = TEST_APP / "tasks.yaml") -> list[TaskEntry]:
@@ -87,6 +95,8 @@ def load_tasks(base_url: str, path: Path = TEST_APP / "tasks.yaml") -> list[Task
             text=entry.text,
             goal=Goal(entry.goal.role, entry.goal.name),
             endpoint=entry.endpoint,
+            critical_text=entry.critical_text,
+            optimal_steps=entry.optimal_steps,
         )
         for entry in load_entries(path)
         for page in entry.pages

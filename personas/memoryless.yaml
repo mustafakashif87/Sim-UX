@@ -1,5 +1,5 @@
 # P2 Memoryless first-time user. Spec: "P2 Memoryless first-time user".
-# Config only for mid-eval: its detectors and seeded pages (B7 to B9) come later.
+# Detectors: agent/detectors/memoryless.py, on seeded pages B7 to B9.
 # The constraint is the history window: the model sees only the current page.
 id: memoryless
 perception:

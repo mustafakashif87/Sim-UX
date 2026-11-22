@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Invoice – SimShop</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    .invoice { display: flex; width: 1000px; justify-content: space-between; }
+  </style>
+</head>
+<body>
+  <header>
+    <span class="brand">SimShop</span>
+    <nav aria-label="Site"><a href="index.html">All pages</a></nav>
+  </header>
+  <main>
+    <h1>Invoice INV-2207</h1>
+    <form id="form" class="invoice" novalidate>
+      <dl>
+        <dt>Amount due</dt><dd>$120.00</dd>
+        <dt>Due by</dt><dd>30 November 2026</dd>
+      </dl>
+      <button type="submit">Pay invoice</button>
+    </form>
+    <div id="result"></div>
+  </main>
+  <script>
+    let sent = false;
+    async function submit(url, body, done) {
+      if (sent) return;  // links cannot be disabled
+      sent = true;
+      document.querySelectorAll('button').forEach((b) => { b.disabled = true; });
+      await fetch(url, { method: 'POST', body });
+      done();
+    }
+    document.getElementById('form').addEventListener('submit', (e) => {
+      e.preventDefault();
+      submit('api/invoice', 'INV-2207', () => {
+        document.getElementById('form').hidden = true;
+        document.getElementById('result').innerHTML = '<h2>Invoice paid</h2>';
+      });
+    });
+  </script>
+</body>
+</html>

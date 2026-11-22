@@ -1,0 +1,25 @@
+# P11 help lexicon: words that name a help mechanism (WCAG 3.2.6 lists human
+# contact details, a contact mechanism, self-help and automated contact).
+# A control whose name contains any of these, as a whole word or phrase, is a
+# help control. Version-controlled; reviewed by the team before a change.
+terms:
+  - help
+  - support
+  - contact
+  - contact us
+  - faq
+  - faqs
+  - questions
+  - chat
+  - live chat
+  - call us
+  - phone us
+  - email us
+  - get in touch
+  - how do i
+  - where do i
+  - what is
+  - guide
+  - explain
+  - learn more
+  - customer service

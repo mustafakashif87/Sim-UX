@@ -22,10 +22,11 @@ signals:
     criteria: ["Nielsen 9", "WCAG 3.3.1"]
   error_not_actionable:
     source: error_prone
-    type: model_judged
+    type: deterministic  # rule-based since 22 Nov 2026 (agent/detectors/error_not_actionable.py)
     criteria: ["Nielsen 9", "WCAG 3.3.3"]
   duplicate_submission:
     source: error_prone
+    also: [slow_network]  # P10: from an impatient second press
     type: deterministic
     criteria: ["Nielsen 5", "WCAG 3.3.4"]
   destructive_without_confirm:
@@ -66,7 +67,7 @@ signals:
     criteria: ["Nielsen 2", "WCAG 3.1.5"]
   system_language:
     source: low_literacy
-    type: model_judged
+    type: deterministic  # rule-based since 22 Nov 2026 (agent/detectors/low_literacy.py)
     criteria: ["Nielsen 2"]
 
   # Deterministic layer (no LLM): axe-core rules and the keyboard sweep
@@ -90,3 +91,154 @@ signals:
     source: keyboard_sweep
     type: deterministic
     criteria: ["WCAG 2.1.1"]
+
+  # P4 Screen-reader user (screen_reader) -- persona catalogue
+  status_not_announced:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 4.1.3", "Nielsen 1"]
+  non_semantic_control:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 4.1.2", "WCAG 2.1.1", "Nielsen 4"]
+  no_structure:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 1.3.1", "WCAG 2.4.1", "Nielsen 8"]
+  unnamed_control:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 4.1.2", "Nielsen 6"]
+  image_only_info:
+    source: screen_reader
+    type: deterministic
+    criteria: ["WCAG 1.1.1", "Nielsen 6"]
+
+  # P5 Keyboard-only user (keyboard_only)
+  focus_not_visible:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.4.7", "Nielsen 1"]
+  focus_order_illogical:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.4.3", "Nielsen 4"]
+  keyboard_trap_in_task:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.1.2", "Nielsen 3"]
+  keyboard_unreachable:
+    source: keyboard_only
+    type: deterministic
+    criteria: ["WCAG 2.1.1", "Nielsen 7"]
+
+  # P7 Low-vision magnifier user (low_vision_zoom)
+  reflow_failure:
+    source: low_vision_zoom
+    also: [touch_imprecise]  # P6 at phone width
+    type: deterministic
+    criteria: ["WCAG 1.4.10", "Nielsen 8"]
+  focus_obscured:
+    source: low_vision_zoom
+    type: deterministic
+    criteria: ["WCAG 2.4.11", "Nielsen 1"]
+  text_clipped:
+    source: low_vision_zoom
+    also: [older_adult]
+    type: deterministic
+    criteria: ["WCAG 1.4.4", "Nielsen 8"]
+
+  # P8 Skimmer (skimmer)
+  key_info_buried:
+    source: skimmer
+    type: deterministic
+    criteria: ["WCAG 2.4.6", "Nielsen 8"]
+  cta_below_fold:
+    source: skimmer
+    type: deterministic
+    criteria: ["Nielsen 8"]
+  headings_not_descriptive:
+    source: skimmer
+    type: deterministic  # rule-based (agent/detectors/extension.py); the catalogue said model-judged
+    criteria: ["WCAG 2.4.6", "Nielsen 8", "Nielsen 2"]
+
+  # P6 Mobile touch user (touch_imprecise)
+  target_too_small:
+    source: touch_imprecise
+    also: [older_adult]
+    type: deterministic
+    criteria: ["WCAG 2.5.8", "Nielsen 5"]
+  mis_tap_consequence:
+    source: touch_imprecise
+    type: deterministic
+    criteria: ["WCAG 3.3.4", "Nielsen 5", "Nielsen 3"]
+
+  # P10 Slow-connection user (slow_network)
+  no_loading_feedback:
+    source: slow_network
+    type: deterministic
+    criteria: ["WCAG 4.1.3", "Nielsen 1"]
+  network_failure_silent:
+    source: slow_network
+    type: deterministic
+    criteria: ["WCAG 4.1.3", "Nielsen 9"]
+
+  # P9 Interrupted user (interrupted)
+  timeout_no_warning:
+    source: interrupted
+    also: [older_adult]
+    type: deterministic
+    criteria: ["WCAG 2.2.1", "Nielsen 1", "Nielsen 3"]
+  data_lost_on_timeout:
+    source: interrupted
+    also: [older_adult]
+    type: deterministic
+    criteria: ["WCAG 2.2.1", "WCAG 2.2.5", "WCAG 2.2.6", "Nielsen 9"]
+  state_lost_on_reload:
+    source: interrupted
+    type: deterministic
+    criteria: ["WCAG 3.3.7", "Nielsen 3"]
+  no_resume_cue:
+    source: interrupted
+    type: deterministic
+    criteria: ["WCAG 2.4.6", "Nielsen 1", "Nielsen 6"]
+
+  # P11 Help-seeker (help_seeker)
+  help_unreachable:
+    source: help_seeker
+    type: deterministic
+    criteria: ["WCAG 3.3.5", "Nielsen 10"]
+  help_inconsistent:
+    source: help_seeker
+    type: deterministic
+    criteria: ["WCAG 3.2.6", "Nielsen 10", "Nielsen 4"]
+
+  # P12 Habitual returning user (habitual)
+  inconsistent_identification:
+    source: habitual
+    type: deterministic
+    criteria: ["WCAG 3.2.4", "Nielsen 4"]
+  inconsistent_navigation:
+    source: habitual
+    type: deterministic
+    criteria: ["WCAG 3.2.3", "Nielsen 4"]
+  capture_consequence:
+    source: habitual
+    type: deterministic
+    criteria: ["WCAG 3.3.4", "Nielsen 4", "Nielsen 5"]
+
+  # P13 Expert power user (power_user)
+  no_enter_submit:
+    source: power_user
+    type: deterministic
+    criteria: ["Nielsen 7", "Nielsen 4"]
+  no_bulk_action:
+    source: power_user
+    type: deterministic
+    criteria: ["Nielsen 7"]
+  excess_steps:
+    source: power_user
+    type: deterministic
+    criteria: ["Nielsen 7"]
+
+  # P14 Older adult (older_adult) reuses P9, P6 and P7 detectors (also: above)

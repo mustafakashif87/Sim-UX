@@ -10,7 +10,7 @@ clean fixture pages.
 
 import json
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 
@@ -42,6 +42,16 @@ class RunLog:
     steps: list[StepRecord]
     observations: list[Observation]
     submissions: list[Submission]
+    # The page title at each observation; None where it was not logged.
+    titles: list[str | None] = field(default_factory=list)
+    # Extension runs only (Persona.needs_evidence): the unfiltered tree and
+    # page facts (boxes, widths, focus) at each observation, which the persona
+    # never saw. None where not logged.
+    full_trees: list[str | None] = field(default_factory=list)
+    facts: list[dict | None] = field(default_factory=list)
+    network: list[dict | None] = field(default_factory=list)  # pending, failed, sent
+    # Each observation's whole log entry (interruptions, help mode, ...).
+    entries: list[dict] = field(default_factory=list)
 
 
 def load_run(log_dir: Path) -> RunLog:
@@ -56,6 +66,11 @@ def load_run(log_dir: Path) -> RunLog:
         steps=[StepRecord.model_validate(e) for e in lines("steps.jsonl")],
         observations=[Observation.model_validate(e["observation"]) for e in observations],
         submissions=[Submission(**e) for e in lines("network.jsonl")],
+        titles=[e.get("title") for e in observations],
+        full_trees=[e.get("full_tree") for e in observations],
+        facts=[e.get("page") for e in observations],
+        network=[e.get("network") for e in observations],
+        entries=[{k: v for k, v in e.items() if k != "observation"} for e in observations],
     )
 
 
@@ -87,27 +102,61 @@ def make_finding(
 Detector = Callable[[RunLog], Finding | None]
 
 
-def detect(run: RunLog) -> list[Finding]:
-    """Run every P1 detector on one run. An aborted run yields none: it ended
-    because the model could not answer, so it says nothing about the page."""
-    if run.meta.get("status") == "aborted_provider":
-        return []
+def all_detectors() -> dict[str, Detector]:
+    """Every built detector by its signal."""
     from agent.detectors.data_loss import data_loss_on_error
     from agent.detectors.destructive import destructive_without_confirm
     from agent.detectors.duplicate_submission import duplicate_submission
+    from agent.detectors.error_not_actionable import error_not_actionable
     from agent.detectors.error_not_identified import error_not_identified
+    from agent.detectors.low_literacy import (
+        instruction_unintelligible,
+        label_unintelligible,
+        system_language,
+    )
+    from agent.detectors.memoryless import lost_location, no_progress_indicator, recall_required
     from agent.detectors.no_way_back import no_way_back
     from agent.detectors.redundant_entry import redundant_entry
 
     detectors: list[Detector] = [
         data_loss_on_error,
         error_not_identified,
+        error_not_actionable,
         duplicate_submission,
         destructive_without_confirm,
         no_way_back,
         redundant_entry,
+        recall_required,
+        lost_location,
+        no_progress_indicator,
+        label_unintelligible,
+        instruction_unintelligible,
+        system_language,
     ]
-    return [f for d in detectors if (f := d(run)) is not None]
+    from agent.detectors.extension import DETECTORS as EXTENSION
+    from agent.detectors.later import DETECTORS as LATER
+
+    return {d.__name__: d for d in [*detectors, *EXTENSION, *LATER]}
+
+
+def detectors_for(persona: str) -> list[Detector]:
+    """The detectors of the signals this persona owns (`source` in the signal
+    map) or shares (`also`): each persona reports only its own signals (spec:
+    persona tables); P6, P10 and P14 reuse some of other personas'."""
+
+    def owns(signal: str) -> bool:
+        entry = signal_map().entry(signal)
+        return entry.source == persona or persona in entry.also
+
+    return [d for signal, d in all_detectors().items() if owns(signal)]
+
+
+def detect(run: RunLog) -> list[Finding]:
+    """Run the persona's detectors on one run. An aborted run yields none: it
+    ended because the model could not answer, so it says nothing about the page."""
+    if run.meta.get("status") == "aborted_provider":
+        return []
+    return [f for d in detectors_for(run.meta["persona"]) if (f := d(run)) is not None]
 
 
 def audit(log_dir: Path) -> list[Finding]:

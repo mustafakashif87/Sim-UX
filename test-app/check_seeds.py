@@ -3,7 +3,7 @@
 For each row of the Bugs table, the bug must be present on the buggy page and
 absent on the clean page. Every task in tasks.yaml must also reach its goal on
 both pages of its pair when done correctly, so the goal check is known to work.
-On every page but B4's buggy one, a double press on the final button must
+On every page but B4's and B28's buggy ones, a double press on the final button must
 send one submission, so P1's injected double press cannot produce a
 duplicate_submission finding the ground truth does not list.
 Exits 1 on any mismatch, or when a row or task has no check here (or the other
@@ -21,6 +21,7 @@ import http.server
 import re
 import sys
 import threading
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 
@@ -277,6 +278,216 @@ def error_is_an_internal_code(page: Page, posts: list[str]) -> bool:
     return re.fullmatch(r"[A-Z]+(_[A-Z0-9]+)+", alert_text(page)) is not None
 
 
+# --- B13 to B17, B20 to B25: extension personas P4, P5, P7, P8 ----------------
+
+LIVE = "[role=status], [role=alert], [role=log], [aria-live]"
+
+
+@check("B13")
+def confirmation_not_live(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Your feedback").fill("Fast delivery, thank you")
+    page.get_by_role("button", name="Send feedback").click()
+    message = page.get_by_text("Thanks, your feedback was sent.")
+    message.wait_for()
+    return not message.evaluate(f"el => !!el.closest({LIVE!r})")
+
+
+@check("B14")
+def size_picker_not_semantic(page: Page, posts: list[str]) -> bool:
+    return page.get_by_role("radio").count() == 0 and page.get_by_text("UK 8").count() == 1
+
+
+@check("B15")
+def no_headings_or_landmarks(page: Page, posts: list[str]) -> bool:
+    tree = page.locator("body").aria_snapshot()
+    return re.search(r"- (heading|main|banner|navigation|contentinfo)\b", tree) is None
+
+
+@check("B16")
+def positive_tabindex(page: Page, posts: list[str]) -> bool:
+    return page.evaluate(
+        "() => [...document.querySelectorAll('[tabindex]')].some(e => e.tabIndex > 0)"
+    )
+
+
+@check("B17")
+def focus_has_no_outline(page: Page, posts: list[str]) -> bool:
+    page.keyboard.press("Tab")  # the site link
+    page.keyboard.press("Tab")  # the email field
+    return page.evaluate(
+        """() => { const s = getComputedStyle(document.activeElement);
+                   return s.outlineStyle === 'none' && s.boxShadow === 'none'; }"""
+    )
+
+
+@check("B20")
+def scrolls_sideways_at_320(page: Page, posts: list[str]) -> bool:
+    page.set_viewport_size({"width": 320, "height": 256})
+    return page.evaluate("() => document.documentElement.scrollWidth > innerWidth + 5")
+
+
+@check("B21")
+def banner_covers_focused_field(page: Page, posts: list[str]) -> bool:
+    page.set_viewport_size({"width": 320, "height": 256})
+    field = page.get_by_label("Display name")
+    field.focus()
+    return field.evaluate(
+        """el => { el.scrollIntoView({block: 'end'});
+                   const r = el.getBoundingClientRect();
+                   const x = r.left + r.width / 2, y = r.top + r.height / 2;
+                   const hit = document.elementFromPoint(x, y);
+                   return !!hit && hit !== el && !el.contains(hit); }"""
+    )
+
+
+@check("B22")
+def deadline_clipped_at_200_percent(page: Page, posts: list[str]) -> bool:
+    page.add_style_tag(content="html{font-size:200% !important}body{font-size:32px !important}")
+    return page.evaluate(
+        """() => { const n = document.querySelector('.notice');
+                   return getComputedStyle(n).overflowY === 'hidden'
+                       && n.scrollHeight > n.clientHeight + 2; }"""
+    )
+
+
+@check("B23")
+def instruction_buried_in_paragraph(page: Page, posts: list[str]) -> bool:
+    instruction = "Use the code from your email"
+    paragraph = page.locator("p", has_text=instruction)
+    text = paragraph.first.inner_text() if paragraph.count() else ""
+    return len(text[: text.find(instruction)].split()) >= 8
+
+
+@check("B24")
+def call_to_action_below_fold(page: Page, posts: list[str]) -> bool:
+    page.set_viewport_size({"width": 1280, "height": 720})
+    box = page.get_by_role("button", name="Start free trial").bounding_box()
+    return box is not None and box["y"] >= 720
+
+
+@check("B25")
+def headings_name_no_topic(page: Page, posts: list[str]) -> bool:
+    names = [h.inner_text().strip() for h in page.locator("h2").all()]
+    return sum(n in ("Section 1", "More info", "Other") for n in names) >= 2
+
+
+@check("B18")
+def remove_is_tiny_and_beside_plus(page: Page, posts: list[str]) -> bool:
+    plus = page.get_by_role("button", name="Increase quantity").bounding_box()
+    remove = page.get_by_role("button", name="Remove item").bounding_box()
+    gap = remove["x"] - (plus["x"] + plus["width"])
+    return min(remove["width"], remove["height"]) < 24 and gap < 12
+
+
+@check("B19")
+def delivery_options_are_tiny(page: Page, posts: list[str]) -> bool:
+    row = page.locator("label", has_text="Standard (free)").bounding_box()
+    return row["height"] < 24
+
+
+@check("B28")
+def pay_button_stays_enabled_and_silent(page: Page, posts: list[str]) -> bool:
+    held = []
+    page.unroute("**/api/**")
+    page.route("**/api/**", lambda route: held.append(route))
+    page.get_by_role("button", name="Pay now").click()
+    page.wait_for_timeout(500)
+    enabled = page.get_by_role("button", name="Pay now").is_enabled()
+    status = page.get_by_role("status").inner_text().strip()
+    for route in held:
+        route.fulfill(status=200, body="ok")
+    return enabled and not status
+
+
+@check("B29")
+def failure_leaves_page_unchanged(page: Page, posts: list[str]) -> bool:
+    page.unroute("**/api/**")
+    page.route("**/api/**", lambda route: route.abort("failed"))
+    page.get_by_label("Meter reading").fill("48213")
+    before = page.locator("body").aria_snapshot()
+    page.get_by_role("button", name="Send reading").click()
+    page.wait_for_timeout(500)
+    return page.locator("body").aria_snapshot() == before
+
+
+def with_clock(page: Page) -> None:
+    """Restart the page on Playwright's fake clock, so its timers can be run."""
+    page.clock.install()
+    page.reload()
+
+
+@check("B26")
+def session_ends_without_warning(page: Page, posts: list[str]) -> bool:
+    with_clock(page)
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.clock.run_for(9 * 60 * 1000)  # past the clean page's 8-minute warning
+    return page.get_by_role("alertdialog").count() == 0
+
+
+@check("B27")
+def reload_restarts_survey(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Every week").check()
+    page.get_by_role("button", name="Next").click()
+    page.get_by_label("Card").wait_for()
+    page.reload()
+    return page.get_by_label("Every week").is_visible()
+
+
+@check("B30")
+def no_help_on_claim_form(page: Page, posts: list[str]) -> bool:
+    help_words = re.compile(r"help|where do i|contact|faq", re.IGNORECASE)
+    return page.get_by_role("link", name=help_words).count() == 0
+
+
+@check("B31")
+def contact_link_moves_and_goes(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Tracking number").fill("SP-48213")
+    page.get_by_role("button", name="Next").click()
+    page.get_by_label("Saturday").check()
+    page.get_by_role("button", name="Next").click()
+    page.get_by_role("button", name="Confirm change").wait_for()
+    return page.get_by_role("link", name="Contact us").count() == 0
+
+
+@check("B32")
+def save_button_renamed(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Send me email receipts").check()
+    page.get_by_role("button", name="Save").click()
+    return page.get_by_role("button", name="Apply").is_visible()
+
+
+@check("B33")
+def navigation_reorders(page: Page, posts: list[str]) -> bool:
+    nav = page.get_by_role("navigation", name="Shop")
+    before = nav.inner_text()
+    nav.get_by_role("link", name="Toasters").click()
+    return nav.inner_text() != before
+
+
+@check("B34")
+def enter_does_not_submit(page: Page, posts: list[str]) -> bool:
+    page.get_by_label("Item name").fill("Kettle")
+    page.get_by_label("Quantity").fill("3")
+    page.get_by_label("Quantity").press("Enter")
+    page.wait_for_timeout(500)
+    return not posts
+
+
+@check("B35")
+def no_select_all(page: Page, posts: list[str]) -> bool:
+    return page.get_by_label("Select all").count() == 0
+
+
+@check("B36")
+def short_limit_and_tiny_prompt(page: Page, posts: list[str]) -> bool:
+    with_clock(page)
+    page.clock.run_for(45 * 1000)
+    more = page.get_by_role("button", name="Yes, more time")
+    if not more.count():
+        return False
+    return more.bounding_box()["height"] < 24
+
+
 # --- happy paths: every task in tasks.yaml reaches its goal on both pages ---
 
 
@@ -369,6 +580,182 @@ def save_phone(page: Page, double: bool = False) -> None:
     press(page.get_by_role("button", name="Save"), double)
 
 
+@happy("feedback")
+def send_feedback(page: Page, double: bool = False) -> None:
+    page.get_by_label("Your feedback").fill("Fast delivery, thank you")
+    press(page.get_by_role("button", name="Send feedback"), double)
+
+
+@happy("size")
+def add_trainers(page: Page, double: bool = False) -> None:
+    page.get_by_text("UK 8", exact=True).click()  # a div or a radio's label
+    press(page.get_by_role("button", name="Add to basket"), double)
+
+
+@happy("policy")
+def accept_policy(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("link", name="Accept the policy"), double)
+
+
+@happy("filters")
+def filter_kettles(page: Page, double: bool = False) -> None:
+    page.get_by_label("Lowest price").fill("20")
+    page.get_by_label("Highest price").fill("50")
+    press(page.get_by_role("button", name="Apply filters"), double)
+
+
+@happy("login")
+def log_in(page: Page, double: bool = False) -> None:
+    page.get_by_label("Email address").fill("sam.khan@example.com")
+    page.get_by_label("Password").fill("Kettle-2026")
+    press(page.get_by_role("button", name="Log in"), double)
+
+
+@happy("invoice")
+def pay_invoice(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Pay invoice"), double)
+
+
+@happy("profile")
+def save_profile(page: Page, double: bool = False) -> None:
+    field = page.get_by_label("Display name")
+    field.fill("Sam K.")
+    # Enter in the field, as the buggy page's banner may cover the button.
+    field.press("Enter")
+    if double:
+        field.press("Enter")
+
+
+@happy("notice")
+def renew_permit(page: Page, double: bool = False) -> None:
+    page.get_by_label("Renew by date").fill("15 December 2026")
+    press(page.get_by_role("button", name="Request renewal"), double)
+
+
+@happy("redeem")
+def redeem_card(page: Page, double: bool = False) -> None:
+    page.get_by_label("Gift card code").fill("GIFT-7731")
+    press(page.get_by_role("button", name="Redeem"), double)
+
+
+@happy("trial")
+def start_trial(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Start free trial"), double)
+
+
+@happy("pricing")
+def choose_annual_family(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Choose Family, $70 a year"), double)
+
+
+@happy("cart")
+def two_kettles(page: Page, double: bool = False) -> None:
+    page.get_by_role("button", name="Increase quantity").click()
+    press(page.get_by_role("button", name="Go to checkout"), double)
+
+
+@happy("shipping")
+def free_delivery(page: Page, double: bool = False) -> None:
+    page.get_by_label("Standard (free)").check()
+    press(page.get_by_role("button", name="Pay now"), double)
+
+
+@happy("payment")
+def pay(page: Page, double: bool = False) -> None:
+    press(page.get_by_role("button", name="Pay now"), double)
+
+
+@happy("upload")
+def send_reading(page: Page, double: bool = False) -> None:
+    page.get_by_label("Meter reading").fill("48213")
+    press(page.get_by_role("button", name="Send reading"), double)
+
+
+@happy("application")
+def apply_for_permit(page: Page, double: bool = False) -> None:
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.get_by_label("National ID number").fill("35202-1234567-1")
+    press(page.get_by_role("button", name="Submit application"), double)
+
+
+@happy("survey")
+def answer_survey(page: Page, double: bool = False) -> None:
+    for answer in ("Every week", "Card", "Good"):
+        page.get_by_label(answer, exact=True).check()
+        page.get_by_role("button", name="Next").click()
+    page.get_by_label("Yes", exact=True).check()
+    press(page.get_by_role("button", name="Finish"), double)
+
+
+@happy("claim")
+def make_claim(page: Page, double: bool = False) -> None:
+    page.get_by_label("Policy number").fill("POL-1234567")
+    page.get_by_label("What happened").fill("I dropped my phone and the screen broke.")
+    press(page.get_by_role("button", name="Make a claim"), double)
+
+
+@happy("support")
+def change_delivery(page: Page, double: bool = False) -> None:
+    page.get_by_label("Tracking number").fill("SP-48213")
+    page.get_by_role("button", name="Next").click()
+    page.get_by_label("Saturday").check()
+    page.get_by_role("button", name="Next").click()
+    press(page.get_by_role("button", name="Confirm change"), double)
+
+
+@happy("settings")
+def save_all_settings(page: Page, double: bool = False) -> None:
+    save = re.compile(r"^(Save|Apply|Update)$")
+    for i, option in enumerate(
+        [
+            "Send me email receipts",
+            "Hide my reviews from other shoppers",
+            "Tell me about offers by email",
+        ]
+    ):
+        page.get_by_label(option).check()
+        button = page.get_by_role("button", name=save)
+        if i < 2:
+            button.click()
+        else:
+            press(button, double)
+
+
+@happy("store")
+def check_out_toaster(page: Page, double: bool = False) -> None:
+    nav = page.get_by_role("navigation", name="Shop")
+    nav.get_by_role("link", name="Toasters").click()
+    nav.get_by_role("link", name="Basket").click()
+    press(page.get_by_role("button", name="Check out"), double)
+
+
+@happy("quickadd")
+def add_stock(page: Page, double: bool = False) -> None:
+    page.get_by_label("Item name").fill("Kettle")
+    page.get_by_label("Quantity").fill("3")
+    press(page.get_by_role("button", name="Add item"), double)
+
+
+@happy("bulk")
+def archive_all(page: Page, double: bool = False) -> None:
+    if page.get_by_label("Select all").count():
+        page.get_by_label("Select all").check()
+        page.get_by_role("button", name="Archive selected").click()
+        press(page.get_by_role("button", name="Yes, archive"), double)
+        return
+    for i in range(1, 11):
+        page.get_by_role("button", name=f"Archive ticket {i}", exact=True).click()
+        press(page.get_by_role("button", name="Yes, archive"), double and i == 10)
+
+
+@happy("appointment")
+def book_appointment(page: Page, double: bool = False) -> None:
+    page.get_by_label("Full name").fill("Sam Khan")
+    page.get_by_label("Phone number").fill("03001234567")
+    page.get_by_label("Preferred date").fill("2 December")
+    press(page.get_by_role("button", name="Book appointment"), double)
+
+
 # --- runner ----------------------------------------------------------------
 
 
@@ -428,10 +815,12 @@ def _completes(browser: Browser, base: str, name: str, task: dict) -> bool:
 
 
 def _submissions_on_double_press(browser: Browser, base: str, name: str, task: dict) -> int:
-    """Submissions sent when the final press is doubled. Every POST is held
-    unanswered until both presses are done, as a slow server would, so a page
-    that hides its form once answered still shows whether it guards the
-    second press. Without the hold the result depends on timing."""
+    """The most times one request (same URL and body) is sent when the final
+    press is doubled: two means a duplicate submission. Flows that send
+    several different requests (a save per screen) still count 1. Every POST
+    is held unanswered until both presses are done, as a slow server would,
+    so a page that hides its form once answered still shows whether it guards
+    the second press. Without the hold the result depends on timing."""
     page = browser.new_page()
     held = []
 
@@ -449,7 +838,8 @@ def _submissions_on_double_press(browser: Browser, base: str, name: str, task: d
         for route in held:
             route.fulfill(status=200, body="ok")
         reached_goal(page, task["goal"]["role"], task["goal"]["name"])
-        return len(held)
+        sent = Counter((r.request.url, r.request.post_data) for r in held)
+        return max(sent.values(), default=0)
     finally:
         page.close()
 
@@ -493,9 +883,10 @@ def main() -> int:
                 if not done:
                     problems.append(f"task {task['id']}: goal not reached on {name}")
 
-        # Only B4's buggy page may send twice; anywhere else a double press
+        # Only B4's and B28's buggy pages may send twice (B28's bug is a button
+        # that stays enabled while it waits); anywhere else a double press
         # would be a duplicate_submission finding missing from the ground truth.
-        allowed = {buggy for bug, buggy, _ in rows if bug == "B4"}
+        allowed = {buggy for bug, buggy, _ in rows if bug in ("B4", "B28")}
         print(f"\n{'task':<10} {'page':<20} submissions on a double press")
         for task in tasks:
             if task["id"] not in HAPPY:

@@ -160,10 +160,10 @@ class TestP2AndP3Configs:
         assert p3.perception.filters != p1.perception.filters  # P3: perception
 
     def test_unbuilt_filter_fails_loudly(self):
-        from agent.perception import apply_filters
+        from agent.perception import _not_built
 
         with pytest.raises(NotImplementedError, match="not built yet"):
-            apply_filters([], ["vocab_filter"])
+            _not_built("some_filter", "a test")([])
 
 
 class TestBaseline:
@@ -178,7 +178,7 @@ class TestBaseline:
         assert {"Tab", "Enter", "Escape"} <= set(b.actions.keys)
         assert b.memory.max_steps == 2 * p.memory.max_steps
         assert b.memory.history_turns == b.memory.max_steps
-        rates = b.perturbation.model_dump(exclude={"seed"})
+        rates = b.perturbation.model_dump(exclude={"seed", "mis_tap_reach_px"})
         assert set(rates.values()) == {0.0}
 
     def test_same_id_and_seed_new_hash(self):

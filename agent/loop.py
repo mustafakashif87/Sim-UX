@@ -13,6 +13,8 @@ in the prompt.
 import hashlib
 import importlib.metadata
 import json
+import random
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
@@ -25,6 +27,7 @@ from playwright.sync_api import Page
 from agent.actions import validate
 from agent.browser import act, goal_reached, observe, settle
 from agent.contracts import Action, Observation, StepRecord
+from agent.environment import environment_page
 from agent.ids import new_run_id
 from agent.llm import ProviderError
 from agent.perception import RefMap
@@ -98,6 +101,22 @@ def run(
     condition: str = "persona",
     run_id: str | None = None,
 ) -> RunResult:
+    """See `_run`. With an Environment (device, viewport, text scale) the run
+    uses its own page in its own browser context, closed afterwards."""
+    with environment_page(page, persona.environment) as own:
+        return _run(own, task, persona, model, log_root, seed, condition, run_id)
+
+
+def _run(
+    page: Page,
+    task: Task,
+    persona: Persona,
+    model: Model,
+    log_root: Path,
+    seed: int | None = None,
+    condition: str = "persona",
+    run_id: str | None = None,
+) -> RunResult:
     """Run one task to success, give-up or the step cap, logging every step.
     A ProviderError from the model ends it as `aborted_provider`. `condition`
     is only logged: the caller passes the persona already set for it
@@ -153,8 +172,9 @@ def run(
         )
 
     page.on("request", on_request)
+    server = Server(persona.environment.network, perturber.seed)
     if task.endpoint:
-        page.route(task.endpoint, _answer_submission)
+        page.route(task.endpoint, server.answer)
 
     try:
         page.goto(task.url)
@@ -166,7 +186,17 @@ def run(
         ):
             for step in range(persona.memory.max_steps):
                 current["step"] = step
-                obs, refs = observe(page, step, persona.perception.filters, notes)
+                if server.release_due():
+                    # A held response arrived while the persona waited: the
+                    # page may now show the goal with no further action.
+                    settle(page)
+                    if goal_reached(page, task.goal.role, task.goal.name):
+                        status = "succeeded"
+                        break
+                evidence: dict | None = {} if persona.needs_evidence else None
+                obs, refs = observe(
+                    page, step, persona.perception.filters, notes, persona.perception, evidence
+                )
                 obs_hash = observation_hash(obs)
                 content = _content_hash(obs)
                 last = steps[-1] if steps else None
@@ -182,7 +212,7 @@ def run(
                 # The title is not in the tree the persona sees; it is logged for
                 # detectors (lost_location: steps that share one title).
                 entry = {"step": step, "observation": obs.model_dump(), "title": _title(page)}
-                _append(obs_log, entry)
+                _append(obs_log, entry | (evidence or {}))
 
                 window = persona.memory.history_turns
                 action = model.next_action(task.text, obs, history[-window:] if window else [])
@@ -197,7 +227,7 @@ def run(
                     status = "gave_up"
                     break
 
-                reason = validate(action, policy, refs)
+                reason = validate(action, policy, refs, obs.focused.ref if obs.focused else None)
                 if reason:
                     perturbed = Perturbed(None, times=0)
                     result = "invalid"
@@ -227,14 +257,19 @@ def run(
             # step. The run is already decided, so a page mid-navigation here
             # must not crash it; detectors cope with the entry missing.
             try:
-                final, _ = observe(page, len(steps), persona.perception.filters)
+                server.release_all()
+                settle(page)
+                evidence = {} if persona.needs_evidence else None
+                final, _ = observe(
+                    page, len(steps), persona.perception.filters, None, persona.perception, evidence
+                )
                 entry = {
                     "step": len(steps),
                     "observation": final.model_dump(),
                     "title": _title(page),
                     "final": True,
                 }
-                _append(obs_log, entry)
+                _append(obs_log, entry | (evidence or {}))
             except PlaywrightError:
                 pass
     except ProviderError as e:
@@ -245,7 +280,8 @@ def run(
     finally:
         page.remove_listener("request", on_request)
         if task.endpoint:
-            page.unroute(task.endpoint, _answer_submission)
+            server.release_all()
+            page.unroute(task.endpoint, server.answer)
         meta |= {
             "status": status,
             "steps": len(steps),
@@ -300,8 +336,47 @@ def _title(page: Page) -> str | None:
         return None
 
 
-def _answer_submission(route) -> None:
-    route.fulfill(status=200, body="ok", headers={"Access-Control-Allow-Origin": "*"})
+class Server:
+    """Answers the task's submission endpoint as the Environment's network
+    would: at once by default; after `latency_ms` (held, so the persona sees
+    the page while it waits); or not at all, failing at `fail_rate` from a
+    seeded draw. Held requests are answered at the start of the first step
+    after they fall due, and all of them when the run ends."""
+
+    def __init__(self, network, seed: int):
+        self.latency_s = network.latency_ms / 1000
+        self.fail_rate = network.fail_rate
+        self._rng = random.Random(f"network-{seed}")
+        self._held: list[tuple[float, object]] = []
+
+    def answer(self, route) -> None:
+        if self.fail_rate and self._rng.random() < self.fail_rate:
+            route.abort("failed")
+        elif self.latency_s:
+            self._held.append((time.monotonic() + self.latency_s, route))
+        else:
+            _fulfill(route)
+
+    def release_due(self) -> bool:
+        """Answer every held request that has fallen due; True if any."""
+        now = time.monotonic()
+        due = [r for t, r in self._held if t <= now]
+        self._held = [(t, r) for t, r in self._held if t > now]
+        for route in due:
+            _fulfill(route)
+        return bool(due)
+
+    def release_all(self) -> None:
+        held, self._held = self._held, []
+        for _, route in held:
+            _fulfill(route)
+
+
+def _fulfill(route) -> None:
+    try:
+        route.fulfill(status=200, body="ok", headers={"Access-Control-Allow-Origin": "*"})
+    except PlaywrightError:  # the page went away while the request was held
+        pass
 
 
 def _append(log, entry: dict) -> None:

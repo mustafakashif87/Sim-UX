@@ -46,7 +46,7 @@ def test_focused_element_reported_by_ref(open_fixture):
 
 
 def test_filtered_out_elements_cannot_be_targeted(open_fixture, monkeypatch):
-    def drop_buttons(nodes):
+    def drop_buttons(nodes, view=None):
         for n in nodes:
             n.children = [c for c in n.children if c.role != "button"]
         return nodes

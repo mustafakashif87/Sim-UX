@@ -39,7 +39,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_valida
 
 from agent.detectors import audit
 from agent.ids import is_run_id, new_run_id
-from agent.perception import FILTERS
+from agent.perception import FILTERS, Box, View
 from agent.persona import CONDITIONS, PERSONAS_DIR, Persona, for_condition, load_persona
 from agent.tasks import load_entries
 
@@ -94,7 +94,7 @@ def unbuilt_filter(persona: Persona) -> str | None:
     """Why this persona cannot run yet (a perception filter not built), or None."""
     for name in persona.perception.filters:
         try:
-            FILTERS[name]([])
+            FILTERS[name]([], View(viewport=Box(0, 0, 1, 1)))
         except NotImplementedError as e:
             return str(e)
     return None

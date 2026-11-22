@@ -1,0 +1,17 @@
+# P4 Screen-reader user. Catalogue: "P4 Screen-reader user".
+# Reads the page as a flat list, about 15 items at a time from the reading
+# position, with the headings and landmarks a rotor lists; clicks only what a
+# screen reader exposes as operable.
+id: screen_reader
+perception:
+  filters: [linear_window]
+  window_nodes: 15
+  rotor: [headings, landmarks]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Shift+Tab, Enter, Space, Escape, ArrowDown, ArrowUp]
+  interactive_roles_only: true
+memory:
+  history_turns: 3
+  max_steps: 25
+task_types: [complete_form, navigate_to_info]

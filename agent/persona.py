@@ -50,6 +50,12 @@ class Config(Contract):
 
 class Perception(Config):
     filters: list[str] = Field(min_length=1)
+    # Settings of individual filters (persona catalogue, P4 and P8).
+    window_nodes: int = Field(default=15, ge=3)  # linear_window: nodes around the reading position
+    rotor: list[
+        Literal["headings", "landmarks"]
+    ] = []  # linear_window: lists a screen reader offers
+    skim_max_words: int = Field(default=8, ge=1)  # skim_text: words kept per text
 
     @field_validator("filters")
     @classmethod
@@ -63,6 +69,11 @@ class Perception(Config):
 class Actions(Config):
     allowed: list[ActionKind] = Field(min_length=1)
     keys: list[str] = []
+    # P4: clicks only on elements with an interactive role, as a screen reader
+    # exposes them; a div with a click handler cannot be used.
+    interactive_roles_only: bool = False
+    # P5: `type` only into the focused element (a keyboard user types where focus is).
+    type_focused_only: bool = False
 
     @model_validator(mode="after")
     def _valid_actions_and_keys(self) -> Self:
@@ -93,6 +104,13 @@ class Perturbation(Config):
     skip_field_rate: float = Rate
     double_submit_rate: float = Rate
     back_press_rate: float = Rate
+    # P6 mis_tap: p = min(cap, base_rate * 44 / smaller side in CSS px); the tap
+    # lands on the nearest other interactive element within reach_px, or misses.
+    mis_tap_base_rate: float = Rate
+    mis_tap_cap: float = Rate
+    mis_tap_reach_px: int = Field(default=12, ge=0)
+    # P10: after a click that sends a request, click again while it is pending.
+    impatient_retry_rate: float = Rate
 
     @model_validator(mode="after")
     def _one_mistake_per_step(self) -> Self:
@@ -105,18 +123,70 @@ class Perturbation(Config):
         return self
 
 
+class Viewport(Config):
+    width: int = Field(ge=200)
+    height: int = Field(ge=200)
+
+
+class Network(Config):
+    """What the connection does to the task's submission requests."""
+
+    latency_ms: int = Field(default=0, ge=0, le=60_000)
+    fail_rate: float = Rate  # chance a submission fails (network error)
+
+
+class Environment(Config):
+    """The fifth axis: what the world does to the user (persona catalogue,
+    Framework changes). Enforced in browser.py and loop.py. The baseline keeps
+    it: the world stays the same, only the persona's limits come off."""
+
+    device: str | None = None  # a Playwright device name, e.g. "iPhone 13"
+    viewport: Viewport | None = None
+    text_scale: float = Field(default=1.0, ge=1.0, le=4.0)
+    network: Network = Network()
+
+    @field_validator("device")
+    @classmethod
+    def _known_device(cls, device: str | None) -> str | None:
+        if device is not None:
+            from agent.environment import DEVICES
+
+            if device not in DEVICES:
+                raise ValueError(f"unknown device {device!r}; one of {sorted(DEVICES)}")
+        return device
+
+
 class Persona(Config):
     id: str = Field(pattern=r"^[a-z][a-z0-9_]*$")
     perception: Perception
     actions: Actions
     memory: Memory
     perturbation: Perturbation = Perturbation()
+    environment: Environment = Environment()
     task_types: list[str] = Field(min_length=1)
 
     @property
     def action_policy(self) -> ActionPolicy:
         return ActionPolicy(
-            allowed=frozenset(self.actions.allowed), keys=frozenset(self.actions.keys)
+            allowed=frozenset(self.actions.allowed),
+            keys=frozenset(self.actions.keys),
+            interactive_roles_only=self.actions.interactive_roles_only,
+            type_focused_only=self.actions.type_focused_only,
+        )
+
+    @property
+    def needs_evidence(self) -> bool:
+        """Whether runs log the unfiltered tree and page geometry for the
+        extension personas' detectors (P4 to P14). P1 to P3 do not need it."""
+        filters = set(self.perception.filters) - {"full_tree", "vocab_filter"}
+        p = self.perturbation
+        return bool(
+            filters
+            or self.actions.interactive_roles_only
+            or self.actions.type_focused_only
+            or self.environment != Environment()
+            or p.mis_tap_base_rate
+            or p.impatient_retry_rate
         )
 
     @property

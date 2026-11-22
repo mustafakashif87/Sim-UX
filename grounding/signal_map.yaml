@@ -22,7 +22,7 @@ signals:
     criteria: ["Nielsen 9", "WCAG 3.3.1"]
   error_not_actionable:
     source: error_prone
-    type: model_judged
+    type: deterministic  # rule-based since 22 Nov 2026 (agent/detectors/error_not_actionable.py)
     criteria: ["Nielsen 9", "WCAG 3.3.3"]
   duplicate_submission:
     source: error_prone
@@ -66,7 +66,7 @@ signals:
     criteria: ["Nielsen 2", "WCAG 3.1.5"]
   system_language:
     source: low_literacy
-    type: model_judged
+    type: deterministic  # rule-based since 22 Nov 2026 (agent/detectors/low_literacy.py)
     criteria: ["Nielsen 2"]
 
   # Deterministic layer (no LLM): axe-core rules and the keyboard sweep

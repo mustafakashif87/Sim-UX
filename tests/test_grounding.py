@@ -61,8 +61,10 @@ class TestSignalMap:
         }
 
     def test_model_judged_signals_match_the_spec(self):
+        # error_not_actionable and system_language became rule-based on
+        # 22 Nov 2026 (spec, P1 and P3 tables), so P1 to P3 need no judge model.
         judged = {s for s in SIGNALS.signals() if SIGNALS.entry(s).type == "model_judged"}
-        assert judged == {"error_not_actionable", "system_language"}
+        assert judged == set()
 
     def test_nielsen_only_signals_have_no_wcag(self):
         # Spec: no_way_back and system_language have no WCAG criterion.

@@ -135,14 +135,37 @@ def _not_built(name: str, reason: str):
     return apply
 
 
+# Roles whose inline text is what the user typed or chose, not page wording.
+_VALUE_ROLES = {"textbox", "searchbox", "combobox", "spinbutton", "slider"}
+
+
+def vocab_filter(nodes: list[Node]) -> list[Node]:
+    """P3: every word outside the common-word list becomes [unknown] in names
+    and page text (agent/vocab.py). Values in fields are left as typed."""
+    from agent.vocab import simplify
+
+    def one(node: Node) -> Node:
+        text = node.text
+        if text is not None and node.role not in _VALUE_ROLES:
+            text = simplify(text)
+        return Node(
+            role=node.role,
+            name=simplify(node.name) if node.name else node.name,
+            attrs=dict(node.attrs),
+            text=text,
+            props=dict(node.props),
+            children=[one(c) for c in node.children],
+            ref=node.ref,
+        )
+
+    return [one(n) for n in nodes]
+
+
 # Perception filters by config name (spec: Persona framework). Each takes and
 # returns the node list; later personas add their filters here.
 FILTERS = {
     "full_tree": lambda nodes: nodes,
-    # P3: words outside a common-word list become [unknown]. Its word list is an
-    # open decision in the spec, so the filter is registered (P3's config is
-    # valid) but cannot run until the list is chosen.
-    "vocab_filter": _not_built("vocab_filter", "the P3 word list is an open decision"),
+    "vocab_filter": vocab_filter,  # P3
 }
 
 

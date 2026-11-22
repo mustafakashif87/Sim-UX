@@ -1,6 +1,6 @@
 # SimUX Persona Design Spec
 
-As of 2026-10-10
+As of 2026-10-10 · extension personas added 2026-11-15
 
 ## Purpose and design principle
 
@@ -16,18 +16,23 @@ SimUX personas are configurations of hard constraints enforced by the harness, n
 
 **Change from the proposal:** the proposal named keyboard-only and motor-control personas. We replaced them with three personas (Error-prone user, Memoryless first-time user, Low-literacy or non-native reader) that span both grounding corpora (Nielsen and WCAG 2.2), not mostly WCAG. Each one changes a different constraint axis: perturbation, memory and perception. This change must be recorded in the Panel Action Register and justified in the report as design evolution.
 
+**Extension personas (P4 to P14):** eleven more personas are specified in [`persona-catalogue.md`](persona-catalogue.md), in the same format: screen-reader, keyboard-only, mobile touch, low-vision zoom, skimmer, interrupted, slow-connection, help-seeker, habitual returning user, expert power user and older adult (composite). They bring back the proposal's keyboard and motor personas (P5, P6) and close the coverage gaps listed under Coverage. P1 to P3 remain the core set and are evaluated in full first. The extension is built after them, in the catalogue's build order, and also needs supervisor sign-off and a Panel Action Register entry (see Open decisions).
+
 ## Persona framework
 
 A persona is one YAML file that sets four constraint axes. The agent loop, model and prompt template are shared by every persona. Each axis is enforced in exactly one harness module, so every behaviour difference can be traced to a line of code.
 
-The action axis applies to every persona: the validator accepts only whitelisted actions on harness refs. No current persona narrows it further, because action limits were the role of the proposal's keyboard and motor personas, and those failures (a focus trap, an unreachable control) are deterministic, so the keyboard sweep tests them without an LLM. A keyboard-only persona remains a one-line config change (`allowed: [press]`).
+The action axis applies to every persona: the validator accepts only whitelisted actions on harness refs. No current persona narrows it further, because action limits were the role of the proposal's keyboard and motor personas, and those failures (a focus trap, an unreachable control) are deterministic, so the keyboard sweep tests them without an LLM. A keyboard-only persona remains a one-line config change (`allowed: [press]`). The extension's P5 Keyboard-only user adds a `visible_focus_only` filter, so it also tests whether focus can be seen (2.4.3 and 2.4.7), not only whether it can move.
 
 | Axis | Controls | Enforced in | Settings available |
 | --- | --- | --- | --- |
-| Perception | What the model receives each step | `perception.py` filters on the observation | `full_tree`, `viewport_only`, `vocab_filter`, `standard_roles_only` |
-| Action space | What the model may ask the browser to do | `actions.py` whitelist and validator | `click`, `type`, `press`, `scroll`, `back`; per-persona subset |
-| Memory and budget | What it remembers and how long it has | `loop.py` history window and step cap | history turns (0 to N), max steps |
-| Perturbation | What goes wrong between intent and execution | `perturb.py` between validation and execution | typo, skipped field, double submit, back press, change of mind; each with a rate |
+| Perception | What the model receives each step | `perception.py` filters on the observation | `full_tree`, `viewport_only`, `vocab_filter`, `standard_roles_only`; extension: `skim_text`, `linear_window`, `visible_focus_only` |
+| Action space | What the model may ask the browser to do | `actions.py` whitelist and validator | `click`, `type`, `press`, `scroll`, `back`; per-persona subset; extension: clicks only on interactive roles, help-only `escalation` |
+| Memory and budget | What it remembers and how long it has | `loop.py` history window and step cap | history turns (0 to N), max steps; extension: `prior_knowledge`, step cap as a multiple of `optimal_steps` |
+| Perturbation | What goes wrong between intent and execution | `perturb.py` between validation and execution | typo, skipped field, double submit, back press, change of mind; each with a rate; extension: `mis_tap`, `impatient_retry`, `capture` |
+| Environment (extension) | What the world does to the user, separately from the user's own mistakes | `browser.py` and `loop.py` | `device`, `viewport`, `text_scale`, `network` (latency, failure), `think_time_s` and `interruptions` on Playwright's simulated clock |
+
+The Environment axis is used only by P4 to P14. Its keys, and every extension setting above, are proposed schema: `persona.py` needs them in its Pydantic models, with a not-built stub like `vocab_filter`'s, before any extension config is valid. See the catalogue's Framework changes section.
 
 ```mermaid
 flowchart LR
@@ -92,6 +97,8 @@ Each persona has a constraint config, a realism basis, failure signals with a na
 | P2 Memoryless first-time user | `memoryless` | Memory | Config and seeded bugs only |
 | P3 Low-literacy or non-native reader | `low_literacy` | Perception | Config and seeded bugs only |
 
+P4 to P14 are specified in [`persona-catalogue.md`](persona-catalogue.md), with seeded bugs B13 to B36. They are not in mid-eval scope.
+
 ### P1 Error-prone user (built for mid-eval)
 
 **Constraint:** perturbation layer with the rates in the config schema, full tree, 3 history turns, 20 steps. Each injected mistake is logged with its type.
@@ -144,37 +151,47 @@ All references above must be opened and verified by the author of the R&D sectio
 
 ## Coverage
 
-The three personas cover 6 of Nielsen's 10 heuristics with at least one observed-failure signal, one persona per constraint axis. WCAG coverage is strong for Understandable, partial for Operable, and absent for Perceivable and Robust, which are handled by deterministic checks instead.
+The core three personas cover 6 of Nielsen's 10 heuristics with at least one observed-failure signal, one persona per constraint axis. WCAG coverage is strong for Understandable, partial for Operable, and absent for Perceivable and Robust, which are handled by deterministic checks instead. The extension personas (P4 to P14) cover all 10 heuristics and all 4 WCAG principles. The tables below show both.
 
 ### Nielsen heuristics
 
-| Heuristic | Covered by | Signal | Strength |
-| --- | --- | --- | --- |
-| #1 Visibility of system status | P2 | `lost_location`, `no_progress_indicator` | Partial: covers location and progress, not feedback after each action |
-| #2 Match between system and real world | P3 | `label_unintelligible`, `instruction_unintelligible`, `system_language` | Strong |
-| #3 User control and freedom | P1 | `no_way_back`, `destructive_without_confirm` | Strong |
-| #4 Consistency and standards | none | none | Not covered |
-| #5 Error prevention | P1 | `duplicate_submission`, `destructive_without_confirm` | Strong |
-| #6 Recognition rather than recall | P2 | `recall_required` | Strong |
-| #7 Flexibility and efficiency of use | none | none | Not covered |
-| #8 Aesthetic and minimalist design | none | none | Not covered |
-| #9 Recognise, diagnose, recover from errors | P1 | `data_loss_on_error`, `error_not_identified`, `error_not_actionable` | Strong |
-| #10 Help and documentation | none | none | Not covered |
+| Heuristic | Core (P1 to P3) | Signal | Strength (core) | Extension (P4 to P14) |
+| --- | --- | --- | --- | --- |
+| #1 Visibility of system status | P2 | `lost_location`, `no_progress_indicator` | Partial: covers location and progress, not feedback after each action | P4, P5, P7, P9, P10: `status_not_announced`, `no_loading_feedback`, `focus_not_visible`; covers feedback after each action |
+| #2 Match between system and real world | P3 | `label_unintelligible`, `instruction_unintelligible`, `system_language` | Strong | P8 |
+| #3 User control and freedom | P1 | `no_way_back`, `destructive_without_confirm` | Strong | P6, P9 |
+| #4 Consistency and standards | none | none | Not covered | P12: `inconsistent_identification`, `inconsistent_navigation`, `capture_consequence`; also P4, P5, P11 |
+| #5 Error prevention | P1 | `duplicate_submission`, `destructive_without_confirm` | Strong | P6, P10, P12 |
+| #6 Recognition rather than recall | P2 | `recall_required` | Strong | P4, P9 |
+| #7 Flexibility and efficiency of use | none | none | Not covered | P13: `excess_steps`, `no_enter_submit`, `no_bulk_action` |
+| #8 Aesthetic and minimalist design | none | none | Not covered | P8: `key_info_buried`, `cta_below_fold`, `headings_not_descriptive`; also P4, P7 |
+| #9 Recognise, diagnose, recover from errors | P1 | `data_loss_on_error`, `error_not_identified`, `error_not_actionable` | Strong | P9, P10 |
+| #10 Help and documentation | none | none | Not covered | P11: `help_unreachable`, `help_inconsistent`, `help_not_useful` |
 
-#4, #7, #8 and #10 are out of scope and reported as a limitation. This follows from the design rule: #7, #8 and #10 concern expert efficiency, visual aesthetics and help quality, which are judgements no hard constraint can model without roleplay. The set trades breadth for depth on error handling, memory and language. #4 is the cheapest to add later, after mid-eval: consistent naming and navigation across pages (WCAG 3.2.3, 3.2.4) can be checked deterministically, without a persona.
+With the core set alone, #4, #7, #8 and #10 are out of scope and reported as a limitation. The set trades breadth for depth on error handling, memory and language.
+
+An earlier version of this spec argued that #7, #8 and #10 are "judgements no hard constraint can model without roleplay". The extension disputes this. It models each one with a limit the harness enforces:
+
+- **#7:** a step cap tied to the task's measured shortest path (P13).
+- **#8:** a perception filter that cuts text and hides what is below the fold (P8).
+- **#10:** a validator that allows only help-seeking actions once the harness detects the user is stuck (P11).
+
+None of these depends on prompt text, so all three pass the design rule. #4 can still be checked statically, without a persona (WCAG 3.2.3 and 3.2.4). P12 adds the consequence: the inconsistency causes a wrong action, and that raises severity.
 
 ### WCAG 2.2 by principle
 
-| Principle | Criteria covered by personas | Gap and how it is closed |
-| --- | --- | --- |
-| 1 Perceivable | None | axe-core layer: 1.1.1 Non-text Content, 1.3.1 Info and Relationships, 1.4.3 Contrast |
-| 2 Operable | 2.4.2, 2.4.6 | Keyboard criteria 2.1.1 and 2.1.2 are not covered by any persona or reliably by axe-core. Keep the Tab-cycle detector as a deterministic keyboard sweep (no LLM). |
-| 3 Understandable | 3.1.5, 3.3.1, 3.3.2, 3.3.3, 3.3.4, 3.3.7 | Strongest area |
-| 4 Robust | None | axe-core checks 4.1.2 Name, Role, Value statically |
+| Principle | Criteria covered by core personas | Gap and how it is closed | Added by extension personas |
+| --- | --- | --- | --- |
+| 1 Perceivable | None | axe-core layer: 1.1.1 Non-text Content, 1.3.1 Info and Relationships, 1.4.3 Contrast | 1.1.1, 1.3.1 (P4); 1.4.4, 1.4.10 (P6, P7) |
+| 2 Operable | 2.4.2, 2.4.6 | Keyboard criteria 2.1.1 and 2.1.2 are not covered by any core persona or reliably by axe-core. Keep the Tab-cycle detector as a deterministic keyboard sweep (no LLM). | 2.1.1, 2.1.2, 2.4.3, 2.4.7 (P5); 2.2.1, 2.2.5, 2.2.6 (P9); 2.4.1 (P4); 2.4.10 (P8); **2.4.11** (P7); **2.5.8** (P6) |
+| 3 Understandable | 3.1.5, 3.3.1, 3.3.2, 3.3.3, 3.3.4, 3.3.7 | Strongest area | 3.2.3, 3.2.4 (P12); **3.2.6**, 3.3.5 (P11) |
+| 4 Robust | None | axe-core checks 4.1.2 Name, Role, Value statically | 4.1.2, 4.1.3 (P4, P10) |
+
+Criteria in **bold** are new in WCAG 2.2.
 
 **Position to defend:** personas find behavioural failures that need a task to be attempted; deterministic checks find static ones. Neither alone is complete, and the evaluation reports both.
 
-**The keyboard sweep reuses the keyboard design.** The Tab-cycle trap and unreachable-control detection planned for the keyboard persona become a non-LLM check in the deterministic layer. None of that design work is lost.
+**The keyboard sweep reuses the keyboard design.** The Tab-cycle trap and unreachable-control detection planned for the keyboard persona become a non-LLM check in the deterministic layer. None of that design work is lost. The extension's P4 and P5 reuse the same detectors during a task. On SB-01 to SB-05 they add a "blocks the task" column next to axe-core and the sweep, so the evaluation shows which static violations actually stop a user.
 
 ## Grounding pipeline
 
@@ -360,12 +377,17 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 - [ ] Whether model-judged signals use the same model as the agent, or a second model to avoid self-agreement.
 - [ ] When to move the POC repository (`mustafakashif87/simUX`) into `web/`, keeping its history. Both repositories are under the same account.
 - [ ] Host for the API container (for example Render, Railway or Fly). Check current free-tier limits on run time, memory for Chromium, and sleep on idle before choosing.
+- [ ] Supervisor sign-off on the extension personas P4 to P14 (`persona-catalogue.md`), recorded in the Panel Action Register as scope growth. Present P1 to P3 as the core that is evaluated in full and P4 to P14 as the extension.
+- [ ] Extension schema: add the Environment axis and the other proposed keys to `persona.py`, and the Environment axis to the flowchart above.
+- [ ] Calibration route for perturbation rates: published figures, or a small user study (needs ethics approval, so apply early).
+- [ ] Contents of the help lexicon (P11), and how `optimal_steps` is measured for each task (P13).
 
 ### Known limitations
 
-- Perturbation rates are chosen by us, not calibrated against real user error data.
+- Perturbation rates are chosen by us, not calibrated against real user error data. The catalogue's Calibration section describes two ways to close this.
 - The test app is controlled and seeded; results will not transfer directly to real sites without further study.
 - The baseline is itself an LLM agent, so it can fail for unrelated reasons. A baseline failure makes that page inconclusive for attribution, and it is reported as such.
-- Nielsen #4, #7, #8 and #10 are not covered by any persona, and #1 only partially (see Coverage).
+- In the core set, Nielsen #4, #7, #8 and #10 are not covered by any persona, and #1 only partially (see Coverage). The extension personas cover all of them, #7, #8 and #10 at moderate strength. Until P4 to P14 are built and evaluated, this limitation stands in the report.
+- Extension personas are averages, not people. P14 (older adult) in particular is a bundle of published averages, not a description of older people. The report and the interface must say that SimUX does not replace testing with disabled or older users.
 - Temperature 0 reduces but does not remove run-to-run variation; this is why every result is reported as k out of 5.
 - P3's filter models vocabulary only. Long sentences and complex grammar pass through unchanged; a readability score (for example Flesch-Kincaid) is a possible later signal.

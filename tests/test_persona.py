@@ -178,7 +178,7 @@ class TestBaseline:
         assert {"Tab", "Enter", "Escape"} <= set(b.actions.keys)
         assert b.memory.max_steps == 2 * p.memory.max_steps
         assert b.memory.history_turns == b.memory.max_steps
-        rates = b.perturbation.model_dump(exclude={"seed"})
+        rates = b.perturbation.model_dump(exclude={"seed", "mis_tap_reach_px"})
         assert set(rates.values()) == {0.0}
 
     def test_same_id_and_seed_new_hash(self):

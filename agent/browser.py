@@ -14,8 +14,12 @@ from playwright.sync_api import Locator, Page
 
 from agent.contracts import Action, FocusedElement, Observation
 from agent.perception import (
+    GEOMETRY_FILTERS,
+    Box,
+    Node,
     RefMap,
     RefTarget,
+    View,
     apply_filters,
     assign_refs,
     parse_snapshot,
@@ -25,24 +29,131 @@ from agent.perception import (
 
 
 def observe(
-    page: Page, step: int, filters: list[str], notes: list[str] | None = None
+    page: Page,
+    step: int,
+    filters: list[str],
+    notes: list[str] | None = None,
+    settings=None,
+    evidence: dict | None = None,
 ) -> tuple[Observation, RefMap]:
+    """What the persona perceives now, and the refs it may act on.
+
+    `settings` is the persona's Perception config (window size, rotor, skim
+    length). When `evidence` is a dict it is filled with what detectors need
+    and the persona never sees: the unfiltered tree and page facts.
+    """
     nodes = parse_snapshot(page.locator("body").aria_snapshot())
     # Refs are counted on the full tree so positions match the page, then the
     # filters run. Only refs still visible after filtering can be targeted:
     # what the persona cannot perceive, it cannot act on.
     all_refs = assign_refs(nodes)
-    nodes = apply_filters(nodes, filters)
-    refs = {n.ref: all_refs[n.ref] for n in walk(nodes) if n.ref in all_refs}
+    full = render(nodes) if evidence is not None else None
+    view = None
+    if GEOMETRY_FILTERS & set(filters) or evidence is not None:
+        view = page_view(page, nodes, all_refs, settings)
+    filtered = apply_filters(nodes, filters, view)
+    refs = {n.ref: all_refs[n.ref] for n in walk(filtered) if n.ref in all_refs}
 
+    focused = _focused(page, refs)
+    if "visible_focus_only" in filters and view is not None and not view.focus_visible:
+        focused = None  # a sighted keyboard user cannot tell where focus is
     observation = Observation(
         step=step,
-        tree=render(nodes),
-        focused=_focused(page, refs),
+        tree=render(filtered),
+        focused=focused,
         url_path=urlparse(page.url).path,
         persona_notes=notes or [],
     )
+    if evidence is not None:
+        evidence["full_tree"] = full
+        evidence["page"] = _page_facts(page, nodes, view)
     return observation, refs
+
+
+def page_view(page: Page, nodes: list[Node], refs: RefMap, settings=None) -> View:
+    """Bounding boxes of every element and text, plus focus facts. Harness
+    side only: the model never receives geometry."""
+    size = page.viewport_size or page.evaluate("() => ({width: innerWidth, height: innerHeight})")
+    boxes: dict[int, Box] = {}
+    texts: dict[str, int] = {}
+    for node in walk(nodes):
+        try:
+            if node.ref in refs:
+                raw = locate(page, refs[node.ref]).bounding_box(timeout=BOX_TIMEOUT_MS)
+            elif node.role == "text" and node.text:
+                nth = texts.get(node.text, 0)
+                texts[node.text] = nth + 1
+                loc = page.get_by_text(node.text, exact=True).nth(nth)
+                raw = loc.bounding_box(timeout=BOX_TIMEOUT_MS) if loc.count() else None
+            else:
+                raw = None
+        except PlaywrightError:
+            raw = None
+        if raw:
+            boxes[id(node)] = Box(raw["x"], raw["y"], raw["width"], raw["height"])
+    active = _focused(page, refs)
+    focused_ref = active.ref if active is not None else None
+    return View(
+        viewport=Box(0, 0, size["width"], size["height"]),
+        boxes=boxes,
+        focused_ref=focused_ref,
+        focus_visible=_focus_visible(page) if active is not None else None,
+        window_nodes=getattr(settings, "window_nodes", 15),
+        rotor=tuple(getattr(settings, "rotor", ())),
+        skim_max_words=getattr(settings, "skim_max_words", 8),
+    )
+
+
+BOX_TIMEOUT_MS = 500
+
+# Compares the focused element's computed outline, border, box-shadow and
+# background with focus and without it; restores focus afterwards.
+_FOCUS_VISIBLE_JS = """() => {
+  const el = document.activeElement;
+  if (!el || el === document.body) return null;
+  const look = () => {
+    const s = getComputedStyle(el);
+    return [s.outlineStyle, s.outlineWidth, s.outlineColor, s.boxShadow, s.borderColor,
+            s.backgroundColor, s.textDecorationLine].join('|');
+  };
+  const focused = look();
+  const outline = getComputedStyle(el);
+  const drawn = outline.outlineStyle !== 'none' && parseFloat(outline.outlineWidth) > 0;
+  el.blur();
+  const blurred = look();
+  el.focus({preventScroll: true});
+  return drawn || focused !== blurred;
+}"""
+
+
+def _focus_visible(page: Page) -> bool | None:
+    try:
+        return page.evaluate(_FOCUS_VISIBLE_JS)
+    except PlaywrightError:
+        return None
+
+
+def _page_facts(page: Page, nodes: list[Node], view: View | None) -> dict:
+    """Facts detectors need about the page as a whole, logged per step."""
+    try:
+        metrics = page.evaluate(
+            """() => ({scroll_width: document.documentElement.scrollWidth,
+                       client_width: document.documentElement.clientWidth,
+                       scroll_y: Math.round(scrollY)})"""
+        )
+    except PlaywrightError:
+        metrics = {}
+    boxes = {}
+    if view is not None:
+        for node in walk(nodes):
+            box = view.boxes.get(id(node))
+            if node.ref and box:
+                boxes[node.ref] = [round(box.x), round(box.y), round(box.width), round(box.height)]
+    return metrics | {
+        "viewport": [view.viewport.width, view.viewport.height] if view else None,
+        "focus_visible": view.focus_visible if view else None,
+        "boxes": boxes,
+    }
 
 
 def locate(page: Page, target: RefTarget) -> Locator:

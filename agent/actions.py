@@ -18,12 +18,24 @@ from agent.perception import RefMap
 BROWSER_ACTIONS: frozenset[ActionKind] = frozenset({"click", "type", "press", "scroll", "back"})
 
 
+# Roles a screen reader exposes as operable (P4's interactive_roles_only).
+INTERACTIVE_ROLES = frozenset(
+    {
+        "button", "link", "textbox", "searchbox", "checkbox", "radio", "combobox", "listbox",
+        "option", "menuitem", "menuitemcheckbox", "menuitemradio", "switch", "tab", "slider",
+        "spinbutton", "treeitem",
+    }
+)  # fmt: skip
+
+
 @dataclass(frozen=True)
 class ActionPolicy:
     """A persona's action axis: which actions and which keys it may use."""
 
     allowed: frozenset[ActionKind]
     keys: frozenset[str]
+    interactive_roles_only: bool = False
+    type_focused_only: bool = False  # P5: text goes to the focused element only
 
     def __post_init__(self):
         unknown = self.allowed - BROWSER_ACTIONS
@@ -31,7 +43,9 @@ class ActionPolicy:
             raise ValueError(f"unknown actions in policy: {sorted(unknown)}")
 
 
-def validate(action: Action, policy: ActionPolicy, refs: RefMap) -> str | None:
+def validate(
+    action: Action, policy: ActionPolicy, refs: RefMap, focused_ref: str | None = None
+) -> str | None:
     """Return why the action is invalid, or None if it may be executed.
 
     The reason is for the step log and persona notes; it never names a locator.
@@ -44,4 +58,12 @@ def validate(action: Action, policy: ActionPolicy, refs: RefMap) -> str | None:
         return f"no element {action.ref} on this page"
     if action.action == "press" and action.key not in policy.keys:
         return f"key '{action.key}' is not available"
+    if (
+        policy.interactive_roles_only
+        and action.action in ("click", "type")
+        and refs[action.ref].role not in INTERACTIVE_ROLES
+    ):
+        return f"element {action.ref} cannot be operated"
+    if policy.type_focused_only and action.action == "type" and action.ref != focused_ref:
+        return "you can only type into the element that has focus"
     return None

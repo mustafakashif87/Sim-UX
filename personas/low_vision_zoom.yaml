@@ -1,0 +1,16 @@
+# P7 Low-vision magnifier user. Catalogue: "P7 Low-vision magnifier user".
+# 320x256 CSS px is 1280x1024 at 400% zoom (WCAG 1.4.10); text at 200% for the
+# 1.4.4 checks. Sees only what is on screen; scrolls vertically.
+id: low_vision_zoom
+environment:
+  viewport: {width: 320, height: 256}
+  text_scale: 2.0
+perception:
+  filters: [viewport_only]
+actions:
+  allowed: [click, type, press, scroll, back]
+  keys: [Tab, Enter, Escape]
+memory:
+  history_turns: 3
+  max_steps: 25
+task_types: [complete_form]

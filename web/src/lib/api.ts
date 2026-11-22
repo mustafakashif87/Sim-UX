@@ -11,7 +11,21 @@ export const API_URL = (import.meta.env.VITE_SIMUX_API_URL ?? "http://localhost:
 );
 
 /** The three personas of the spec, by config ID (personas/*.yaml). */
-export type PersonaId = "error_prone" | "memoryless" | "low_literacy";
+export type PersonaId =
+  | "error_prone"
+  | "memoryless"
+  | "low_literacy"
+  | "screen_reader"
+  | "keyboard_only"
+  | "touch_imprecise"
+  | "low_vision_zoom"
+  | "skimmer"
+  | "interrupted"
+  | "slow_network"
+  | "help_seeker"
+  | "habitual"
+  | "power_user"
+  | "older_adult";
 export type Condition = "persona" | "baseline";
 
 /** How the loop ended (agent.loop.RunStatus), or `failed` when the run
@@ -199,23 +213,130 @@ export function streamRun(
   return () => source.close();
 }
 
-/** What each persona is, in the spec's words: a limit enforced in code,
- *  never a character in a prompt. */
-export const PERSONAS: Record<PersonaId, { name: string; restriction: string }> = {
+/** What each persona is, in the spec's and catalogue's words: a limit
+ *  enforced in code, never a character in a prompt. P1 to P3 are the core,
+ *  evaluated in full; P4 to P14 are the extension (docs/persona-catalogue.md). */
+export interface PersonaInfo {
+  code: string;
+  name: string;
+  axis: string;
+  restriction: string;
+  core: boolean;
+}
+
+export const PERSONAS: Record<PersonaId, PersonaInfo> = {
   error_prone: {
+    code: "P1",
     name: "Error-prone user",
+    axis: "Perturbation",
     restriction:
       "Makes seeded slips between intent and action: typos, skipped fields, double presses and a stray Back.",
+    core: true,
   },
   memoryless: {
+    code: "P2",
     name: "Memoryless first-time user",
+    axis: "Memory",
     restriction: "Sees only the current page. Nothing from earlier steps is remembered.",
+    core: true,
   },
   low_literacy: {
+    code: "P3",
     name: "Low-literacy or non-native reader",
-    restriction: "Any word outside about 3,000 common ones reads as [unknown].",
+    axis: "Perception",
+    restriction:
+      "Any word outside the 2,809 most common English headwords (NGSL) reads as [unknown].",
+    core: true,
+  },
+  screen_reader: {
+    code: "P4",
+    name: "Screen-reader user",
+    axis: "Perception and actions",
+    restriction:
+      "Reads about 15 items at a time in reading order, with a headings and landmarks list, and can only operate real controls.",
+    core: false,
+  },
+  keyboard_only: {
+    code: "P5",
+    name: "Keyboard-only user",
+    axis: "Actions and perception",
+    restriction:
+      "Keys only, no mouse. Where focus is invisible, it does not know where it is.",
+    core: false,
+  },
+  touch_imprecise: {
+    code: "P6",
+    name: "Mobile touch user",
+    axis: "Environment and perturbation",
+    restriction:
+      "On a phone; taps on small targets can land on a neighbour or miss, more often the smaller the target.",
+    core: false,
+  },
+  low_vision_zoom: {
+    code: "P7",
+    name: "Low-vision magnifier user",
+    axis: "Environment and perception",
+    restriction: "400% zoom with text at 200%: sees only what fits in a 320 by 256 window.",
+    core: false,
+  },
+  skimmer: {
+    code: "P8",
+    name: "Skimmer",
+    axis: "Perception and budget",
+    restriction:
+      "Reads above the fold and the first 8 words of any text, with 10 steps to finish.",
+    core: false,
+  },
+  interrupted: {
+    code: "P9",
+    name: "Interrupted user",
+    axis: "Environment and memory",
+    restriction:
+      "Leaves for 15 minutes, comes back to a reloaded page, and remembers nothing from before.",
+    core: false,
+  },
+  slow_network: {
+    code: "P10",
+    name: "Slow-connection user",
+    axis: "Environment and perturbation",
+    restriction:
+      "Every submission takes 3 seconds and one in five fails; presses again when nothing seems to happen.",
+    core: false,
+  },
+  help_seeker: {
+    code: "P11",
+    name: "Help-seeker",
+    axis: "Actions",
+    restriction: "Once stuck, can only look for help, contact or FAQ until it finds some.",
+    core: false,
+  },
+  habitual: {
+    code: "P12",
+    name: "Habitual returning user",
+    axis: "Memory and perturbation",
+    restriction:
+      "Remembers where it clicked last time, and sometimes clicks there again out of habit.",
+    core: false,
+  },
+  power_user: {
+    code: "P13",
+    name: "Expert power user",
+    axis: "Budget",
+    restriction: "Has one and a half times the shortest path in steps, and expects Enter to work.",
+    core: false,
+  },
+  older_adult: {
+    code: "P14",
+    name: "Older adult (composite)",
+    axis: "Several at once",
+    restriction:
+      "Slower steps, larger text, the visible screen only, and less precise taps, all together.",
+    core: false,
   },
 };
+
+/** P1 to P14 in order. */
+export const PERSONA_ORDER = Object.keys(PERSONAS) as PersonaId[];
 
 /** The spec's severity scale mapped onto the interface's three tags. */
 export function severityTag(severity: Finding["severity"]): "high" | "medium" | "low" {

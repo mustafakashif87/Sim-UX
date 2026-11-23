@@ -1,4 +1,6 @@
-"""Which persona each seeded bug is evaluated under (agent.evaluate.bugs_for)."""
+"""Which persona each seeded bug is evaluated under (agent.evaluate.bugs_for).
+
+Under e2e because agent.evaluate imports Playwright, which the unit job lacks."""
 
 from agent.evaluate import bugs_for, persona_numbers
 from agent.persona import PERSONAS_DIR

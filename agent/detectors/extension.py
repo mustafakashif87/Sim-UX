@@ -334,14 +334,25 @@ def no_loading_feedback(run: RunLog) -> Finding | None:
     return None
 
 
+def _live_message(nodes: list[Node]) -> bool:
+    """Some alert or status region on the page holds text."""
+    for n in nodes:
+        if n.role in LIVE_ROLES and (n.text or n.name or n.children):
+            return True
+        if _live_message(n.children):
+            return True
+    return False
+
+
 def network_failure_silent(run: RunLog) -> Finding | None:
     """A submission failed and the page looks exactly as it did before the
-    press: nothing says it did not go through (WCAG 4.1.3)."""
+    press: nothing says it did not go through (WCAG 4.1.3). A retry that
+    fails again under an error message still on screen is not silent."""
     for i in range(1, len(run.observations)):
         if _network(run, i).get("failed", 0) > _network(run, i - 1).get("failed", 0):
             before = run.full_trees[i - 1] if i - 1 < len(run.full_trees) else None
             after = run.full_trees[i] if i < len(run.full_trees) else None
-            if before is not None and before == after:
+            if before is not None and before == after and not _live_message(_tree(run, i)):
                 return make_finding(run, "network_failure_silent", [i - 1])
     return None
 

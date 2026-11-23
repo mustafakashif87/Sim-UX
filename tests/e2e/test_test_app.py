@@ -326,3 +326,13 @@ def test_careful_user_succeeds_without_findings(browser, tasks, page):
     ]
     found, result = findings(browser, tasks[page], p1(), script)
     assert result.status == "succeeded" and found == []
+
+
+def test_retry_after_a_shown_error_is_not_silent(browser, tasks):
+    # Found in the P10 smoke run on 23 Nov: on the clean page the first
+    # failure shows the alert; a retry that fails again leaves the page
+    # unchanged, but the error is still on screen, so it is not silent.
+    persona = forced("slow_network", {}, {"fail_rate": 1.0})
+    script = [type_into("Meter reading", "48213"), click("Send reading"), click("Try again")]
+    found, _ = findings(browser, tasks[BUGS["B29"].clean], persona, script)
+    assert "network_failure_silent" not in found, found

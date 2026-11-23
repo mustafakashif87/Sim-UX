@@ -1,0 +1,118 @@
+{
+  "summary": {
+    "runs": 9,
+    "excluded": 3,
+    "recall": 0.0,
+    "found_recall": 0.0,
+    "precision": null,
+    "false_positive_rate": 0.0,
+    "citation_validity": null,
+    "mean_steps": 1.5,
+    "mean_seconds": 13.2,
+    "stable_bugs": 0,
+    "attributed_bugs": 0,
+    "found_bugs": 0,
+    "bugs": 3
+  },
+  "bugs": [
+    {
+      "bug": "B23",
+      "signal": "key_info_buried",
+      "rates": {
+        "persona_buggy": [
+          0,
+          1
+        ],
+        "baseline_buggy": [
+          0,
+          0
+        ],
+        "persona_clean": [
+          0,
+          1
+        ]
+      },
+      "triggered": [
+        1,
+        1
+      ],
+      "detected_given_trigger": [
+        0,
+        1
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B24",
+      "signal": "cta_below_fold",
+      "rates": {
+        "persona_buggy": [
+          0,
+          1
+        ],
+        "baseline_buggy": [
+          0,
+          0
+        ],
+        "persona_clean": [
+          0,
+          1
+        ]
+      },
+      "triggered": [
+        1,
+        1
+      ],
+      "detected_given_trigger": [
+        0,
+        1
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B25",
+      "signal": "headings_not_descriptive",
+      "rates": {
+        "persona_buggy": [
+          0,
+          1
+        ],
+        "baseline_buggy": [
+          0,
+          0
+        ],
+        "persona_clean": [
+          0,
+          1
+        ]
+      },
+      "triggered": [
+        1,
+        1
+      ],
+      "detected_given_trigger": [
+        0,
+        1
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    }
+  ]
+}

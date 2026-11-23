@@ -1,0 +1,9 @@
+run_id,persona,bug,page,condition,seed,status,steps,seconds,signals,expected_signal,detected,perturbations,triggered,quotes_generated,quotes_verified,model_id,log_dir,error
+20261123T174508Z-habitual-782764,habitual,B32,settings-a.html,persona_buggy,1,aborted_provider,0,0.7,,inconsistent_identification,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174508Z-habitual-782764,HTTP 429: retry after 80s; quota spent
+20261123T174509Z-habitual-053e86,habitual,B32,settings-a.html,persona_buggy,1,aborted_provider,1,2.3,,inconsistent_identification,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174509Z-habitual-053e86,HTTP 429: retry after 87s; quota spent
+20261123T174511Z-habitual-615ebe,habitual,B32,settings-a.html,persona_buggy,1,aborted_provider,0,34.4,,inconsistent_identification,0,,1,0,0,gemini/gemini-3.8-flash,runs/20261123T174511Z-habitual-615ebe,HTTP 429 after 5 attempts
+20261123T174545Z-habitual-7b308e,habitual,B32,settings-a.html,persona_buggy,1,aborted_provider,0,0.6,,inconsistent_identification,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174545Z-habitual-7b308e,HTTP 429: retry after 303s; quota spent
+20261123T174546Z-habitual-31a4ea,habitual,B32,settings-a.html,persona_buggy,1,succeeded,6,11.5,inconsistent_identification,inconsistent_identification,1,,1,2,2,groq/openai/gpt-oss-120b,runs/20261123T174546Z-habitual-31a4ea,
+20261123T174558Z-habitual-27fef4,habitual,B32,settings-b.html,persona_clean,1,succeeded,6,26.1,,inconsistent_identification,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174558Z-habitual-27fef4,
+20261123T174624Z-habitual-b8b7af,habitual,B33,store-a.html,persona_buggy,1,succeeded,3,11.7,inconsistent_navigation,inconsistent_navigation,1,,1,2,2,groq/openai/gpt-oss-120b,runs/20261123T174624Z-habitual-b8b7af,
+20261123T174635Z-habitual-07341c,habitual,B33,store-b.html,persona_clean,1,succeeded,3,12.8,,inconsistent_navigation,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174635Z-habitual-07341c,

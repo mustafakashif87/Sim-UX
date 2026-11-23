@@ -1,0 +1,10 @@
+run_id,persona,bug,page,condition,seed,status,steps,seconds,signals,expected_signal,detected,perturbations,triggered,quotes_generated,quotes_verified,model_id,log_dir,error
+20261123T173153Z-skimmer-c5be9b,skimmer,B23,redeem-a.html,persona_buggy,1,aborted_provider,1,2.0,,key_info_buried,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173153Z-skimmer-c5be9b,HTTP 429: retry after 291s; quota spent
+20261123T173155Z-skimmer-764f0a,skimmer,B23,redeem-a.html,persona_buggy,1,succeeded,2,61.7,,key_info_buried,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173155Z-skimmer-764f0a,
+20261123T173257Z-skimmer-d434b8,skimmer,B23,redeem-b.html,persona_clean,1,aborted_provider,1,2.1,,key_info_buried,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173257Z-skimmer-d434b8,HTTP 429: retry after 670s; quota spent
+20261123T173259Z-skimmer-f840f4,skimmer,B23,redeem-b.html,persona_clean,1,succeeded,2,6.3,,key_info_buried,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173259Z-skimmer-f840f4,
+20261123T173306Z-skimmer-4266d7,skimmer,B24,trial-a.html,persona_buggy,1,aborted_provider,0,1.0,,cta_below_fold,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173306Z-skimmer-4266d7,HTTP 429: retry after 597s; quota spent
+20261123T173307Z-skimmer-1ba7b6,skimmer,B24,trial-a.html,persona_buggy,1,succeeded,2,3.6,,cta_below_fold,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173307Z-skimmer-1ba7b6,
+20261123T173310Z-skimmer-bd3e71,skimmer,B24,trial-b.html,persona_clean,1,succeeded,1,2.2,,cta_below_fold,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173310Z-skimmer-bd3e71,
+20261123T173312Z-skimmer-2bf4e8,skimmer,B25,pricing-a.html,persona_buggy,1,succeeded,1,3.0,,headings_not_descriptive,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173312Z-skimmer-2bf4e8,
+20261123T173315Z-skimmer-692d61,skimmer,B25,pricing-b.html,persona_clean,1,succeeded,1,2.4,,headings_not_descriptive,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173315Z-skimmer-692d61,

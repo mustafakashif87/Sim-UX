@@ -1,0 +1,7 @@
+run_id,persona,bug,page,condition,seed,status,steps,seconds,signals,expected_signal,detected,perturbations,triggered,quotes_generated,quotes_verified,model_id,log_dir,error
+20261123T174848Z-older_adult-c12b1c,older_adult,B36,appointment-a.html,persona_buggy,1,aborted_provider,0,0.9,,data_lost_on_timeout,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174848Z-older_adult-c12b1c,HTTP 429: retry after 122s; quota spent
+20261123T174849Z-older_adult-99378c,older_adult,B36,appointment-a.html,persona_buggy,1,aborted_provider,0,0.7,,data_lost_on_timeout,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174849Z-older_adult-99378c,HTTP 429: retry after 877s; quota spent
+20261123T174849Z-older_adult-618512,older_adult,B36,appointment-a.html,persona_buggy,1,aborted_provider,0,34.3,,data_lost_on_timeout,0,,1,0,0,gemini/gemini-3.8-flash,runs/20261123T174849Z-older_adult-618512,HTTP 429 after 5 attempts
+20261123T174924Z-older_adult-2c538a,older_adult,B36,appointment-a.html,persona_buggy,1,aborted_provider,0,0.7,,data_lost_on_timeout,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174924Z-older_adult-2c538a,HTTP 429: retry after 341s; quota spent
+20261123T174924Z-older_adult-378e54,older_adult,B36,appointment-a.html,persona_buggy,1,succeeded,12,36.5,data_lost_on_timeout,data_lost_on_timeout,1,typo,1,4,4,groq/openai/gpt-oss-120b,runs/20261123T174924Z-older_adult-378e54,
+20261123T175001Z-older_adult-8bb6fe,older_adult,B36,appointment-b.html,persona_clean,1,succeeded,4,21.4,,data_lost_on_timeout,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T175001Z-older_adult-8bb6fe,

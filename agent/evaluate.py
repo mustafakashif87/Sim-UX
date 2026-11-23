@@ -3,9 +3,11 @@
     python -m agent.evaluate --persona error_prone --seeds 5 --out eval-out
     python -m agent.evaluate --persona error_prone --seeds 1 --bugs B4,B5 --out eval-out
 
-Every seeded bug whose expected signal belongs to the persona (its `source`
-in grounding/signal_map.yaml) is run under three conditions, once per seed
-1..N:
+Every seeded bug the persona owns is run under three conditions, once per
+seed 1..N. A bug belongs to the persona that SEEDED_BUGS.md names under
+"Detected by" when that persona emits its signal (`source` or `also` in
+grounding/signal_map.yaml), otherwise to the signal's `source`. So B36,
+whose signal P9 also emits, is P14's:
 
 | Condition       | Persona            | Page  |
 | --------------- | ------------------ | ----- |
@@ -30,6 +32,7 @@ there; run the same command again later to continue.
 import argparse
 import csv
 import json
+import re
 import sys
 import time
 from collections.abc import Callable, Iterator
@@ -41,7 +44,7 @@ from agent import metrics
 from agent.detectors import detect, load_run
 from agent.keypool import KeyPool, clients_from_env, is_quota_error
 from agent.loop import Model, run
-from agent.persona import for_condition, load_persona
+from agent.persona import PERSONAS_DIR, for_condition, load_persona
 from agent.tasks import SeededBug, load_seeded_bugs, load_tasks, serve
 from agent.triggers import triggered
 from grounding.ground import default_signal_map, ground_all
@@ -82,14 +85,29 @@ class Job:
         return (self.bug.id, self.condition, str(self.seed))
 
 
+def persona_numbers() -> dict[str, str]:
+    """`P14` -> `older_adult`, from the first line of each persona file."""
+    out = {}
+    for path in sorted(PERSONAS_DIR.glob("*.yaml")):
+        first = path.read_text(encoding="utf-8").partition("\n")[0]
+        m = re.match(r"# (P\d+) ", first)
+        if m:
+            out[m.group(1)] = path.stem
+    return out
+
+
 def bugs_for(persona: str, only: list[str] | None = None) -> list[SeededBug]:
-    """Seeded bugs whose expected signal this persona's detectors emit."""
+    """Seeded bugs this persona owns (see the module docstring)."""
     signal_map = default_signal_map()
+    numbers = persona_numbers()
     out = []
     for bug in load_seeded_bugs():
         if bug.signal is None or bug.signal not in signal_map:
             continue
-        if signal_map.entry(bug.signal).source != persona:
+        entry = signal_map.entry(bug.signal)
+        named = numbers.get(bug.detected_by.split(" ", 1)[0])
+        owner = named if named in (entry.source, *entry.also) else entry.source
+        if owner != persona:
             continue
         if only and bug.id not in only:
             continue

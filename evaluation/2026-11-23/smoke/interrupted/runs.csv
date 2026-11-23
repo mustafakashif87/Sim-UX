@@ -1,0 +1,9 @@
+run_id,persona,bug,page,condition,seed,status,steps,seconds,signals,expected_signal,detected,perturbations,triggered,quotes_generated,quotes_verified,model_id,log_dir,error
+20261123T173319Z-interrupted-109233,interrupted,B26,application-a.html,persona_buggy,1,aborted_provider,2,4.4,,timeout_no_warning,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173319Z-interrupted-109233,HTTP 429: retry after 170s; quota spent
+20261123T173324Z-interrupted-85d871,interrupted,B26,application-a.html,persona_buggy,1,aborted_provider,0,0.8,,timeout_no_warning,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173324Z-interrupted-85d871,HTTP 429: retry after 537s; quota spent
+20261123T173325Z-interrupted-842fb3,interrupted,B26,application-a.html,persona_buggy,1,aborted_provider,0,34.7,,timeout_no_warning,0,,1,0,0,gemini/gemini-3.8-flash,runs/20261123T173325Z-interrupted-842fb3,HTTP 429 after 5 attempts
+20261123T173359Z-interrupted-66019d,interrupted,B26,application-a.html,persona_buggy,1,aborted_provider,1,1.8,,timeout_no_warning,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173359Z-interrupted-66019d,HTTP 429: retry after 662s; quota spent
+20261123T173401Z-interrupted-f4f6c3,interrupted,B26,application-a.html,persona_buggy,1,succeeded,3,4.2,,timeout_no_warning,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173401Z-interrupted-f4f6c3,
+20261123T173405Z-interrupted-878ff5,interrupted,B26,application-b.html,persona_clean,1,succeeded,3,8.0,,timeout_no_warning,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173405Z-interrupted-878ff5,
+20261123T173413Z-interrupted-e69606,interrupted,B27,survey-a.html,persona_buggy,1,succeeded,8,14.6,,state_lost_on_reload,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173413Z-interrupted-e69606,
+20261123T173428Z-interrupted-a83d63,interrupted,B27,survey-b.html,persona_clean,1,succeeded,10,59.6,,state_lost_on_reload,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T173428Z-interrupted-a83d63,

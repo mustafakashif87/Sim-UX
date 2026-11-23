@@ -1,0 +1,118 @@
+{
+  "summary": {
+    "runs": 48,
+    "excluded": 3,
+    "recall": 0.333,
+    "found_recall": 0.667,
+    "precision": 1.0,
+    "false_positive_rate": 0.0,
+    "citation_validity": 1.0,
+    "mean_steps": 6.29,
+    "mean_seconds": 60.92,
+    "stable_bugs": 2,
+    "attributed_bugs": 1,
+    "found_bugs": 2,
+    "bugs": 3
+  },
+  "bugs": [
+    {
+      "bug": "B10",
+      "signal": "label_unintelligible",
+      "rates": {
+        "persona_buggy": [
+          0,
+          5
+        ],
+        "baseline_buggy": [
+          0,
+          5
+        ],
+        "persona_clean": [
+          0,
+          5
+        ]
+      },
+      "triggered": [
+        5,
+        5
+      ],
+      "detected_given_trigger": [
+        0,
+        5
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B11",
+      "signal": "instruction_unintelligible",
+      "rates": {
+        "persona_buggy": [
+          5,
+          5
+        ],
+        "baseline_buggy": [
+          0,
+          5
+        ],
+        "persona_clean": [
+          0,
+          5
+        ]
+      },
+      "triggered": [
+        5,
+        5
+      ],
+      "detected_given_trigger": [
+        5,
+        5
+      ],
+      "stable": true,
+      "attributed": true,
+      "found": true,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B12",
+      "signal": "system_language",
+      "rates": {
+        "persona_buggy": [
+          5,
+          5
+        ],
+        "baseline_buggy": [
+          5,
+          5
+        ],
+        "persona_clean": [
+          0,
+          5
+        ]
+      },
+      "triggered": [
+        5,
+        5
+      ],
+      "detected_given_trigger": [
+        5,
+        5
+      ],
+      "stable": true,
+      "attributed": false,
+      "found": true,
+      "forced": [
+        0,
+        0
+      ]
+    }
+  ]
+}

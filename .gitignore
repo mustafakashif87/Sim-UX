@@ -28,6 +28,11 @@ logs/demo/live-cache/
 # Runs started through the API (SIMUX_LOGS); evaluation evidence goes elsewhere
 logs/api/
 
+# Raw evaluation output (evaluation/run_evals.sh, agent.evaluate --out);
+# only the summaries are committed, under evaluation/<date>/
+eval-runs/
+eval-out/
+
 # Hosting
 .vercel/
 

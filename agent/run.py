@@ -13,9 +13,14 @@ key quotes stand in for the LLM's) or marked ungrounded. Logs go to
 """
 
 import argparse
+import ipaddress
+import socket
 import sys
-from contextlib import nullcontext
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from playwright.sync_api import Browser, sync_playwright
 
@@ -24,7 +29,7 @@ from agent.detectors import audit
 from agent.llm import LLMClient
 from agent.loop import Model, RunResult, run
 from agent.persona import CONDITIONS, Condition, for_condition, load_persona
-from agent.tasks import load_tasks, serve
+from agent.tasks import Goal, Task, load_tasks, serve
 
 # Slows each browser action in --headed mode so the audience can follow it.
 HEADED_SLOW_MO_MS = 300
@@ -62,6 +67,69 @@ def execute(
                     result = _run_in(launched, task, p, model, logs, seed, condition, run_id)
                 finally:
                     launched.close()
+    return result, audit(result.log_dir)
+
+
+# A pasted page may only load from its own origin (inline scripts and styles
+# allowed, so ordinary pages work), and Chromium sends everything else to a
+# dead proxy: the page cannot reach the host's network or the internet.
+PASTED_CSP = "default-src 'self' 'unsafe-inline' data: blob:; form-action 'self'"
+# Playwright proxies loopback too, so the page server is exempted by name.
+OFFLINE = {"server": "http://127.0.0.1:9", "bypass": "127.0.0.1"}
+
+
+@contextmanager
+def serve_html(html: str) -> Iterator[str]:
+    """Pasted or uploaded HTML as index.html in a temporary folder; yields its URL."""
+    with tempfile.TemporaryDirectory(prefix="simux-page-") as folder:
+        Path(folder, "index.html").write_text(html, encoding="utf-8")
+        with serve(Path(folder), csp=PASTED_CSP) as base:
+            yield base + "index.html"
+
+
+def check_public_url(url: str) -> str:
+    """`url` if it is http(s) and its host resolves only to public addresses,
+    else ValueError. shortcut: checked once before the run, so a redirect or a
+    DNS change mid-run can still reach a private address; use a filtering proxy
+    before exposing URL runs to untrusted users."""
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise ValueError("only http and https URLs can be tested")
+    try:
+        infos = socket.getaddrinfo(parts.hostname, parts.port or 443)
+    except socket.gaierror as e:
+        raise ValueError(f"cannot resolve {parts.hostname}") from e
+    for info in infos:
+        if not ipaddress.ip_address(info[4][0]).is_global:
+            raise ValueError(f"{parts.hostname} is not a public address")
+    return url
+
+
+def execute_own(
+    task_text: str,
+    goal: Goal,
+    model: Model,
+    logs: Path,
+    persona: str = "error_prone",
+    seed: int | None = None,
+    condition: Condition = "persona",
+    run_id: str | None = None,
+    html: str | None = None,
+    url: str | None = None,
+) -> tuple[RunResult, list[Finding]]:
+    """One run on the user's own page: pasted `html` (served offline) or a
+    public `url`. Findings only: an own page has no seeded-bug ground truth."""
+    if (html is None) == (url is None):
+        raise ValueError("give exactly one of html and url")
+    source = serve_html(html) if html is not None else nullcontext(check_public_url(url))
+    p = for_condition(load_persona(persona), condition)
+    with source as page_url, sync_playwright() as pw:
+        launched = pw.chromium.launch(proxy=OFFLINE if html is not None else None)
+        try:
+            task = Task("own-page", page_url, task_text, goal)
+            result = _run_in(launched, task, p, model, logs, seed, condition, run_id)
+        finally:
+            launched.close()
     return result, audit(result.log_dir)
 
 

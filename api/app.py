@@ -4,7 +4,9 @@
 
 Endpoints (spec: Delivery, Live interface):
 
-    POST /runs                   {persona, page, condition, seed} -> 202 {run_id, status}
+    POST /runs                   {persona, page, condition, seed} -> 202 {run_id, status};
+                                 or, for the user's own page, {html} or {url} in place of
+                                 page, with {task, goal_role, goal_name}
     GET  /runs/{run_id}          status, run.json, step records and findings
     GET  /runs/{run_id}/stream   server-sent events: one `step` per StepRecord as the
                                  loop writes it, then one `end` with status and findings
@@ -17,6 +19,8 @@ worker pool (`SIMUX_WORKERS`, default 1) and a short queue (`SIMUX_MAX_QUEUED`,
 default 5); a full queue answers 429 rather than spending model calls. Logs go
 to `SIMUX_LOGS` (default `logs/api/`), so a finished run can still be read
 after a restart. Allowed browser origins: `SIMUX_CORS_ORIGINS`, comma-separated.
+Pasted HTML runs offline; URL runs need `SIMUX_ALLOW_URLS=1`, since the
+server's browser then opens pages the client names.
 
 Nothing here imports Playwright at load time: the browser side is imported by
 the runner when a run starts, so the unit tests need no browser.
@@ -35,12 +39,13 @@ from typing import Literal
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from agent.detectors import audit
 from agent.ids import is_run_id, new_run_id
 from agent.perception import FILTERS, Box, View
 from agent.persona import CONDITIONS, PERSONAS_DIR, Persona, for_condition, load_persona
+from agent.report import explain
 from agent.tasks import load_entries
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,6 +56,7 @@ DEFAULT_ORIGINS = "http://localhost:5173,http://127.0.0.1:5173"
 # `failed` for a run that broke before the loop could log anything.
 ENDED = {"succeeded", "gave_up", "step_cap", "aborted_provider", "crashed", "failed"}
 POLL_SECONDS = 0.25
+MAX_HTML_CHARS = 500_000
 KEEPALIVE_SECONDS = 15.0
 
 
@@ -58,14 +64,30 @@ class RunRequest(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True)
 
     persona: str = "error_prone"
-    page: str = Field(description="test-app page without .html, e.g. order-a")
+    page: str | None = Field(default=None, description="test-app page without .html, e.g. order-a")
     condition: Literal["persona", "baseline"] = "persona"
     seed: int | None = Field(default=None, ge=0, description="perturbation seed")
+    # The user's own page, in place of `page`: pasted HTML or a public URL,
+    # the task to attempt, and the element that shows it is done.
+    html: str | None = Field(default=None, max_length=MAX_HTML_CHARS)
+    url: str | None = Field(default=None, max_length=2000)
+    task: str | None = Field(default=None, max_length=500)
+    goal_role: str = Field(default="heading", pattern=r"^[a-z]+$")
+    goal_name: str | None = Field(default=None, max_length=200)
 
     @field_validator("page")
     @classmethod
-    def _no_extension(cls, page: str) -> str:
-        return page.removesuffix(".html")
+    def _no_extension(cls, page: str | None) -> str | None:
+        return page.removesuffix(".html") if page else page
+
+    @model_validator(mode="after")
+    def _one_source(self) -> "RunRequest":
+        given = [k for k in ("page", "html", "url") if getattr(self, k)]
+        if len(given) != 1:
+            raise ValueError("give exactly one of page, html and url")
+        if given[0] != "page" and not (self.task and self.goal_name):
+            raise ValueError("an own page needs a task and a goal_name")
+        return self
 
 
 # Runs one request to the end, writing its log under `<logs>/<run_id>/`.
@@ -78,7 +100,18 @@ def live_runner(req: RunRequest, run_id: str, logs: Path) -> None:
     from agent.run import execute
 
     model = LLMClient.from_env(cache_dir=logs / "llm-cache")
-    execute(req.page, req.seed, model, logs, req.persona, condition=req.condition, run_id=run_id)
+    if req.page:
+        execute(
+            req.page, req.seed, model, logs, req.persona, condition=req.condition, run_id=run_id
+        )
+        return
+    from agent.run import execute_own
+    from agent.tasks import Goal
+
+    goal = Goal(req.goal_role, req.goal_name)
+    execute_own(
+        req.task, goal, model, logs, req.persona, req.seed, req.condition, run_id, req.html, req.url
+    )
 
 
 def pages() -> dict[str, dict]:
@@ -200,8 +233,8 @@ class Runs:
 
     def findings(self, run_id: str) -> list[dict]:
         if run_id not in self._findings:
-            found = audit(self.log_dir(run_id))
-            self._findings[run_id] = [f.model_dump(mode="json") for f in found]
+            log_dir = self.log_dir(run_id)
+            self._findings[run_id] = explain(audit(log_dir), log_dir)
         return self._findings[run_id]
 
     def snapshot(self, run_id: str) -> dict:
@@ -211,12 +244,25 @@ class Runs:
         return {
             "run_id": run_id,
             "status": status,
-            "request": job.request.model_dump() if job else None,
+            "request": _echo(job.request) if job else None,
             "error": job.error if job else None,
             "meta": self.meta(run_id),
             "steps": self.steps(run_id),
             "findings": self.findings(run_id) if ended_with_log else [],
         }
+
+
+OWN_PAGE_FIELDS = {"url", "task", "goal_role", "goal_name"}
+
+
+def _echo(req: RunRequest) -> dict:
+    """The request as a client may read it back: never the pasted HTML, and
+    for a test-app page only the fields that apply."""
+    return req.model_dump(exclude={"html"} | (OWN_PAGE_FIELDS if req.page else set()))
+
+
+def urls_allowed() -> bool:
+    return os.environ.get("SIMUX_ALLOW_URLS") == "1"
 
 
 def _event(name: str, data: dict | str) -> str:
@@ -264,6 +310,7 @@ def create_app(
             "personas": personas(),
             "pages": [{"page": name, **info} for name, info in pages().items()],
             "conditions": list(CONDITIONS),
+            "own_page": {"html": True, "url": urls_allowed()},
         }
 
     @app.post("/runs", status_code=202)
@@ -275,8 +322,17 @@ def create_app(
         reason = unbuilt_filter(persona)
         if reason:
             raise HTTPException(422, f"persona {req.persona!r} cannot run yet: {reason}")
-        if req.page not in pages():
+        if req.page and req.page not in pages():
             raise HTTPException(422, f"no task for page {req.page!r}")
+        if req.url:
+            if not urls_allowed():
+                raise HTTPException(422, "URL runs are off on this server; paste the HTML instead")
+            from agent.run import check_public_url
+
+            try:
+                check_public_url(req.url)
+            except ValueError as e:
+                raise HTTPException(422, str(e)) from None
         try:
             job = runs.start(req)
         except Busy as e:

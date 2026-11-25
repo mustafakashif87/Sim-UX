@@ -263,3 +263,45 @@ def test_cors_allows_the_configured_origin_only(tmp_path):
     assert ok.headers.get("access-control-allow-origin") == "https://simux.example"
     other = c.get("/health", headers={"Origin": "https://evil.example"})
     assert "access-control-allow-origin" not in other.headers
+
+
+def test_a_finding_says_what_to_change_and_where(tmp_path):
+    c = client(tmp_path)
+    run_id = c.post("/runs", json={"page": "order-a"}).json()["run_id"]
+    (finding,) = wait_until_ended(c, run_id)["findings"]
+    assert finding["fix"].startswith("Disable the button")
+    assert finding["where"]["element"] == 'button "Place order"'
+    assert finding["where"]["path"] == "/order.html"
+
+
+OWN = {"html": "<h1>Shop</h1>", "task": "Buy the kettle", "goal_name": "Order placed"}
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        {"html": "<h1>x</h1>"},  # no task or goal
+        {**OWN, "page": "order-a"},  # two sources
+        {"task": "t", "goal_name": "g"},  # no source
+    ],
+)
+def test_an_own_page_request_must_be_complete(tmp_path, body):
+    assert client(tmp_path).post("/runs", json=body).status_code == 422
+
+
+def test_pasted_html_runs_and_is_not_echoed(tmp_path):
+    c = client(tmp_path)
+    assert c.get("/options").json()["own_page"] == {"html": True, "url": False}
+    started = c.post("/runs", json=OWN)
+    assert started.status_code == 202
+    body = wait_until_ended(c, started.json()["run_id"])
+    assert "html" not in body["request"] and body["request"]["task"] == "Buy the kettle"
+
+
+def test_url_runs_are_off_unless_allowed(tmp_path, monkeypatch):
+    c = client(tmp_path)
+    url_run = {**OWN, "html": None, "url": "https://example.com/"}
+    assert "off on this server" in c.post("/runs", json=url_run).json()["detail"]
+    monkeypatch.setenv("SIMUX_ALLOW_URLS", "1")
+    private = {**url_run, "url": "http://127.0.0.1:8000/"}
+    assert "not a public address" in c.post("/runs", json=private).json()["detail"]

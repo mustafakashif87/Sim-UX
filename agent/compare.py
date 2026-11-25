@@ -2,8 +2,10 @@
 (spec: Evaluation protocol, Comparison systems; proposal feature 10).
 
 Columns:
-- SimUX persona: k/n in Persona on buggy from each persona's runs.csv, and
-  whether the attribution rule holds.
+- SimUX persona: k/n in Persona on buggy from each persona's runs.csv. It
+  counts as detected when found (stable on the buggy page, quiet on the
+  clean one); the note says whether attribution also holds, or that the
+  baseline hit it too, or that no baseline was run.
 - Keyboard sweep: `agent.keyboard_sweep` on the buggy and the clean page.
 - axe-core: rules that fire on the buggy page and not on the clean one.
 - Single-prompt LLM: the model sees the page's first accessibility tree and
@@ -16,6 +18,7 @@ clean one, so a system that reports everything everywhere scores nothing.
 
     python -m agent.compare --runs eval-out/p1 eval-out/p2 --axe-js axe.min.js --out compare
     python -m agent.compare --runs eval-out/p1 --axe-summary axe-results/summary.json --no-llm
+    python -m agent.compare --runs eval-out/p1 --raw compare/raw.json --out compare   # rebuild
 """
 
 import argparse
@@ -85,8 +88,17 @@ def simux_cells(rows_by_bug: dict[str, metrics.BugResult], bug: SeededBug) -> tu
     if result is None:
         return "not run", False
     k, n = result.rates["persona_buggy"]
-    note = "attributed" if result.attributed else ("stable" if result.stable else "unstable")
-    return f"{k}/{n} ({note})", result.attributed
+    if result.attributed:
+        note = "found, attributed"
+    elif result.found:
+        note = (
+            "found, no baseline run"
+            if result.rates["baseline_buggy"][1] == 0
+            else ("found, baseline too")
+        )
+    else:
+        note = "missed"
+    return f"{k}/{n} ({note})", result.found
 
 
 def differs(buggy: set[str], clean: set[str]) -> set[str]:
@@ -154,6 +166,20 @@ def markdown(rows: list[Row]) -> str:
     return "\n".join(lines) + "\n"
 
 
+def as_json(rows: list[Row]) -> list[dict]:
+    """The table for the web interface's results page."""
+    return [
+        {
+            "bug": r.bug.id,
+            "signal": signal_of(r.bug),
+            "owner": r.bug.detected_by,
+            "cells": r.cells,
+            "detected": r.detected,
+        }
+        for r in rows
+    ]
+
+
 # --- live checks: axe, keyboard sweep, single prompt -------------------------
 
 
@@ -201,23 +227,32 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--no-sweep", action="store_true")
     parser.add_argument("--no-llm", action="store_true", help="skip the single-prompt baseline")
     parser.add_argument("--replay", action="store_true", help="recorded LLM replies only")
+    parser.add_argument("--raw", type=Path, help="raw.json of an earlier run: rebuild, no checks")
     parser.add_argument("--out", type=Path, default=Path("compare-out"))
     args = parser.parse_args(argv)
 
     args.out.mkdir(parents=True, exist_ok=True)
     complete = None
-    if not args.no_llm:
+    if args.raw:
+        saved = json.loads(args.raw.read_text(encoding="utf-8"))
+        axe, swept, single = (
+            saved[k] and {p: set(v) for p, v in saved[k].items()}
+            for k in ("axe", "keyboard_sweep", "single_prompt")
+        )
+    elif not args.no_llm:
         from agent.llm import LLMClient
 
         client = LLMClient.from_env(cache_dir=args.out / "llm-cache", replay=args.replay)
         complete = client.complete
-    axe, swept, single = run_live(args.axe_js, not args.no_sweep, complete)
+    if not args.raw:
+        axe, swept, single = run_live(args.axe_js, not args.no_sweep, complete)
     if axe is None and args.axe_summary:
         raw = json.loads(args.axe_summary.read_text(encoding="utf-8"))
         axe = {page: {v["id"] for v in found} for page, found in raw.items()}
     rows = build(args.runs, axe, swept, single)
     table = markdown(rows)
     (args.out / "comparison.md").write_text(table, encoding="utf-8")
+    (args.out / "table.json").write_text(json.dumps(as_json(rows), indent=1), encoding="utf-8")
     raw = {"axe": axe, "keyboard_sweep": swept, "single_prompt": single}
     (args.out / "raw.json").write_text(
         json.dumps(

@@ -148,14 +148,24 @@ def load_seeded_bugs(path: Path = TEST_APP / "SEEDED_BUGS.md") -> list[SeededBug
 
 
 class _QuietHandler(http.server.SimpleHTTPRequestHandler):
+    csp: str | None = None
+
+    def end_headers(self) -> None:
+        if self.csp:
+            self.send_header("Content-Security-Policy", self.csp)
+        super().end_headers()
+
     def log_message(self, *args) -> None:
         pass
 
 
 @contextmanager
-def serve(directory: Path = TEST_APP) -> Iterator[str]:
-    """Serve `directory` on a free local port; yields its base URL."""
-    handler = functools.partial(_QuietHandler, directory=str(directory))
+def serve(directory: Path = TEST_APP, csp: str | None = None) -> Iterator[str]:
+    """Serve `directory` on a free local port; yields its base URL. `csp`, if
+    given, is sent as every response's Content-Security-Policy."""
+    handler = functools.partial(
+        type("_Handler", (_QuietHandler,), {"csp": csp}), directory=str(directory)
+    )
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()

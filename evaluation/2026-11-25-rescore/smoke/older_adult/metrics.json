@@ -1,0 +1,52 @@
+{
+  "summary": {
+    "runs": 6,
+    "excluded": 4,
+    "recall": 0.0,
+    "found_recall": 1.0,
+    "precision": 1.0,
+    "false_positive_rate": 0.0,
+    "citation_validity": 1.0,
+    "mean_steps": 8.0,
+    "mean_seconds": 28.95,
+    "stable_bugs": 1,
+    "attributed_bugs": 0,
+    "found_bugs": 1,
+    "bugs": 1
+  },
+  "bugs": [
+    {
+      "bug": "B36",
+      "signal": "data_lost_on_timeout",
+      "rates": {
+        "persona_buggy": [
+          1,
+          1
+        ],
+        "baseline_buggy": [
+          0,
+          0
+        ],
+        "persona_clean": [
+          0,
+          1
+        ]
+      },
+      "triggered": [
+        1,
+        1
+      ],
+      "detected_given_trigger": [
+        1,
+        1
+      ],
+      "stable": true,
+      "attributed": false,
+      "found": true,
+      "forced": [
+        0,
+        0
+      ]
+    }
+  ]
+}

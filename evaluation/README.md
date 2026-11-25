@@ -14,6 +14,37 @@ new detectors needs those logs: `python -m agent.evaluate ... --rescore`.
 `run_evals.sh` reruns P2, P3 and the P4 to P14 smoke runs until done, waiting
 out spent quotas.
 
+## 2026-11-25-rescore
+
+The same 23 Nov runs (same logs, same model replies, no new model call),
+re-detected with two changes, using `agent.evaluate --rescore` and
+`agent.compare --raw`:
+
+- **Page-fact detectors report whether or not the persona finished.**
+  `no_structure`, `unnamed_control`, `image_only_info`, `focus_not_visible`,
+  `key_info_buried`, `cta_below_fold` and `headings_not_descriptive` read
+  facts that are in the log either way; they used to stay silent when the
+  model got through the page despite the bug. Severity still tells the two
+  apart: 4 when the task was blocked, 2 when the persona finished with
+  friction.
+- **Counting is fixed.** A bug counts as detected when it is *found*
+  (stable on the buggy page, quiet on the clean one). It is *attributed*
+  only when the baseline ran and missed it, so smoke rows (no baseline)
+  are never called attributed (`agent/metrics.py`).
+
+| System | Seeded bugs detected |
+| --- | --- |
+| SimUX personas | **26 of 41** (was 22): B15, B23, B24, B25 now found |
+| SimUX personas + its keyboard sweep | 28 of 41 |
+| axe-core 4.10.2 | 5 of 41 |
+| Single-prompt LLM | 5 of 41 |
+
+Attributed (baseline ran and missed it): 2 of 12 (B7, B11; P1 to P3 only).
+False alarms: still 1 in 84 clean-page runs (P2, `lost_location` on
+upgrade-b). Still missed: B1 to B4 (P1's typo is corrected by the model
+before submit), B8, B10, B16, B26, B27 and B34 (the behaviour never
+happened in the run). `comparison/table.json` feeds the web Results page.
+
 ## 2026-11-23
 
 Every run used `groq/openai/gpt-oss-120b` at temperature 0, from `main` with

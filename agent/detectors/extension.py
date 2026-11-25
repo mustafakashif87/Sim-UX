@@ -56,6 +56,11 @@ def _texts_outside_live(nodes: list[Node], live: bool = False) -> set[str]:
     return out
 
 
+# The page-fact detectors below (structure, names, focus indicator, buried
+# text, call to action, headings) report whether or not the persona finished:
+# the fact is in the log either way. Severity says which: 4 when the task was
+# blocked, 2 when the persona got through with friction (grounding.severity).
+
 # --- P4 screen reader ----------------------------------------------------------
 
 
@@ -88,10 +93,9 @@ def _pointer_only(run: RunLog, signal: str) -> Finding | None:
 
 
 def no_structure(run: RunLog) -> Finding | None:
-    """No headings and no landmarks to move by, and the persona did not
-    finish (WCAG 1.3.1, 2.4.1)."""
+    """No headings and no landmarks to move by (WCAG 1.3.1, 2.4.1)."""
     nodes = _tree(run, 0)
-    if not nodes or not _failed(run):
+    if not nodes:
         return None
     if any(n.role == "heading" or n.role in LANDMARKS for n in walk(nodes)):
         return None
@@ -99,17 +103,17 @@ def no_structure(run: RunLog) -> Finding | None:
 
 
 def unnamed_control(run: RunLog) -> Finding | None:
-    """A control with no accessible name, and the persona did not finish."""
+    """A control with no accessible name (WCAG 4.1.2)."""
     nodes = _tree(run, 0)
-    if _failed(run) and any(n.role in CONTROL_ROLES and not n.name for n in walk(nodes)):
+    if any(n.role in CONTROL_ROLES and not n.name for n in walk(nodes)):
         return make_finding(run, "unnamed_control", [0])
     return None
 
 
 def image_only_info(run: RunLog) -> Finding | None:
-    """An image with no text alternative, and the persona did not finish."""
+    """An image with no text alternative (WCAG 1.1.1)."""
     nodes = _tree(run, 0)
-    if _failed(run) and any(n.role == "img" and not n.name for n in walk(nodes)):
+    if any(n.role == "img" and not n.name for n in walk(nodes)):
         return make_finding(run, "image_only_info", [0])
     return None
 
@@ -118,10 +122,7 @@ def image_only_info(run: RunLog) -> Finding | None:
 
 
 def focus_not_visible(run: RunLog) -> Finding | None:
-    """Focus sat on an element with no visible indicator, and the persona did
-    not finish (WCAG 2.4.7)."""
-    if not _failed(run):
-        return None
+    """Focus sat on an element with no visible indicator (WCAG 2.4.7)."""
     for i, f in _facts(run):
         if f.get("focus_visible") is False:
             return make_finding(run, "focus_not_visible", [i])
@@ -226,9 +227,9 @@ SKIM_WORDS = 8  # the skimmer's skim_max_words
 
 def key_info_buried(run: RunLog) -> Finding | None:
     """The task's critical text starts past the words a skimmer reads in its
-    node, and the persona did not finish (WCAG 2.4.6)."""
+    node (WCAG 2.4.6)."""
     critical = run.meta.get("critical_text")
-    if not critical or not _failed(run):
+    if not critical:
         return None
     for n in walk(_tree(run, 0)):
         text = n.text or ""
@@ -240,9 +241,9 @@ def key_info_buried(run: RunLog) -> Finding | None:
 
 def cta_below_fold(run: RunLog) -> Finding | None:
     """The control named by the task's critical text starts below the first
-    viewport, and the persona did not finish (Nielsen #8)."""
+    viewport (Nielsen #8)."""
     critical = run.meta.get("critical_text")
-    if not critical or not _failed(run) or not run.facts or not run.facts[0]:
+    if not critical or not run.facts or not run.facts[0]:
         return None
     f = run.facts[0]
     for n in walk(_tree(run, 0)):
@@ -263,9 +264,7 @@ GENERIC_HEADING = re.compile(
 
 def headings_not_descriptive(run: RunLog) -> Finding | None:
     """Two or more section headings name no topic ("Section 1", "More info",
-    "Other"), and the persona did not finish (WCAG 2.4.6)."""
-    if not _failed(run):
-        return None
+    "Other") (WCAG 2.4.6)."""
     vague = [
         n
         for n in walk(_tree(run, 0))

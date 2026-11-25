@@ -1,0 +1,152 @@
+# What each signal means for the page, and what to change on it. Read by
+# agent/report.py to turn a finding into a change request. Plain advice, not a
+# citation: the criteria a finding cites still come from signal_map.yaml.
+# tests/test_report.py checks that every signal in signal_map.yaml is here.
+
+data_loss_on_error:
+  problem: Values the user had typed were cleared when the form showed an error.
+  fix: Keep every entered value after a failed submit; only mark the fields that need changing.
+error_not_identified:
+  problem: The form rejected the input without saying which field was wrong.
+  fix: Name the field in the error, mark it with aria-invalid, and link the message with aria-describedby.
+error_not_actionable:
+  problem: The error said something was wrong but not how to fix it.
+  fix: Say what a valid value looks like, for example "Enter a date as DD/MM/YYYY".
+duplicate_submission:
+  problem: Pressing the submit button twice sent the form twice.
+  fix: Disable the button while the request is in flight, and make the server ignore a repeated request.
+destructive_without_confirm:
+  problem: A delete or remove action ran at once, with no confirmation and no undo.
+  fix: Ask for confirmation before destructive actions, or offer an Undo for a few seconds afterwards.
+no_way_back:
+  problem: After a step the user could not go back or cancel.
+  fix: Add a visible Back or Cancel control on every step, and keep the browser Back button working.
+redundant_entry:
+  problem: The user had to type the same information again.
+  fix: Prefill information the user already gave, or offer a "same as above" option.
+recall_required:
+  problem: The task needed information that was shown earlier but is no longer on screen.
+  fix: Keep the information the user needs visible on the step that needs it.
+lost_location:
+  problem: Pages or steps had no title that tells the user where they are.
+  fix: Give every page a unique title and a heading that names the current step.
+no_progress_indicator:
+  problem: A multi-step flow did not show which step the user is on.
+  fix: Show "Step 2 of 4" or a step list with the current step marked (aria-current="step").
+label_unintelligible:
+  problem: A label used words a low-literacy reader could not understand.
+  fix: Use common words in labels and buttons; move jargon into a short explanation.
+instruction_unintelligible:
+  problem: The instructions used words a low-literacy reader could not understand.
+  fix: Rewrite the instructions in short sentences with common words.
+system_language:
+  problem: The page showed internal or technical language to the user.
+  fix: Replace error codes and system terms with plain words that describe the user's situation.
+label:
+  problem: A form field had no label.
+  fix: Give every input a visible <label for=...>, or an aria-label when a visible one is impossible.
+keyboard_trap:
+  problem: Keyboard focus got stuck and Tab could not move past an element.
+  fix: Let Tab and Shift+Tab leave every component; for dialogs, close on Escape and return focus.
+unreachable_control:
+  problem: A control could not be reached with the Tab key.
+  fix: Use a real <button>, <a href> or input, or add tabindex="0" with key handlers.
+status_not_announced:
+  problem: A status message appeared but was not announced to screen-reader users.
+  fix: Put status messages in a role="status" or aria-live="polite" region that exists before the message.
+non_semantic_control:
+  problem: Something that acts as a button or link is a plain element with no role.
+  fix: Use <button> or <a href>; if that is impossible, add the role, tabindex and key handlers.
+no_structure:
+  problem: The page has no headings or landmarks to navigate by.
+  fix: Add a <main>, <nav> and headings (h1, h2) that outline the page.
+unnamed_control:
+  problem: A control has no accessible name, so a screen reader reads it as just "button".
+  fix: Give the control visible text, or an aria-label that says what it does.
+image_only_info:
+  problem: Information needed for the task is only in an image.
+  fix: Give the image alt text that carries the same information, or put the information in text.
+focus_not_visible:
+  problem: The focused element had no visible focus indicator.
+  fix: Keep or add a clear :focus-visible outline; never remove outline without a replacement.
+focus_order_illogical:
+  problem: Tab moved through the controls in an order that does not match the page.
+  fix: Match the DOM order to the visual order and remove positive tabindex values.
+keyboard_trap_in_task:
+  problem: During the task, keyboard focus got stuck in one part of the page.
+  fix: Let Tab and Escape leave every widget, and move focus to new content when it opens.
+keyboard_unreachable:
+  problem: A control needed for the task could not be reached by keyboard.
+  fix: Make the control focusable and operable with Enter or Space.
+reflow_failure:
+  problem: At high zoom or on a narrow screen the content needed sideways scrolling or was cut off.
+  fix: Use a responsive layout that reflows to one column at 320 CSS pixels wide.
+focus_obscured:
+  problem: The focused element was hidden behind a sticky header, banner or overlay.
+  fix: Add scroll-padding for sticky bars, and do not let overlays cover the focused element.
+text_clipped:
+  problem: Text was cut off when the user enlarged the text.
+  fix: Avoid fixed heights on text containers; let them grow with the text.
+key_info_buried:
+  problem: Information needed for the task was hidden deep in long text.
+  fix: Put key instructions first, near the control they apply to, and keep them short.
+cta_below_fold:
+  problem: The main action button was below the first screen and easy to miss.
+  fix: Move the main action up, or repeat it near the top of the page.
+headings_not_descriptive:
+  problem: Headings did not describe the section they introduce.
+  fix: Write headings that say what the section is for, for example "Delivery address".
+target_too_small:
+  problem: A tap target was too small or too close to another.
+  fix: Make targets at least 24 by 24 CSS pixels (44 is better) with space between them.
+mis_tap_consequence:
+  problem: A slightly missed tap triggered a different, harmful action.
+  fix: Keep destructive actions away from common ones, and make them confirmable or undoable.
+no_loading_feedback:
+  problem: The page showed nothing while a request was slow.
+  fix: Show a spinner or "Saving..." in a live region, and disable the button while waiting.
+network_failure_silent:
+  problem: A request failed and the page did not tell the user.
+  fix: Show an error message with a Retry option when a request fails, and keep the user's input.
+timeout_no_warning:
+  problem: The session timed out without warning.
+  fix: Warn at least 20 seconds before a timeout and let the user extend it.
+data_lost_on_timeout:
+  problem: The user's input was lost when the session timed out.
+  fix: Save the user's input so it is still there after they sign in again.
+state_lost_on_reload:
+  problem: Reloading or coming back to the page lost the user's progress.
+  fix: Keep form state in the URL, local storage or on the server.
+no_resume_cue:
+  problem: After an interruption the page gave no cue of where the user had stopped.
+  fix: Show which step is done and highlight the next one when the user returns.
+help_unreachable:
+  problem: The user looked for help and could not find it.
+  fix: Put a Help or Contact link in the same place on every page.
+help_inconsistent:
+  problem: Help was in different places on different pages.
+  fix: Keep help links in the same relative position on every page.
+inconsistent_identification:
+  problem: The same function had different names on different pages.
+  fix: Use one name and icon for each function across the site.
+inconsistent_navigation:
+  problem: Navigation links moved or changed order between pages.
+  fix: Keep repeated navigation in the same order on every page.
+capture_consequence:
+  problem: A habitual action (a familiar button in a familiar place) did something unexpected.
+  fix: Do not reuse a familiar position or name for a different, risky action.
+no_enter_submit:
+  problem: Pressing Enter in the form did not submit it.
+  fix: Wrap fields in a <form> with a submit button so Enter submits.
+no_bulk_action:
+  problem: The user had to repeat the same action item by item.
+  fix: Offer select-all and a bulk action for repeated operations.
+excess_steps:
+  problem: The task took many more steps than it needs.
+  fix: Remove unneeded steps, combine screens and set sensible defaults.
+image-alt:
+  problem: An image has no text alternative.
+  fix: Add alt text that says what the image shows or does; use alt="" only for decoration.
+button-name:
+  problem: A button has no accessible name.
+  fix: Give the button visible text, or an aria-label that says what it does.

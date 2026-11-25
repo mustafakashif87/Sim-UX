@@ -46,7 +46,7 @@ from agent.ids import is_run_id, new_run_id
 from agent.perception import FILTERS, Box, View
 from agent.persona import CONDITIONS, PERSONAS_DIR, Persona, for_condition, load_persona
 from agent.report import explain
-from agent.tasks import load_entries
+from agent.tasks import check_public_url, load_entries
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_LOGS = ROOT / "logs" / "api"
@@ -327,8 +327,6 @@ def create_app(
         if req.url:
             if not urls_allowed():
                 raise HTTPException(422, "URL runs are off on this server; paste the HTML instead")
-            from agent.run import check_public_url
-
             try:
                 check_public_url(req.url)
             except ValueError as e:

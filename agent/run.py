@@ -13,14 +13,11 @@ key quotes stand in for the LLM's) or marked ungrounded. Logs go to
 """
 
 import argparse
-import ipaddress
-import socket
 import sys
 import tempfile
 from collections.abc import Iterator
 from contextlib import contextmanager, nullcontext
 from pathlib import Path
-from urllib.parse import urlsplit
 
 from playwright.sync_api import Browser, sync_playwright
 
@@ -29,7 +26,7 @@ from agent.detectors import audit
 from agent.llm import LLMClient
 from agent.loop import Model, RunResult, run
 from agent.persona import CONDITIONS, Condition, for_condition, load_persona
-from agent.tasks import Goal, Task, load_tasks, serve
+from agent.tasks import Goal, Task, check_public_url, load_tasks, serve
 
 # Slows each browser action in --headed mode so the audience can follow it.
 HEADED_SLOW_MO_MS = 300
@@ -85,24 +82,6 @@ def serve_html(html: str) -> Iterator[str]:
         Path(folder, "index.html").write_text(html, encoding="utf-8")
         with serve(Path(folder), csp=PASTED_CSP) as base:
             yield base + "index.html"
-
-
-def check_public_url(url: str) -> str:
-    """`url` if it is http(s) and its host resolves only to public addresses,
-    else ValueError. shortcut: checked once before the run, so a redirect or a
-    DNS change mid-run can still reach a private address; use a filtering proxy
-    before exposing URL runs to untrusted users."""
-    parts = urlsplit(url)
-    if parts.scheme not in ("http", "https") or not parts.hostname:
-        raise ValueError("only http and https URLs can be tested")
-    try:
-        infos = socket.getaddrinfo(parts.hostname, parts.port or 443)
-    except socket.gaierror as e:
-        raise ValueError(f"cannot resolve {parts.hostname}") from e
-    for info in infos:
-        if not ipaddress.ip_address(info[4][0]).is_global:
-            raise ValueError(f"{parts.hostname} is not a public address")
-    return url
 
 
 def execute_own(

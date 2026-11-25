@@ -1,0 +1,699 @@
+[
+ {
+  "bug": "B1",
+  "signal": "data_loss_on_error",
+  "owner": "P1 Error-prone",
+  "cells": {
+   "simux": "1/5 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: label"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B2",
+  "signal": "error_not_identified",
+  "owner": "P1 Error-prone",
+  "cells": {
+   "simux": "1/5 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B3",
+  "signal": "error_not_actionable",
+  "owner": "P1 Error-prone",
+  "cells": {
+   "simux": "1/5 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B4",
+  "signal": "duplicate_submission",
+  "owner": "P1 Error-prone",
+  "cells": {
+   "simux": "1/5 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B5",
+  "signal": "destructive_without_confirm",
+  "owner": "P1 Error-prone",
+  "cells": {
+   "simux": "5/5 (found, baseline too)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B6",
+  "signal": "redundant_entry",
+  "owner": "P1 Error-prone",
+  "cells": {
+   "simux": "5/5 (found, baseline too)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "yes: redundant_entry"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": true
+  }
+ },
+ {
+  "bug": "B7",
+  "signal": "recall_required",
+  "owner": "P2 Memoryless",
+  "cells": {
+   "simux": "5/5 (found, attributed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B8",
+  "signal": "lost_location",
+  "owner": "P2 Memoryless",
+  "cells": {
+   "simux": "0/5 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: label, redundant_entry"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B9",
+  "signal": "no_progress_indicator",
+  "owner": "P2 Memoryless",
+  "cells": {
+   "simux": "5/5 (found, baseline too)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: destructive_without_confirm"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B10",
+  "signal": "label_unintelligible",
+  "owner": "P3 Low-literacy",
+  "cells": {
+   "simux": "0/5 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: duplicate_submission"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B11",
+  "signal": "instruction_unintelligible",
+  "owner": "P3 Low-literacy",
+  "cells": {
+   "simux": "5/5 (found, attributed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "yes: instruction_unintelligible, recall_required"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": true
+  }
+ },
+ {
+  "bug": "B12",
+  "signal": "system_language",
+  "owner": "P3 Low-literacy",
+  "cells": {
+   "simux": "5/5 (found, baseline too)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B13",
+  "signal": "status_not_announced",
+  "owner": "P4 Screen-reader",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B14",
+  "signal": "non_semantic_control",
+  "owner": "P4 Screen-reader",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "yes: unreachable_control",
+   "axe": "no",
+   "single_prompt": "no: recall_required"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": true,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B15",
+  "signal": "no_structure",
+  "owner": "P4 Screen-reader",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "yes: landmark-one-main, page-has-heading-one",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": true,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B16",
+  "signal": "focus_order_illogical",
+  "owner": "P5 Keyboard-only",
+  "cells": {
+   "simux": "0/1 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "yes: tabindex",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": true,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B17",
+  "signal": "focus_not_visible",
+  "owner": "P5 Keyboard-only",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B18",
+  "signal": "mis_tap_consequence",
+  "owner": "P6 Mobile touch",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B19",
+  "signal": "target_too_small",
+  "owner": "P6 Mobile touch",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: destructive_without_confirm"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B20",
+  "signal": "reflow_failure",
+  "owner": "P7 Low-vision",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B21",
+  "signal": "focus_obscured",
+  "owner": "P7 Low-vision",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: label"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B22",
+  "signal": "text_clipped",
+  "owner": "P7 Low-vision",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: no_way_back"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B23",
+  "signal": "key_info_buried",
+  "owner": "P8 Skimmer",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B24",
+  "signal": "cta_below_fold",
+  "owner": "P8 Skimmer",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: image-alt"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B25",
+  "signal": "headings_not_descriptive",
+  "owner": "P8 Skimmer",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: recall_required"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B26",
+  "signal": "timeout_no_warning",
+  "owner": "P9 Interrupted",
+  "cells": {
+   "simux": "0/1 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B27",
+  "signal": "state_lost_on_reload",
+  "owner": "P9 Interrupted",
+  "cells": {
+   "simux": "0/1 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B28",
+  "signal": "no_loading_feedback",
+  "owner": "P10 Slow connection",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B29",
+  "signal": "network_failure_silent",
+  "owner": "P10 Slow connection",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: duplicate_submission, error_not_identified"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B30",
+  "signal": "help_unreachable",
+  "owner": "P11 Help-seeker",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B31",
+  "signal": "help_inconsistent",
+  "owner": "P11 Help-seeker",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B32",
+  "signal": "inconsistent_identification",
+  "owner": "P12 Habitual",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B33",
+  "signal": "inconsistent_navigation",
+  "owner": "P12 Habitual",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B34",
+  "signal": "no_enter_submit",
+  "owner": "P13 Power user",
+  "cells": {
+   "simux": "0/1 (missed)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: duplicate_submission"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B35",
+  "signal": "no_bulk_action",
+  "owner": "P13 Power user",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no: no_way_back, recall_required"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "B36",
+  "signal": "data_lost_on_timeout",
+  "owner": "P14 Older adult",
+  "cells": {
+   "simux": "1/1 (found, no baseline run)",
+   "keyboard_sweep": "no",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": true,
+   "keyboard_sweep": false,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "SB-01",
+  "signal": "image-alt",
+  "owner": "axe-core",
+  "cells": {
+   "simux": "not run",
+   "keyboard_sweep": "no",
+   "axe": "yes: image-alt",
+   "single_prompt": "yes: image-alt"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": true,
+   "single_prompt": true
+  }
+ },
+ {
+  "bug": "SB-02",
+  "signal": "button-name",
+  "owner": "axe-core",
+  "cells": {
+   "simux": "not run",
+   "keyboard_sweep": "no",
+   "axe": "yes: button-name",
+   "single_prompt": "yes: button-name"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": true,
+   "single_prompt": true
+  }
+ },
+ {
+  "bug": "SB-03",
+  "signal": "label",
+  "owner": "axe-core",
+  "cells": {
+   "simux": "not run",
+   "keyboard_sweep": "no",
+   "axe": "yes: label",
+   "single_prompt": "yes: label"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": false,
+   "axe": true,
+   "single_prompt": true
+  }
+ },
+ {
+  "bug": "SB-04",
+  "signal": "keyboard_trap",
+  "owner": "keyboard sweep",
+  "cells": {
+   "simux": "not run",
+   "keyboard_sweep": "yes: keyboard_trap",
+   "axe": "no",
+   "single_prompt": "no"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": true,
+   "axe": false,
+   "single_prompt": false
+  }
+ },
+ {
+  "bug": "SB-05",
+  "signal": "unreachable_control",
+  "owner": "keyboard sweep",
+  "cells": {
+   "simux": "not run",
+   "keyboard_sweep": "yes: unreachable_control",
+   "axe": "no",
+   "single_prompt": "no: button-name"
+  },
+  "detected": {
+   "simux": false,
+   "keyboard_sweep": true,
+   "axe": false,
+   "single_prompt": false
+  }
+ }
+]

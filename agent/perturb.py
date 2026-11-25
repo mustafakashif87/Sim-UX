@@ -29,6 +29,7 @@ applies to.
 """
 
 import random
+import re
 from dataclasses import dataclass
 
 from agent.contracts import Action
@@ -177,3 +178,41 @@ def swap_adjacent(text: str, rng: random.Random) -> str:
         return text
     i = rng.choice(spots)
     return text[:i] + text[i + 1] + text[i] + text[i + 2 :]
+
+
+class UnnoticedSlips:
+    """A typo is a slip: the persona does not notice it until the page reacts
+    (Norman). Until a request is sent, the tree the model reads shows the
+    value it meant to type wherever the field still holds the mistyped one,
+    so the model cannot proofread the harness's mistake away. Logs and
+    detectors keep the real tree."""
+
+    def __init__(self) -> None:
+        self._fields: dict[tuple[str, str | None], tuple[str, str]] = {}  # -> (typed, meant)
+
+    def remember(self, perturbed: Perturbed, intended: Action, refs: RefMap) -> None:
+        typed = perturbed.executed
+        if perturbed.perturbation != TYPO or typed is None or intended.ref not in refs:
+            return
+        target = refs[intended.ref]
+        self._fields[(target.role, target.name)] = (typed.text or "", intended.text or "")
+
+    def feedback(self) -> None:
+        """The page answered a submission: the persona now sees what is there."""
+        self._fields.clear()
+
+    def shown(self, tree: str, refs: RefMap) -> str:
+        if not self._fields:
+            return tree
+        out = []
+        for line in tree.split("\n"):
+            m = _VALUE.search(line)
+            target = refs.get(m.group(1)) if m else None
+            slip = self._fields.get((target.role, target.name)) if target else None
+            if m and slip and m.group(2) == slip[0]:
+                line = line[: m.start(2)] + slip[1]
+            out.append(line)
+        return "\n".join(out)
+
+
+_VALUE = re.compile(r"\[ref=(e\d+)\]: (.*)$")

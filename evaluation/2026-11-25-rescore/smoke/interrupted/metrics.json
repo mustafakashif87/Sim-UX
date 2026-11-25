@@ -1,0 +1,85 @@
+{
+  "summary": {
+    "runs": 8,
+    "excluded": 4,
+    "recall": 0.0,
+    "found_recall": 0.0,
+    "precision": null,
+    "false_positive_rate": 0.0,
+    "citation_validity": null,
+    "mean_steps": 6.0,
+    "mean_seconds": 21.6,
+    "stable_bugs": 0,
+    "attributed_bugs": 0,
+    "found_bugs": 0,
+    "bugs": 2
+  },
+  "bugs": [
+    {
+      "bug": "B26",
+      "signal": "timeout_no_warning",
+      "rates": {
+        "persona_buggy": [
+          0,
+          1
+        ],
+        "baseline_buggy": [
+          0,
+          0
+        ],
+        "persona_clean": [
+          0,
+          1
+        ]
+      },
+      "triggered": [
+        1,
+        1
+      ],
+      "detected_given_trigger": [
+        0,
+        1
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B27",
+      "signal": "state_lost_on_reload",
+      "rates": {
+        "persona_buggy": [
+          0,
+          1
+        ],
+        "baseline_buggy": [
+          0,
+          0
+        ],
+        "persona_clean": [
+          0,
+          1
+        ]
+      },
+      "triggered": [
+        1,
+        1
+      ],
+      "detected_given_trigger": [
+        0,
+        1
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    }
+  ]
+}

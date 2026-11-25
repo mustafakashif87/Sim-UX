@@ -14,12 +14,14 @@ site's URL as the base.
 
 import functools
 import http.server
+import ipaddress
+import socket
 import threading
 from collections.abc import Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import yaml
 from pydantic import ConfigDict, Field
@@ -148,14 +150,24 @@ def load_seeded_bugs(path: Path = TEST_APP / "SEEDED_BUGS.md") -> list[SeededBug
 
 
 class _QuietHandler(http.server.SimpleHTTPRequestHandler):
+    csp: str | None = None
+
+    def end_headers(self) -> None:
+        if self.csp:
+            self.send_header("Content-Security-Policy", self.csp)
+        super().end_headers()
+
     def log_message(self, *args) -> None:
         pass
 
 
 @contextmanager
-def serve(directory: Path = TEST_APP) -> Iterator[str]:
-    """Serve `directory` on a free local port; yields its base URL."""
-    handler = functools.partial(_QuietHandler, directory=str(directory))
+def serve(directory: Path = TEST_APP, csp: str | None = None) -> Iterator[str]:
+    """Serve `directory` on a free local port; yields its base URL. `csp`, if
+    given, is sent as every response's Content-Security-Policy."""
+    handler = functools.partial(
+        type("_Handler", (_QuietHandler,), {"csp": csp}), directory=str(directory)
+    )
     server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
     thread = threading.Thread(target=server.serve_forever, daemon=True)
     thread.start()
@@ -164,3 +176,21 @@ def serve(directory: Path = TEST_APP) -> Iterator[str]:
     finally:
         server.shutdown()
         server.server_close()
+
+
+def check_public_url(url: str) -> str:
+    """`url` if it is http(s) and its host resolves only to public addresses,
+    else ValueError. shortcut: checked once before the run, so a redirect or a
+    DNS change mid-run can still reach a private address; use a filtering proxy
+    before exposing URL runs to untrusted users."""
+    parts = urlsplit(url)
+    if parts.scheme not in ("http", "https") or not parts.hostname:
+        raise ValueError("only http and https URLs can be tested")
+    try:
+        infos = socket.getaddrinfo(parts.hostname, parts.port or 443)
+    except socket.gaierror as e:
+        raise ValueError(f"cannot resolve {parts.hostname}") from e
+    for info in infos:
+        if not ipaddress.ip_address(info[4][0]).is_global:
+            raise ValueError(f"{parts.hostname} is not a public address")
+    return url

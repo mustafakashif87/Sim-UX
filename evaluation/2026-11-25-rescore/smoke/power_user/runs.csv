@@ -1,0 +1,9 @@
+run_id,persona,bug,page,condition,seed,status,steps,seconds,signals,expected_signal,detected,perturbations,triggered,quotes_generated,quotes_verified,model_id,log_dir,error
+20261123T174650Z-power_user-b38234,power_user,B34,quickadd-a.html,persona_buggy,1,aborted_provider,0,0.7,,no_enter_submit,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174650Z-power_user-b38234,HTTP 429: retry after 222s; quota spent
+20261123T174650Z-power_user-c975d8,power_user,B34,quickadd-a.html,persona_buggy,1,aborted_provider,1,1.8,,no_enter_submit,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174650Z-power_user-c975d8,HTTP 429: retry after 776s; quota spent
+20261123T174652Z-power_user-455a1d,power_user,B34,quickadd-a.html,persona_buggy,1,aborted_provider,0,34.2,,no_enter_submit,0,,1,0,0,gemini/gemini-3.8-flash,runs/20261123T174652Z-power_user-455a1d,HTTP 429 after 5 attempts
+20261123T174726Z-power_user-28c9e1,power_user,B34,quickadd-a.html,persona_buggy,1,aborted_provider,0,0.6,,no_enter_submit,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174726Z-power_user-28c9e1,HTTP 429: retry after 140s; quota spent
+20261123T174727Z-power_user-2c69c7,power_user,B34,quickadd-a.html,persona_buggy,1,succeeded,3,5.1,,no_enter_submit,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174727Z-power_user-2c69c7,
+20261123T174732Z-power_user-e8cb29,power_user,B34,quickadd-b.html,persona_clean,1,succeeded,3,5.3,,no_enter_submit,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174732Z-power_user-e8cb29,
+20261123T174737Z-power_user-83509f,power_user,B35,bulk-a.html,persona_buggy,1,step_cap,5,38.1,no_bulk_action;excess_steps,no_bulk_action,1,,1,2,2,groq/openai/gpt-oss-120b,runs/20261123T174737Z-power_user-83509f,
+20261123T174816Z-power_user-36b5a7,power_user,B35,bulk-b.html,persona_clean,1,succeeded,3,30.7,,no_bulk_action,0,,1,0,0,groq/openai/gpt-oss-120b,runs/20261123T174816Z-power_user-36b5a7,

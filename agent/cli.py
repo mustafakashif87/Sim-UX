@@ -91,8 +91,9 @@ def _script_model(script: list[dict]):
 
 def audit_pages(
     config: Config, base_dir: Path, logs: Path, browser=None
-) -> tuple[list[Finding], list[dict]]:
-    """Run every page and seed; Chromium is launched unless `browser` is given
+) -> tuple[list[Finding], list[dict], list[dict]]:
+    """Findings, runs and findings as change requests (agent.report), for
+    every page and seed; Chromium is launched unless `browser` is given
     (tests share one)."""
     from agent.persona import Persona, load_persona
     from agent.tasks import serve
@@ -125,9 +126,11 @@ def audit_pages(
 def _audit(config, base_dir, logs, persona, llm, root, browser):
     from agent.detectors import audit
     from agent.loop import run
+    from agent.report import explain
     from agent.tasks import Goal, Task
 
     findings: list[Finding] = []
+    changes: list[dict] = []
     runs: list[dict] = []
     for i, entry in enumerate(config.pages):
         if "://" in entry.url:
@@ -147,6 +150,7 @@ def _audit(config, base_dir, logs, persona, llm, root, browser):
                 page.close()
             found = audit(result.log_dir)
             findings += found
+            changes += explain(found, result.log_dir)
             runs.append(
                 {
                     "url": entry.url,
@@ -157,7 +161,7 @@ def _audit(config, base_dir, logs, persona, llm, root, browser):
                     "signals": [f.signal for f in found],
                 }
             )
-    return findings, runs
+    return findings, runs, changes
 
 
 def summary_markdown(findings: list[Finding], runs: list[dict], fail_on: int) -> str:
@@ -192,7 +196,7 @@ def main(argv: list[str] | None = None, browser=None) -> int:
 
     config = load_config(args.config)
     logs = args.logs or Path(tempfile.mkdtemp(prefix="simux-"))
-    findings, runs = audit_pages(config, args.config.resolve().parent, logs, browser)
+    findings, runs, changes = audit_pages(config, args.config.resolve().parent, logs, browser)
     failing = [f for f in findings if f.severity >= config.fail_on]
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
@@ -202,7 +206,7 @@ def main(argv: list[str] | None = None, browser=None) -> int:
                 "fail_on": config.fail_on,
                 "failed": bool(failing),
                 "runs": runs,
-                "findings": [f.model_dump() for f in findings],
+                "findings": changes,
             },
             indent=2,
         )

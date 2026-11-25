@@ -62,8 +62,8 @@ export function Hero() {
             >
               SimUX runs personas that are genuinely restricted — not told to roleplay — through
               real tasks on your product. One sees only what a screen reader would; another clicks
-              the way an unsteady hand does. Every finding is grounded in a real standard, and every
-              fix is proposed, sandboxed, and verified before anyone trusts it.
+              the way an unsteady hand does. Every finding is grounded in a verbatim quote from
+              WCAG 2.2 or Nielsen, and says what to change on your page.
             </motion.p>
 
             <motion.div variants={itemVariants} className="mt-9 flex flex-wrap items-center gap-3">

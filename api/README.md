@@ -11,10 +11,10 @@ uvicorn api.app:app --port 8000          # from the repo root; key from .env
 
 | Endpoint | Does |
 | --- | --- |
-| `POST /runs` | Body `{persona, page, condition, seed}` (`page` without `.html`; `condition` is `persona` or `baseline`). Returns `202 {run_id, status}`; `422` says why a request cannot run; `429` when the queue is full |
-| `GET /runs/{run_id}` | `status` (`queued`, `running`, then the loop's end status or `failed`), the request, `run.json`, every step record so far, and the findings with verified citations once the run has ended |
+| `POST /runs` | Body `{persona, page, condition, seed}` (`page` without `.html`; `condition` is `persona` or `baseline`). Returns `202 {run_id, status}`; `422` says why a request cannot run; `429` when the queue is full. For your own page, send `html` (served offline, scripts and styles inline) or `url` (only with `SIMUX_ALLOW_URLS=1`, public hosts only) in place of `page`, plus `task`, `goal_role` (default `heading`) and `goal_name`: the run succeeds when that element is visible |
+| `GET /runs/{run_id}` | `status` (`queued`, `running`, then the loop's end status or `failed`), the request, `run.json`, every step record so far, and the findings with verified citations once the run has ended, most severe first. Each finding also has `problem`, `fix` (what to change on the page, from `grounding/fixes.yaml`) and `where` (`path`, `element` and the persona's `thought` at the first evidence step) |
 | `GET /runs/{run_id}/stream` | Server-sent events: one `step` event per step record as the loop writes it, then one `end` event with `status`, `error` and `findings` |
-| `GET /options` | Personas (with whether each can run yet), pages with their task, and conditions |
+| `GET /options` | Personas (with whether each can run yet), pages with their task, conditions, and `own_page`: which own-page inputs this server takes |
 | `GET /health` | `{"status": "ok"}` |
 
 | Variable | Default | Meaning |

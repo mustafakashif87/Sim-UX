@@ -39,7 +39,10 @@ export default function LiveRun() {
   const status = run?.status;
   const ended = status ? ENDED.has(status) : false;
   const persona = (run?.request?.persona ?? run?.meta?.persona) as PersonaId | undefined;
-  const page = run?.request?.page ?? run?.meta?.page?.replace(/\.html$/, "");
+  const page =
+    run?.request?.page ??
+    run?.request?.url ??
+    (run?.request?.task ? "your page" : run?.meta?.page?.replace(/\.html$/, ""));
   const condition = run?.request?.condition ?? run?.meta?.condition ?? "persona";
   const seed = run?.meta?.seed ?? run?.request?.seed;
 
@@ -146,6 +149,12 @@ function Findings({ findings }: { findings: Finding[] }) {
         Findings
       </h2>
       {findings.length === 0 && <p className="mt-3 text-ink-2">No findings on this run.</p>}
+      {findings.length > 0 && (
+        <p className="mt-3 text-ink-2">
+          {findings.length} {findings.length === 1 ? "change" : "changes"} to make, most severe
+          first. Each is tied to the step where it happened and cites the guideline it breaks.
+        </p>
+      )}
       <ul className="mt-4 space-y-5">
         {findings.map((f) => (
           <li key={f.finding_id} className="card-chart p-6">
@@ -157,6 +166,26 @@ function Findings({ findings }: { findings: Finding[] }) {
                 {f.evidence_steps.length === 1 ? "" : "s"} {f.evidence_steps.join(", ")}
               </span>
             </div>
+            {f.problem && <p className="mt-3 font-display text-lg font-bold text-ink">{f.problem}</p>}
+            {f.where?.path && (
+              <p className="mt-2 text-sm text-ink-2">
+                Where:{" "}
+                <code className="font-mono text-ink">{f.where.element ?? "the whole page"}</code>
+                {" on "}
+                <code className="font-mono text-ink">{f.where.path}</code>
+                {f.where.thought && (
+                  <span className="text-ink-3"> · the persona was trying to: {f.where.thought}</span>
+                )}
+              </p>
+            )}
+            {f.fix && (
+              <div className="mt-3 rounded-lg border border-ink/20 bg-paper-raised p-4">
+                <p className="font-mono text-[0.6875rem] uppercase tracking-wide text-ink-3">
+                  Change on the page
+                </p>
+                <p className="mt-1 text-ink">{f.fix}</p>
+              </div>
+            )}
             <p className="mt-2 font-mono text-[0.8125rem] text-ink-3">
               Candidates: {f.candidate_criteria.join(" / ")}
             </p>

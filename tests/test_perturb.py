@@ -14,6 +14,7 @@ from agent.perturb import (
     TYPO,
     Perturbed,
     Perturber,
+    UnnoticedSlips,
     swap_adjacent,
 )
 
@@ -167,3 +168,27 @@ def test_swap_adjacent():
     assert swap_adjacent("ab", random.Random(0)) == "ba"
     assert swap_adjacent("aab", random.Random(0)) == "aba"
     assert swap_adjacent("aa", random.Random(0)) == "aa"
+
+
+class TestUnnoticedSlips:
+    REFS = {"e1": RefTarget("textbox", "Email", 0, 0), "e2": RefTarget("textbox", "Name", 0, 1)}
+    TREE = '- textbox "Email" [ref=e1]: sma@x.io\n- textbox "Name" [ref=e2]: Sam'
+
+    def typed(self, slips):
+        meant = Action(thought="", action="type", ref="e1", text="sam@x.io")
+        typo = Action(thought="", action="type", ref="e1", text="sma@x.io")
+        slips.remember(Perturbed(typo, TYPO), meant, self.REFS)
+
+    def test_the_model_sees_what_it_meant_to_type(self):
+        slips = UnnoticedSlips()
+        self.typed(slips)
+        shown = slips.shown(self.TREE, self.REFS)
+        assert "[ref=e1]: sam@x.io" in shown and "[ref=e2]: Sam" in shown
+
+    def test_a_changed_field_or_a_page_reply_shows_the_truth(self):
+        slips = UnnoticedSlips()
+        self.typed(slips)
+        cleared = '- textbox "Email" [ref=e1]'
+        assert slips.shown(cleared, self.REFS) == cleared
+        slips.feedback()
+        assert slips.shown(self.TREE, self.REFS) == self.TREE

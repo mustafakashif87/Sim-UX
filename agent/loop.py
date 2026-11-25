@@ -33,7 +33,7 @@ from agent.ids import new_run_id
 from agent.llm import ProviderError
 from agent.perception import RefMap
 from agent.persona import Persona
-from agent.perturb import IMPATIENT_RETRY, SKIP_FIELD, Perturbed, Perturber
+from agent.perturb import IMPATIENT_RETRY, SKIP_FIELD, Perturbed, Perturber, UnnoticedSlips
 from agent.tasks import Goal, Task  # noqa: F401  (Goal re-exported for callers)
 
 RunStatus = Literal["succeeded", "gave_up", "step_cap", "aborted_provider", "crashed"]
@@ -187,6 +187,7 @@ def _run(
     habit = Habit(persona.memory.prior_knowledge)
     cap = step_cap(persona, task)
     meta["step_cap"] = cap
+    slips = UnnoticedSlips()
 
     try:
         world.install_clock(page)
@@ -245,7 +246,8 @@ def _run(
                 window = persona.memory.history_turns
                 if world.cold and persona.memory.reset_after_interruption:
                     window = 0  # back "cold" after an interruption (P9)
-                action = model.next_action(task.text, obs, history[-window:] if window else [])
+                seen = obs.model_copy(update={"tree": slips.shown(obs.tree, refs)})
+                action = model.next_action(task.text, seen, history[-window:] if window else [])
 
                 if action.action == "give_up":
                     given_up = Perturbed(action)  # never perturbed, never executed
@@ -275,6 +277,9 @@ def _run(
                     escalation.after(step, perturbed.executed, refs, result)
                     sent = any(sub["step"] == step for sub in submissions)
                     habit.learn(perturbed.executed, refs, boxes, sent)
+                    slips.remember(perturbed, action, refs)
+                    if sent:
+                        slips.feedback()
 
                 reached = goal_reached(page, task.goal.role, task.goal.name)
                 for sub in submissions:
@@ -284,7 +289,7 @@ def _run(
                     run_id, persona, page_name, step, obs_hash, action, perturbed, result, reached
                 )
                 _write(log, steps, record)
-                history.append(Turn(obs, action, result))
+                history.append(Turn(seen, action, result))
                 last_content = content
 
                 if reached:

@@ -92,6 +92,12 @@ class TestPerBug:
         (b4,) = per_bug(rows)
         assert b4.stable and not b4.attributed
 
+    def test_no_baseline_is_found_not_attributed(self):
+        # Smoke runs skip the baseline: nothing shows any user would miss it.
+        rows = [r for r in b4_rows() if r["condition"] != "baseline_buggy"]
+        (b4,) = per_bug(rows)
+        assert b4.found and not b4.attributed
+
     def test_bugs_in_natural_order(self):
         rows = [row("B4", "persona_buggy", 1), row("B1", "persona_buggy", 1)]
         assert [b.bug for b in per_bug(rows)] == ["B1", "B4"]

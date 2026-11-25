@@ -108,7 +108,10 @@ def per_bug(rows: list[dict]) -> list[BugResult]:
         given = (sum(signal in _split(r["signals"]) for r in hit), len(hit))
         is_stable = stable(*rates["persona_buggy"])
         clean_quiet = not stable(*rates["persona_clean"])
-        attributed = is_stable and not stable(*rates["baseline_buggy"]) and clean_quiet
+        # Attribution needs the baseline to have run and missed it: smoke runs
+        # with no baseline are found, never attributed.
+        base_k, base_n = rates["baseline_buggy"]
+        attributed = is_stable and base_n > 0 and not stable(base_k, base_n) and clean_quiet
         forced_runs = [r for r in runs if r["condition"] == TRIGGERED and _triggered(r)]
         forced = (sum(signal in _split(r["signals"]) for r in forced_runs), len(forced_runs))
         out.append(

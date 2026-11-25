@@ -44,3 +44,7 @@ eval-out/
 # Personal Claude Code settings
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Local runs of agent.run (its default --logs) and graphify output
+logs/runs/
+graphify-out/

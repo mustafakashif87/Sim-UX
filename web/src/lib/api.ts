@@ -95,13 +95,27 @@ export interface Finding {
   severity: 1 | 2 | 3 | 4;
   confidence: number;
   baseline_reproduced: boolean;
+  /** What went wrong and what to change on the page (grounding/fixes.yaml). */
+  problem: string | null;
+  fix: string | null;
+  /** The page path and the element at fault: the one the persona was acting
+   *  on at the first evidence step, the first unnamed one for a naming
+   *  finding, or null for a whole-page finding. */
+  where: { path: string | null; element: string | null; thought: string | null };
 }
 
+/** A test-app `page`, or the user's own page: pasted `html` or a public
+ *  `url`, with the task and the element (role and name) that shows success. */
 export interface RunRequest {
   persona: PersonaId;
-  page: string;
+  page?: string | null;
   condition: Condition;
   seed: number | null;
+  html?: string;
+  url?: string;
+  task?: string;
+  goal_role?: string;
+  goal_name?: string;
 }
 
 /** run.json, as the loop writes it. Only the fields the interface reads. */
@@ -146,6 +160,8 @@ export interface Options {
   personas: PersonaOption[];
   pages: PageOption[];
   conditions: Condition[];
+  /** Which own-page inputs this server accepts (URL runs are opt-in). */
+  own_page?: { html: boolean; url: boolean };
 }
 
 export class ApiError extends Error {

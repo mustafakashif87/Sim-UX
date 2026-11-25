@@ -14,6 +14,25 @@ new detectors needs those logs: `python -m agent.evaluate ... --rescore`.
 `run_evals.sh` reruns P2, P3 and the P4 to P14 smoke runs until done, waiting
 out spent quotas.
 
+## 2026-11-25-p1-slips
+
+P1 rerun (60 runs, 5 seeds, same model) after the change that hides the
+persona's own typo from it until a request is sent (`UnnoticedSlips` in
+`agent/perturb.py`). Before, the model saw the typo in the tree and
+corrected it, so B1 to B4 were each triggered 1 in 5 at most.
+
+| Bug | Persona on buggy | Before | Detected given trigger | Clean alarms |
+| --- | --- | --- | --- | --- |
+| B1 `data_loss_on_error` | 2/5 | 1/5 | 2/2 | 0/5 |
+| B2 `error_not_identified` | 1/5 | 1/5 | 1/1 | 0/5 |
+| B3 `error_not_actionable` | 2/5 | 1/5 | 2/2 | 0/5 |
+| B4 `duplicate_submission` | 1/5 | 1/5 | 1/1 | 0/5 |
+
+The detectors catch every triggered slip with no false alarms; none of the
+four reaches the 4/5 stability bar because the slip itself is rare (15%
+typo rate per step). Raising the rate, or seeding a slip on the first
+submit, is the next lever. These runs do not change the 26 of 41 headline.
+
 ## 2026-11-25-rescore
 
 The same 23 Nov runs (same logs, same model replies, no new model call),

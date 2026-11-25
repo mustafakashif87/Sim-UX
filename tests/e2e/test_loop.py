@@ -113,6 +113,14 @@ class TestPerturbation:
         assert typed.executed_action.text != typed.intended_action.text == "Sara Khan"
         assert page.posts == [typed.executed_action.text]
 
+    def test_the_persona_does_not_notice_its_typo_but_the_log_does(self, page, tmp_path):
+        result, model = go(page, tmp_path, SEND, persona({"typo_rate": 1.0}))
+        typo = result.steps[0].executed_action.text
+        shown = model.seen[1][0].tree  # what the model read before pressing Send
+        assert "Sara Khan" in shown and typo not in shown
+        logged = (result.log_dir / "observations.jsonl").read_text(encoding="utf-8")
+        assert typo in json.loads(logged.splitlines()[1])["observation"]["tree"]
+
     def test_skipped_field_leaves_it_empty(self, page, tmp_path):
         result, _ = go(page, tmp_path, SEND, persona({"skip_field_rate": 1.0}))
         skipped = result.steps[0]

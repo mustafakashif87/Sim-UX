@@ -1,6 +1,6 @@
 """agent/report.py: findings as change requests."""
 
-from agent.report import element_for, fixes
+from agent.report import PAGE_WIDE, UNNAMED, element_for, fixes, unnamed_in
 from grounding.ground import default_signal_map
 
 
@@ -18,3 +18,14 @@ def test_element_for_reads_role_and_name_of_a_ref():
     assert element_for(tree, "e5") == 'heading "Create account"'
     assert element_for(tree, "e4") == "main"
     assert element_for(tree, "e9") is None
+
+
+def test_unnamed_in_finds_the_nameless_control():
+    tree = '- textbox "Email" [ref=e1]\n- button [ref=e2]:\n  - img [ref=e3]'
+    assert unnamed_in(tree, ("button",)) == "button (no name)"
+    assert unnamed_in(tree, ("img",)) == "img (no name)"
+    assert unnamed_in('- button "Go" [ref=e1]', ("button",)) is None
+
+
+def test_page_wide_and_unnamed_signals_exist():
+    assert (PAGE_WIDE | set(UNNAMED)) <= set(fixes())

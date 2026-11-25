@@ -32,6 +32,10 @@ import { containerVariantsSlow, itemVariants, transition } from "@/lib/motion";
  */
 
 const SEEDS = [1, 2, 3, 4, 5];
+type Source = "test-app" | "html" | "file" | "url";
+// Roles the success check can match (agent.browser.goal_reached: role and name).
+const GOAL_ROLES = ["heading", "alert", "status", "button", "link", "dialog"];
+const MAX_HTML = 500_000;
 // Catalogue order: P1 to P14 (the API lists them by file name).
 const ORDER: PersonaId[] = PERSONA_ORDER;
 
@@ -42,6 +46,13 @@ export default function NewRun() {
   const [page, setPage] = useState("order-a");
   const [condition, setCondition] = useState<Condition>("persona");
   const [seed, setSeed] = useState("1");
+  const [source, setSource] = useState<Source>("test-app");
+  const [html, setHtml] = useState("");
+  const [fileName, setFileName] = useState<string | null>(null);
+  const [url, setUrl] = useState("");
+  const [task, setTask] = useState("");
+  const [goalRole, setGoalRole] = useState("heading");
+  const [goalName, setGoalName] = useState("");
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
 
@@ -59,13 +70,37 @@ export default function NewRun() {
   const chosen = options?.personas.find((p) => p.id === persona);
   const seedNumber = seed.trim() === "" ? null : Number(seed);
   const seedValid = seedNumber === null || (Number.isInteger(seedNumber) && seedNumber >= 0);
-  const canStart = Boolean(options && chosen?.built && page && seedValid && !starting);
+  const own = source !== "test-app";
+  const htmlReady = html.trim().length > 0 && html.length <= MAX_HTML;
+  const sourceReady = !own
+    ? Boolean(page)
+    : Boolean(task.trim() && goalName.trim()) &&
+      (source === "url" ? /^https?:\/\//.test(url.trim()) : htmlReady);
+  const canStart = Boolean(options && chosen?.built && sourceReady && seedValid && !starting);
+  const target = !own ? page : source === "url" ? url.trim() : (fileName ?? "your page");
+
+  async function readFile(file: File | undefined) {
+    if (!file) return;
+    setFileName(file.name);
+    setHtml(await file.text());
+  }
 
   async function start() {
     setStarting(true);
     setStartError(null);
     try {
-      const { run_id } = await startRun({ persona, page, condition, seed: seedNumber });
+      const ownPage = {
+        task: task.trim(),
+        goal_role: goalRole,
+        goal_name: goalName.trim(),
+        ...(source === "url" ? { url: url.trim() } : { html }),
+      };
+      const { run_id } = await startRun({
+        persona,
+        condition,
+        seed: seedNumber,
+        ...(own ? ownPage : { page }),
+      });
       navigate(`/runs/${run_id}`);
     } catch (e) {
       setStartError((e as Error).message);
@@ -86,8 +121,8 @@ export default function NewRun() {
           </motion.h1>
           <motion.p variants={itemVariants} className="mt-4 max-w-[58ch] text-ink-2">
             A real run: a language model attempts the task in a real browser, under the
-            persona's limits, and SimUX reports what failed. Pages come from the seeded test
-            app, each in a version A and B.
+            persona's limits, and SimUX reports what failed and what to change. Use a page from
+            the seeded test app (each in a buggy version A and a clean version B), or your own.
           </motion.p>
         </motion.div>
 
@@ -130,7 +165,125 @@ export default function NewRun() {
               <h2 id="page-heading" className="font-display text-xl font-bold text-ink">
                 Task and page
               </h2>
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <ToggleGroup
+                type="single"
+                value={source}
+                onValueChange={(v) => v && setSource(v as Source)}
+                className="mt-4 flex flex-wrap gap-3"
+                aria-label="Page source"
+              >
+                {(
+                  [
+                    ["test-app", "Seeded test app"],
+                    ["html", "Paste HTML"],
+                    ["file", "Upload .html"],
+                    ...(options.own_page?.url ? [["url", "Web address"]] : []),
+                  ] as [Source, string][]
+                ).map(([value, label]) => (
+                  <ToggleGroupItem
+                    key={value}
+                    value={value}
+                    className="w-auto rounded-full border border-rule px-4 py-2 font-mono text-sm data-[state=on]:bg-ink data-[state=on]:text-paper-raised"
+                  >
+                    {label}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+
+              {own && (
+                <div className="mt-6 grid gap-6 md:grid-cols-2">
+                  <div className="md:col-span-2">
+                    {source === "html" && (
+                      <>
+                        <Label htmlFor="html">Your page&apos;s HTML</Label>
+                        <textarea
+                          id="html"
+                          value={html}
+                          onChange={(e) => setHtml(e.target.value)}
+                          rows={10}
+                          spellCheck={false}
+                          placeholder="<!doctype html>"
+                          className="mt-2 w-full rounded-lg border border-rule bg-paper-raised p-3 font-mono text-[0.8125rem] text-ink"
+                        />
+                      </>
+                    )}
+                    {source === "file" && (
+                      <>
+                        <Label htmlFor="file">An .html file</Label>
+                        <Input
+                          id="file"
+                          type="file"
+                          accept=".html,.htm,text/html"
+                          onChange={(e) => readFile(e.target.files?.[0])}
+                          className="mt-2"
+                        />
+                      </>
+                    )}
+                    {source === "url" && (
+                      <>
+                        <Label htmlFor="url">Public web address</Label>
+                        <Input
+                          id="url"
+                          type="url"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder="https://example.com/checkout"
+                          className="mt-2"
+                        />
+                      </>
+                    )}
+                    {source !== "url" && (
+                      <p className="mt-2 text-xs text-ink-3">
+                        One self-contained page: inline CSS and scripts work. It runs offline, so
+                        it cannot load anything from other sites.
+                        {html.length > MAX_HTML && " This page is over the 500 KB limit."}
+                      </p>
+                    )}
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label htmlFor="task">Task, as a user would say it</Label>
+                    <Input
+                      id="task"
+                      value={task}
+                      onChange={(e) => setTask(e.target.value)}
+                      placeholder="Sign up with the name Sam Lee and the email sam@example.com"
+                      className="mt-2"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="goal-role">Done when the page shows a</Label>
+                    <select
+                      id="goal-role"
+                      value={goalRole}
+                      onChange={(e) => setGoalRole(e.target.value)}
+                      className="mt-2 h-10 w-full rounded-lg border border-rule bg-paper-raised px-3 font-mono text-sm text-ink"
+                    >
+                      {GOAL_ROLES.map((r) => (
+                        <option key={r} value={r}>
+                          {r}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <Label htmlFor="goal-name">with exactly this text</Label>
+                    <Input
+                      id="goal-name"
+                      value={goalName}
+                      onChange={(e) => setGoalName(e.target.value)}
+                      placeholder="Account created"
+                      className="mt-2"
+                    />
+                  </div>
+                  <p className="text-xs text-ink-3 md:col-span-2">
+                    The harness, not the model, decides success: the run succeeds only when that
+                    element is visible. Your page has no answer key, so you get findings and fixes,
+                    not a recall score.
+                  </p>
+                </div>
+              )}
+
+              <div className={cn("mt-4 grid gap-3 md:grid-cols-2", own && "hidden")}>
                 {tasks.map(([task, { text, pages }]) => (
                   <fieldset key={task} className="rounded-xl border border-rule p-4">
                     <legend className="px-1 font-mono text-[0.75rem] uppercase tracking-wide text-ink-3">
@@ -210,7 +363,7 @@ export default function NewRun() {
 
         <div className="mt-12 flex flex-wrap items-center gap-4">
           <Button size="lg" className="group" disabled={!canStart} onClick={start}>
-            {starting ? "Starting…" : `Start ${condition === "baseline" ? "baseline" : "run"} on ${page}`}
+            {starting ? "Starting…" : `Start ${condition === "baseline" ? "baseline" : "run"} on ${target}`}
             <ArrowRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" />
           </Button>
           {startError && (

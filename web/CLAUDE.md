@@ -6,13 +6,17 @@
 > `/runs/:runId` (`pages/LiveRun.tsx`), which streams a real run's steps and
 > shows its grounded findings through `hooks/useRun.ts`. Set
 > `VITE_SIMUX_API_URL` (see `.env.example`); local development expects
-> `uvicorn api.app:app --port 8000` from the repo root. The landing page,
-> `/running`, `/results`, `/results/:id` and `/correction` still read the
-> fixture through `useDemoRun()` and keep their "scripted" labels; they move
-> to the real API and the three spec personas (Error-prone, Memoryless,
-> Low-literacy) in Sprint 2. Rule 1 below ("nothing executes") now holds
-> only for those fixture screens. The repository-wide rules are in the root
-> `CLAUDE.md`.
+> `uvicorn api.app:app --port 8000` from the repo root. The repository-wide
+> rules are in the root `CLAUDE.md`.
+>
+> **Update, 25 Nov 2026.** New Run also takes your own page (paste HTML,
+> upload an .html file, or a web address when the API allows URLs), and each
+> finding shows the problem, where it is and the change to make. `/results`
+> is the measured evaluation, read from `src/data/evaluation.json` (copy of
+> `agent.compare`'s `table.json`). The scripted screens (`/running`,
+> `/results/:id`, `/correction`) and the dev pages were removed; only the
+> landing page's illustrations still read the fixture through
+> `useDemoRun()`. The history below describes the original POC.
 
 ## Original POC context
 

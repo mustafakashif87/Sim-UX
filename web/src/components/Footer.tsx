@@ -29,11 +29,11 @@ const EXPLORE_LINKS = [
   { to: "/#personas", label: "Personas" },
   { to: "/#how", label: "How it works" },
   { to: "/new-run", label: "See it in action" },
+  { to: "/results", label: "Results" },
 ];
 
 const ABOUT_LINKS = [
   { to: "/#standards", label: "Grounded in standards" },
-  { to: "/correction", label: "What's not built yet" },
 ];
 
 export function Footer() {
@@ -44,9 +44,9 @@ export function Footer() {
           <div className="max-w-[42ch]">
             <BrandMark inverse />
             <p className="mt-4 text-[0.9375rem] leading-relaxed text-paper/60">
-              A walkthrough of SimUX: personas that are genuinely restricted, not roleplayed,
-              attempting real tasks, grounding what they find in real sources, and proposing a fix
-              that gets sandboxed and verified before anyone trusts it.
+              SimUX: personas that are genuinely restricted, not roleplayed, attempting real
+              tasks in a real browser, grounding what they find in WCAG 2.2 and Nielsen, and
+              saying what to change on the page.
             </p>
           </div>
 

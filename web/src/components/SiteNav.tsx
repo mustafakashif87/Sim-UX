@@ -13,6 +13,7 @@ import { EASE } from "@/lib/motion";
 const SECTIONS = [
   { href: "#personas", label: "Personas" },
   { href: "#how", label: "How it works" },
+  { href: "/results", label: "Results" },
 ];
 
 const SHAPE = {

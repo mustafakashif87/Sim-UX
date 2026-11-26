@@ -3,7 +3,7 @@ evaluation (agent/keypool.py)."""
 
 import pytest
 
-from agent.keypool import KeyPool, clients_from_env, is_quota_error
+from agent.keypool import KeyPool, clients_from_env, is_dead_key_error, is_quota_error
 
 
 class FakeClient:
@@ -55,3 +55,9 @@ def test_quota_errors():
     assert is_quota_error("HTTP 429: retry after 652s; quota spent")
     assert is_quota_error("HTTP 429 after 5 attempts")
     assert not is_quota_error("HTTP 401: bad key")
+
+
+def test_dead_key_errors():
+    assert is_dead_key_error("HTTP 401: bad key")
+    assert not is_dead_key_error("HTTP 429: retry after 652s; quota spent")
+    assert not is_dead_key_error("HTTP 500: server error")

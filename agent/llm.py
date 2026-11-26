@@ -180,6 +180,7 @@ class LLMClient:
         max_invalid: int = 2,
         max_wait_s: float = 60.0,
         timeout_s: float = 60.0,
+        max_tokens: int | None = 300,
         post: Post | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ):
@@ -200,6 +201,7 @@ class LLMClient:
         self._max_attempts = max_attempts
         self._max_invalid = max_invalid
         self._max_wait_s = max_wait_s
+        self._max_tokens = max_tokens
         self._post = post or functools.partial(_urllib_post, timeout=timeout_s)
         self._sleep = sleep
 
@@ -219,7 +221,7 @@ class LLMClient:
     def next_action(self, task: str, observation: Observation, history: list) -> Action:
         messages = build_messages(task, observation, history)
         for _ in range(self._max_invalid + 1):
-            content = self._complete(messages)
+            content = self._complete(messages, max_tokens=self._max_tokens)
             try:
                 return parse_action(content)
             except ValidationError as e:
@@ -237,10 +239,11 @@ class LLMClient:
 
     def complete(self, messages: list[dict]) -> str:
         """One JSON reply to any chat, recorded and replayed like an action
-        reply. Used by the single-prompt comparison baseline."""
-        return self._complete(messages)
+        reply. Used by the single-prompt comparison baseline, which can list
+        several problems, so it is not held to the per-action reply cap."""
+        return self._complete(messages, max_tokens=None)
 
-    def _complete(self, messages: list[dict]) -> str:
+    def _complete(self, messages: list[dict], max_tokens: int | None) -> str:
         """One reply's text. Live, it always comes from the API and is recorded;
         a recording is read only in replay mode, so a live run can never be a
         replay in disguise."""
@@ -250,6 +253,8 @@ class LLMClient:
             "temperature": 0,
             "response_format": {"type": "json_object"},
         }
+        if max_tokens is not None:
+            request["max_tokens"] = max_tokens
         key = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
         cached = self._cache / f"{key}.json" if self._cache else None
         if self.replay:

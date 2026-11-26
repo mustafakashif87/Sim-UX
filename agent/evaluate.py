@@ -42,7 +42,7 @@ from pathlib import Path
 
 from agent import metrics
 from agent.detectors import detect, load_run
-from agent.keypool import KeyPool, clients_from_env, is_quota_error
+from agent.keypool import KeyPool, clients_from_env, is_dead_key_error, is_quota_error
 from agent.loop import Model, run
 from agent.persona import PERSONAS_DIR, for_condition, load_persona
 from agent.tasks import SeededBug, load_seeded_bugs, load_tasks, serve
@@ -177,7 +177,7 @@ def evaluate(
                     f"{row['status']}, {row['steps']} steps, "
                     f"signals: {row['signals'] or '-'} ({row['model_id']})"
                 )
-                if is_quota_error(row["error"]):
+                if is_quota_error(row["error"]) or is_dead_key_error(row["error"]):
                     if on_quota is not None and on_quota():
                         log("Key spent; switching to the next key for this model and retrying.")
                         continue

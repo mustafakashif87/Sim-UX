@@ -181,6 +181,7 @@ class LLMClient:
         max_wait_s: float = 60.0,
         timeout_s: float = 60.0,
         max_tokens: int | None = 300,
+        reasoning_effort: str | None = None,
         post: Post | None = None,
         sleep: Callable[[float], None] = time.sleep,
     ):
@@ -202,6 +203,7 @@ class LLMClient:
         self._max_invalid = max_invalid
         self._max_wait_s = max_wait_s
         self._max_tokens = max_tokens
+        self._reasoning_effort = reasoning_effort
         self._post = post or functools.partial(_urllib_post, timeout=timeout_s)
         self._sleep = sleep
 
@@ -255,6 +257,8 @@ class LLMClient:
         }
         if max_tokens is not None:
             request["max_tokens"] = max_tokens
+        if self._reasoning_effort is not None:  # Groq's gpt-oss models only; low/medium/high
+            request["reasoning_effort"] = self._reasoning_effort
         key = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
         cached = self._cache / f"{key}.json" if self._cache else None
         if self.replay:

@@ -339,6 +339,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", help="serve pages from this URL instead of test-app/")
     parser.add_argument("--replay", action="store_true", help="recorded replies only")
     parser.add_argument("--rescore", action="store_true", help="re-detect logged runs; no model")
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["low", "medium", "high"],
+        help="Groq gpt-oss models only; lower uses less hidden-reasoning quota",
+    )
     args = parser.parse_args(argv)
     if args.rescore:
         print(metrics.markdown(rescore(args.persona, args.out)))
@@ -350,7 +355,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"unknown condition; choose from {', '.join(CONDITIONS)}")
 
     pool = KeyPool(
-        clients_from_env(cache_dir=args.out / "llm-cache", replay=args.replay),
+        clients_from_env(
+            cache_dir=args.out / "llm-cache",
+            replay=args.replay,
+            reasoning_effort=args.reasoning_effort,
+        ),
         pinned_model=_pinned_model(args.out),
     )
     rows = evaluate(

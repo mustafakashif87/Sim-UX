@@ -111,6 +111,16 @@ class TestRequest:
         client(http, provider="groq", max_tokens=None).next_action("t", obs(), [])
         assert "max_tokens" not in http.requests[0][2]
 
+    def test_reasoning_effort_is_opt_in(self):
+        http = FakeHTTP(reply(CLICK))
+        client(http, provider="groq").next_action("t", obs(), [])
+        assert "reasoning_effort" not in http.requests[0][2]
+
+    def test_reasoning_effort_is_sent_when_set(self):
+        http = FakeHTTP(reply(CLICK))
+        client(http, provider="groq", reasoning_effort="low").next_action("t", obs(), [])
+        assert http.requests[0][2]["reasoning_effort"] == "low"
+
     def test_the_single_prompt_baseline_is_not_capped(self):
         http = FakeHTTP(reply(CLICK))
         client(http, provider="groq").complete([])

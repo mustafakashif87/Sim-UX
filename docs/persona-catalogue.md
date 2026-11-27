@@ -327,8 +327,8 @@ task_types: [complete_form, navigate_to_info]
 id: interrupted
 environment:
   interruptions:
-    - {at_step: 4, kind: idle, seconds: 900}
-    - {at_step: 8, kind: reload}
+    - {at_step: 2, kind: idle, seconds: 900}
+    - {at_step: 3, kind: reload}
 perception:
   filters: [full_tree]
 actions:

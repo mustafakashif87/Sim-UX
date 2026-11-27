@@ -132,8 +132,13 @@ def focus_not_visible(run: RunLog) -> Finding | None:
 def focus_order_illogical(run: RunLog) -> Finding | None:
     """A Tab press moved focus up the page to an element other than the
     first one Tab reaches (which is where focus wraps to), as positive
-    tabindex values do (WCAG 2.4.3). Boxes come from the logged facts."""
+    tabindex values do (WCAG 2.4.3). Boxes come from the logged facts.
+
+    Only the first return to that element is excused, as the one legitimate
+    end-of-page wrap; a positive-tabindex loop that revisits it again and
+    again (e.g. B16's filters page) is the bug, not a second wrap."""
     first_ref = None
+    excused_wrap = False
     evidence = []
     for step in run.steps:
         ex = step.executed_action
@@ -149,8 +154,11 @@ def focus_order_illogical(run: RunLog) -> Finding | None:
             first_ref = after.ref
         if before is None or after is None or not f0 or not f1:
             continue
+        if after.ref == first_ref and not excused_wrap:
+            excused_wrap = True
+            continue
         b0, b1 = f0["boxes"].get(before.ref), f1["boxes"].get(after.ref)
-        if not b0 or not b1 or after.ref == first_ref:
+        if not b0 or not b1:
             continue
         # compare page positions: box y is relative to the viewport
         y0, y1 = b0[1] + f0.get("scroll_y", 0), b1[1] + f1.get("scroll_y", 0)

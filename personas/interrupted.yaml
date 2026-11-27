@@ -1,11 +1,13 @@
 # P9 Interrupted user. Catalogue: "P9 Interrupted user".
-# Fifteen idle minutes before step 4 and a reload before step 8, on the page
+# Fifteen idle minutes before step 2 and a reload before step 3, on the page
 # clock (no real waiting); after each, the next step runs with no history.
+# Steps 4 and 8 landed after short tasks (application: 3 steps; survey: 8)
+# already finished, so the interruption never happened (handoff 2, 25 Nov).
 id: interrupted
 environment:
   interruptions:
-    - {at_step: 4, kind: idle, seconds: 900}
-    - {at_step: 8, kind: reload}
+    - {at_step: 2, kind: idle, seconds: 900}
+    - {at_step: 3, kind: reload}
 perception:
   filters: [full_tree]
 actions:

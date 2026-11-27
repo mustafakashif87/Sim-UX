@@ -387,7 +387,7 @@ For mid-eval we build the framework, P1 Error-prone user end to end, the determi
 - Perturbation rates are chosen by us, not calibrated against real user error data. The catalogue's Calibration section describes two ways to close this.
 - The test app is controlled and seeded; results will not transfer directly to real sites without further study.
 - The baseline is itself an LLM agent, so it can fail for unrelated reasons. A baseline failure makes that page inconclusive for attribution, and it is reported as such.
-- In the core set, Nielsen #4, #7, #8 and #10 are not covered by any persona, and #1 only partially (see Coverage). The extension personas cover all of them, #7, #8 and #10 at moderate strength. Until P4 to P14 are built and evaluated, this limitation stands in the report.
+- In the core set, Nielsen #4, #7, #8 and #10 are not covered by any persona, and #1 only partially (see Coverage). P4 to P14 are now built and close #4, #7, #8 and #10 at moderate strength (see Coverage), so the limitation is downgraded from "not covered" to "covered, moderate" rather than removed: the extension personas have not yet completed the full 5-seed evaluation protocol the core set has.
 - Extension personas are averages, not people. P14 (older adult) in particular is a bundle of published averages, not a description of older people. The report and the interface must say that SimUX does not replace testing with disabled or older users.
 - Temperature 0 reduces but does not remove run-to-run variation; this is why every result is reported as k out of 5.
 - P3's filter models vocabulary only. Long sentences and complex grammar pass through unchanged; a readability score (for example Flesch-Kincaid) is a possible later signal.

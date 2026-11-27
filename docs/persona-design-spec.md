@@ -315,7 +315,7 @@ CI runs on every pull request and every push to `main`. It needs no API key and 
 
 ### Continuous deployment
 
-Deployment runs automatically after a merge to `main`. Pull requests get previews where the host supports them.
+Deployment runs automatically after a merge to `main`. Pull requests get previews where the host supports them. `docs/deployment-diagram.svg` shows the full picture: repo, CI, the three deploy targets and where the LLM key and the end user sit.
 
 | Part | Target | Trigger |
 | --- | --- | --- |

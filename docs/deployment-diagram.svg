@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 640" font-family="Arial, Helvetica, sans-serif" font-size="14">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#333"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="980" height="640" fill="#ffffff"/>
+  <text x="490" y="28" text-anchor="middle" font-size="18" font-weight="bold">SimUX deployment</text>
+
+  <!-- Repo -->
+  <rect x="330" y="50" width="320" height="90" rx="6" fill="#eef2ff" stroke="#3b4a9e" stroke-width="1.5"/>
+  <text x="490" y="70" text-anchor="middle" font-weight="bold">mustafakashif87/Sim-UX</text>
+  <text x="490" y="90" text-anchor="middle" font-size="12">web/  api/  agent/  test-app/  grounding/</text>
+  <text x="490" y="108" text-anchor="middle" font-size="12">main (protected) &#8592; PRs with passing CI</text>
+  <text x="490" y="126" text-anchor="middle" font-size="12">GitHub Secrets: LLM_API_KEY, etc.</text>
+
+  <!-- CI -->
+  <rect x="340" y="175" width="300" height="60" rx="6" fill="#fff7e6" stroke="#9a7a1f" stroke-width="1.5"/>
+  <text x="490" y="198" text-anchor="middle" font-weight="bold">CI (GitHub Actions, on every PR)</text>
+  <text x="490" y="216" text-anchor="middle" font-size="12">ruff + pytest, seeds, e2e, web build, axe-core</text>
+
+  <line x1="490" y1="140" x2="490" y2="175" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- CD label -->
+  <text x="490" y="258" text-anchor="middle" font-size="12" fill="#555">CD on merge to main (after CI passes)</text>
+  <line x1="490" y1="235" x2="490" y2="270" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="490" y1="270" x2="150" y2="270" stroke="#333" stroke-width="1.5"/>
+  <line x1="490" y1="270" x2="490" y2="270" stroke="#333" stroke-width="1.5"/>
+  <line x1="490" y1="270" x2="820" y2="270" stroke="#333" stroke-width="1.5"/>
+  <line x1="150" y1="270" x2="150" y2="300" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="490" y1="270" x2="490" y2="300" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="820" y1="270" x2="820" y2="300" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- test-app -> GitHub Pages -->
+  <rect x="40" y="300" width="220" height="80" rx="6" fill="#eafbea" stroke="#1f7a33" stroke-width="1.5"/>
+  <text x="150" y="322" text-anchor="middle" font-weight="bold">GitHub Pages</text>
+  <text x="150" y="340" text-anchor="middle" font-size="12">test-app/ (seeded pages)</text>
+  <text x="150" y="358" text-anchor="middle" font-size="12">mustafakashif87.github.io/Sim-UX</text>
+  <text x="150" y="374" text-anchor="middle" font-size="11" fill="#555">deploys when test-app/ changes</text>
+
+  <!-- api -> GHCR -> Azure -->
+  <rect x="380" y="300" width="220" height="80" rx="6" fill="#fdeef0" stroke="#9e2f44" stroke-width="1.5"/>
+  <text x="490" y="322" text-anchor="middle" font-weight="bold">Azure Container Apps</text>
+  <text x="490" y="340" text-anchor="middle" font-size="12">api/ image, pulled from GHCR</text>
+  <text x="490" y="358" text-anchor="middle" font-size="12">FastAPI: /runs, /runs/{id}, /stream</text>
+  <text x="490" y="374" text-anchor="middle" font-size="11" fill="#555">long-running process; holds the LLM key</text>
+
+  <!-- web -> Vercel -->
+  <rect x="710" y="300" width="220" height="80" rx="6" fill="#eef2ff" stroke="#3b4a9e" stroke-width="1.5"/>
+  <text x="820" y="322" text-anchor="middle" font-weight="bold">Vercel</text>
+  <text x="820" y="340" text-anchor="middle" font-size="12">web/ (Vite + React)</text>
+  <text x="820" y="358" text-anchor="middle" font-size="12">sim-ux-tawny.vercel.app</text>
+  <text x="820" y="374" text-anchor="middle" font-size="11" fill="#555">prod on merge; preview per PR</text>
+
+  <!-- External LLM provider -->
+  <rect x="380" y="450" width="220" height="70" rx="6" fill="#f3f0ff" stroke="#5b3fa0" stroke-width="1.5"/>
+  <text x="490" y="474" text-anchor="middle" font-weight="bold">LLM provider</text>
+  <text x="490" y="492" text-anchor="middle" font-size="12">groq / openrouter / gemini / ollama</text>
+  <text x="490" y="508" text-anchor="middle" font-size="11" fill="#555">key from GitHub Secrets / host env</text>
+
+  <line x1="490" y1="380" x2="490" y2="450" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="500" y="415" font-size="11" fill="#555">model calls</text>
+
+  <!-- API drives Chromium against test-app -->
+  <path d="M 380,340 C 300,340 270,340 260,340" fill="none" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="270" y="300" font-size="11" fill="#555" text-anchor="middle">Playwright drives</text>
+  <text x="270" y="290" font-size="11" fill="#555" text-anchor="middle">headless Chromium</text>
+
+  <!-- Browser / examiner -->
+  <rect x="740" y="570" width="160" height="50" rx="6" fill="#f5f5f5" stroke="#555" stroke-width="1.5"/>
+  <text x="820" y="592" text-anchor="middle" font-weight="bold" font-size="13">End user / examiner</text>
+  <text x="820" y="608" text-anchor="middle" font-size="11" fill="#555">browser</text>
+
+  <line x1="820" y1="570" x2="820" y2="380" stroke="#333" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="900" y="470" font-size="11" fill="#555" text-anchor="middle">views</text>
+
+  <path d="M 740,595 C 600,595 500,470 490,380" fill="none" stroke="#333" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow)"/>
+  <text x="620" y="500" font-size="11" fill="#555">POST /runs, GET /runs/{id}/stream</text>
+</svg>

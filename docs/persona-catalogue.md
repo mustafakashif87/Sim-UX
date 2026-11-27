@@ -684,7 +684,7 @@ New detectors: 30 signals, of which 28 are deterministic (`headings_not_descript
 ## Open decisions
 
 - [ ] **Supervisor sign-off** on extending from 3 to 14 personas. Record it in the Panel Action Register as scope growth. Present P1 to P3 as the core that is fully evaluated, and P4 to P14 as the extension.
-- [ ] Update the spec's Coverage section and Known limitations (the #4, #7, #8 and #10 limitation becomes "covered, moderate").
+- [x] Update the spec's Coverage section and Known limitations (the #4, #7, #8 and #10 limitation becomes "covered, moderate"). Coverage's extension column already named this; updated Known limitations' wording to match now that P4 to P14 are built (the full 5-seed evaluation is still outstanding, so "moderate" stands rather than being cleared).
 - [ ] Add the Environment axis to the spec's framework table and flowchart.
 - [ ] Choose the calibration route (literature or user study). A user study needs ethics approval.
 - [ ] Contents of the help lexicon (P11) and how `optimal_steps` is measured (P13).

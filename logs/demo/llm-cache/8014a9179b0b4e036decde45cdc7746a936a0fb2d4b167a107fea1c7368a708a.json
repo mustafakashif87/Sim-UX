@@ -9,13 +9,14 @@
    },
    {
     "role": "user",
-    "content": "Task: Create an account for Sam Khan with the email address sam.khan@example.com.\n\nStep 0. Page: /signup-b.html\nFocused: nothing\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Create account\" [level=1] [ref=e5]\n  - text: Full name\n  - textbox \"Full name\" [ref=e6]\n  - text: Email address\n  - textbox \"Email address\" [ref=e7]\n  - alert [ref=e8]\n  - button \"Create account\" [ref=e9]"
+    "content": "Task: Create an account for Sam Khan with the email address sam.khan@example.com.\n\nStep 0. Page: /signup-a.html\nFocused: nothing\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Create account\" [level=1] [ref=e5]\n  - text: Full name\n  - textbox \"Full name\" [ref=e6]\n  - text: Email address\n  - textbox \"Email address\" [ref=e7]\n  - alert [ref=e8]\n  - button \"Create account\" [ref=e9]"
    }
   ],
   "temperature": 0,
   "response_format": {
    "type": "json_object"
-  }
+  },
+  "max_tokens": 300
  },
  "content": "{\"thought\":\"Enter full name\",\"action\":\"type\",\"ref\":\"e6\",\"text\":\"Sam Khan\",\"key\":null}"
 }

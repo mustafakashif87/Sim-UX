@@ -52,6 +52,13 @@ def is_quota_error(error: str) -> bool:
     return "quota spent" in error or "HTTP 429" in error
 
 
+def is_dead_key_error(error: str) -> bool:
+    """A key that will never work again (HTTP 401: expired or revoked). The
+    pool should move on exactly as it does for a spent quota, instead of
+    retrying the same dead key on every later job."""
+    return "HTTP 401" in error
+
+
 class KeyPool:
     def __init__(self, clients: list, pinned_model: str | None = None):
         if not clients:

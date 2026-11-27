@@ -101,6 +101,31 @@ class TestRequest:
         assert body["temperature"] == 0 and body["response_format"] == {"type": "json_object"}
         assert body["model"] == "openai/gpt-oss-120b"
 
+    def test_max_tokens_caps_the_reply(self):
+        http = FakeHTTP(reply(CLICK))
+        client(http, provider="groq").next_action("t", obs(), [])
+        assert http.requests[0][2]["max_tokens"] == 300
+
+    def test_max_tokens_none_sends_no_cap(self):
+        http = FakeHTTP(reply(CLICK))
+        client(http, provider="groq", max_tokens=None).next_action("t", obs(), [])
+        assert "max_tokens" not in http.requests[0][2]
+
+    def test_reasoning_effort_is_opt_in(self):
+        http = FakeHTTP(reply(CLICK))
+        client(http, provider="groq").next_action("t", obs(), [])
+        assert "reasoning_effort" not in http.requests[0][2]
+
+    def test_reasoning_effort_is_sent_when_set(self):
+        http = FakeHTTP(reply(CLICK))
+        client(http, provider="groq", reasoning_effort="low").next_action("t", obs(), [])
+        assert http.requests[0][2]["reasoning_effort"] == "low"
+
+    def test_the_single_prompt_baseline_is_not_capped(self):
+        http = FakeHTTP(reply(CLICK))
+        client(http, provider="groq").complete([])
+        assert "max_tokens" not in http.requests[0][2]
+
     def test_model_id_names_provider_and_model(self):
         c = client(FakeHTTP(), provider="openrouter", model="some/model")
         assert c.model_id == "openrouter/some/model"

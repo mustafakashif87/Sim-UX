@@ -42,7 +42,7 @@ from pathlib import Path
 
 from agent import metrics
 from agent.detectors import detect, load_run
-from agent.keypool import KeyPool, clients_from_env, is_quota_error
+from agent.keypool import KeyPool, clients_from_env, is_dead_key_error, is_quota_error
 from agent.loop import Model, run
 from agent.persona import PERSONAS_DIR, for_condition, load_persona
 from agent.tasks import SeededBug, load_seeded_bugs, load_tasks, serve
@@ -177,7 +177,7 @@ def evaluate(
                     f"{row['status']}, {row['steps']} steps, "
                     f"signals: {row['signals'] or '-'} ({row['model_id']})"
                 )
-                if is_quota_error(row["error"]):
+                if is_quota_error(row["error"]) or is_dead_key_error(row["error"]):
                     if on_quota is not None and on_quota():
                         log("Key spent; switching to the next key for this model and retrying.")
                         continue
@@ -339,6 +339,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--base", help="serve pages from this URL instead of test-app/")
     parser.add_argument("--replay", action="store_true", help="recorded replies only")
     parser.add_argument("--rescore", action="store_true", help="re-detect logged runs; no model")
+    parser.add_argument(
+        "--reasoning-effort",
+        choices=["low", "medium", "high"],
+        help="Groq gpt-oss models only; lower uses less hidden-reasoning quota",
+    )
     args = parser.parse_args(argv)
     if args.rescore:
         print(metrics.markdown(rescore(args.persona, args.out)))
@@ -350,7 +355,11 @@ def main(argv: list[str] | None = None) -> int:
         parser.error(f"unknown condition; choose from {', '.join(CONDITIONS)}")
 
     pool = KeyPool(
-        clients_from_env(cache_dir=args.out / "llm-cache", replay=args.replay),
+        clients_from_env(
+            cache_dir=args.out / "llm-cache",
+            replay=args.replay,
+            reasoning_effort=args.reasoning_effort,
+        ),
         pinned_model=_pinned_model(args.out),
     )
     rows = evaluate(

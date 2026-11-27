@@ -39,7 +39,8 @@
   "temperature": 0,
   "response_format": {
    "type": "json_object"
-  }
+  },
+  "max_tokens": 300
  },
  "content": "{\"thought\":\"Submit the form now that fields are filled\",\"action\":\"click\",\"ref\":\"e9\",\"text\":null,\"key\":null}"
 }

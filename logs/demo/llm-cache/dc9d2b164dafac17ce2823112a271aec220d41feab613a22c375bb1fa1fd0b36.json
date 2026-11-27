@@ -39,7 +39,8 @@
   "temperature": 0,
   "response_format": {
    "type": "json_object"
-  }
+  },
+  "max_tokens": 300
  },
  "content": "{\"thought\":\"Enter full name then submit\",\"action\":\"type\",\"ref\":\"e6\",\"text\":\"Sam Khan\",\"key\":null}"
 }

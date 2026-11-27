@@ -18,28 +18,13 @@
    {
     "role": "user",
     "content": "Step 1. Page: /signup-a.html\nFocused: textbox \"Full name\" [ref=e6]\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Create account\" [level=1] [ref=e5]\n  - text: Full name\n  - textbox \"Full name\" [ref=e6]: Sam Khan\n  - text: Email address\n  - textbox \"Email address\" [ref=e7]\n  - alert [ref=e8]\n  - button \"Create account\" [ref=e9]"
-   },
-   {
-    "role": "assistant",
-    "content": "{\"thought\":\"Enter email address\",\"action\":\"type\",\"ref\":\"e7\",\"text\":\"sam.khan@example.com\",\"key\":null}"
-   },
-   {
-    "role": "user",
-    "content": "Step 2. Page: /signup-a.html\nFocused: textbox \"Full name\" [ref=e6]\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Create account\" [level=1] [ref=e5]\n  - text: Full name\n  - textbox \"Full name\" [ref=e6]: Sam Khan\n  - text: Email address\n  - textbox \"Email address\" [ref=e7]\n  - alert [ref=e8]\n  - button \"Create account\" [ref=e9]"
-   },
-   {
-    "role": "assistant",
-    "content": "{\"thought\":\"Submit the form\",\"action\":\"click\",\"ref\":\"e9\",\"text\":null,\"key\":null}"
-   },
-   {
-    "role": "user",
-    "content": "Step 3. Page: /signup-a.html\nFocused: button \"Create account\" [ref=e9]\nAccessibility tree:\n- banner [ref=e1]:\n  - text: SimShop\n  - navigation \"Site\" [ref=e2]:\n    - link \"All pages\" [ref=e3]:\n      - /url: index.html\n- main [ref=e4]:\n  - heading \"Create account\" [level=1] [ref=e5]\n  - text: Full name\n  - textbox \"Full name\" [ref=e6]\n  - text: Email address\n  - textbox \"Email address\" [invalid] [ref=e7]\n  - alert [ref=e8]: Enter an email address like name@example.com.\n  - button \"Create account\" [ref=e9]"
    }
   ],
   "temperature": 0,
   "response_format": {
    "type": "json_object"
-  }
+  },
+  "max_tokens": 300
  },
- "content": "{\"thought\":\"Re-enter valid email address\",\"action\":\"type\",\"ref\":\"e7\",\"text\":\"sam.khan@example.com\",\"key\":null}"
+ "content": "{\"thought\":\"Enter email address\",\"action\":\"type\",\"ref\":\"e7\",\"text\":\"sam.khan@example.com\",\"key\":null}"
 }

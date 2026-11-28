@@ -1,0 +1,151 @@
+{
+  "summary": {
+    "runs": 60,
+    "excluded": 0,
+    "recall": 0.0,
+    "found_recall": 0.0,
+    "precision": 1.0,
+    "false_positive_rate": 0.0,
+    "citation_validity": 1.0,
+    "mean_steps": 2.98,
+    "mean_seconds": 13.45,
+    "stable_bugs": 0,
+    "attributed_bugs": 0,
+    "found_bugs": 0,
+    "bugs": 4
+  },
+  "bugs": [
+    {
+      "bug": "B1",
+      "signal": "data_loss_on_error",
+      "rates": {
+        "persona_buggy": [
+          2,
+          5
+        ],
+        "baseline_buggy": [
+          0,
+          5
+        ],
+        "persona_clean": [
+          0,
+          5
+        ]
+      },
+      "triggered": [
+        2,
+        5
+      ],
+      "detected_given_trigger": [
+        2,
+        2
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B2",
+      "signal": "error_not_identified",
+      "rates": {
+        "persona_buggy": [
+          1,
+          5
+        ],
+        "baseline_buggy": [
+          0,
+          5
+        ],
+        "persona_clean": [
+          0,
+          5
+        ]
+      },
+      "triggered": [
+        1,
+        5
+      ],
+      "detected_given_trigger": [
+        1,
+        1
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B3",
+      "signal": "error_not_actionable",
+      "rates": {
+        "persona_buggy": [
+          2,
+          5
+        ],
+        "baseline_buggy": [
+          0,
+          5
+        ],
+        "persona_clean": [
+          0,
+          5
+        ]
+      },
+      "triggered": [
+        2,
+        5
+      ],
+      "detected_given_trigger": [
+        2,
+        2
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    },
+    {
+      "bug": "B4",
+      "signal": "duplicate_submission",
+      "rates": {
+        "persona_buggy": [
+          1,
+          5
+        ],
+        "baseline_buggy": [
+          0,
+          5
+        ],
+        "persona_clean": [
+          0,
+          5
+        ]
+      },
+      "triggered": [
+        1,
+        5
+      ],
+      "detected_given_trigger": [
+        1,
+        1
+      ],
+      "stable": false,
+      "attributed": false,
+      "found": false,
+      "forced": [
+        0,
+        0
+      ]
+    }
+  ]
+}

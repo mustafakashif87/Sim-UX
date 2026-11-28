@@ -9,10 +9,25 @@ on:
   workflow_dispatch:
     inputs:
       persona:
-        description: Persona config ID
+        description: Persona config ID (P1 to P14, in order)
         default: error_prone
         type: choice
-        options: [error_prone, memoryless, low_literacy]
+        # One per file in personas/, ordered by persona number. Add new ones here.
+        options:
+          - error_prone      # P1
+          - memoryless       # P2
+          - low_literacy     # P3
+          - screen_reader    # P4
+          - keyboard_only    # P5
+          - touch_imprecise  # P6
+          - low_vision_zoom  # P7
+          - skimmer          # P8
+          - interrupted      # P9
+          - slow_network     # P10
+          - help_seeker      # P11
+          - habitual         # P12
+          - power_user       # P13
+          - older_adult      # P14
       seeds:
         description: Runs per page per condition
         default: "5"

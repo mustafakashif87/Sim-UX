@@ -1,4 +1,7 @@
 version: 2
+# Minor and patch updates come as one grouped pull request per ecosystem each
+# week, so they do not conflict with each other in the same file. Major
+# updates still come one per pull request, since each may need code changes.
 updates:
   - package-ecosystem: github-actions
     directory: /
@@ -7,6 +10,9 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: ci
+    groups:
+      actions-minor-patch:
+        update-types: [minor, patch]
   - package-ecosystem: pip
     directory: /
     schedule:
@@ -14,4 +20,19 @@ updates:
     open-pull-requests-limit: 10
     commit-message:
       prefix: deps
-  # Add an npm entry for /web once the web interface moves in.
+    groups:
+      pip-minor-patch:
+        update-types: [minor, patch]
+        # Playwright stays on its own: the Dockerfile's base image tag and its
+        # `playwright==` pin must move with it, by hand, in the same PR.
+        exclude-patterns: [playwright]
+  - package-ecosystem: npm
+    directory: /web
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: web
+    groups:
+      web-minor-patch:
+        update-types: [minor, patch]

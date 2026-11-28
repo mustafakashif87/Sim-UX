@@ -18,7 +18,7 @@ simux = "agent.cli:main"
 [project.optional-dependencies]
 dev = [
     "httpx>=0.28.1",  # FastAPI's TestClient, for tests/test_api.py
-    "lefthook>=2.2.2",
+    "lefthook>=2.2.3",
     "pytest>=9.2.0",
     "ruff>=0.17.5",
 ]
